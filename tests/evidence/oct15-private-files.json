@@ -1,0 +1,110 @@
+{
+  "description": "Fingerprints of the 21 private files supplied October 15, 2026. Full DATs and raw diagnostics are not distributed.",
+  "files": [
+    {
+      "name": "MINI5_FACTORY_ORIGINAL_BT.dat",
+      "bytes": 88868,
+      "sha256": "fdcc862193c89d9e62cbaa49af0bac454d1b7f3fb9df9c50704499a5c56dabe0"
+    },
+    {
+      "name": "F02-F03-COMBINED.json",
+      "bytes": 136340,
+      "sha256": "9009251f8e180aa13ddb0d7195561404c577c65d31b3b791db6f19e7d6575e68"
+    },
+    {
+      "name": "F02-F03-COMBINED.dat",
+      "bytes": 77920,
+      "sha256": "0e9b5e23209446a8aecaa50e621da6d7e74b790fe64ed2e2fbba74e72d8d1401"
+    },
+    {
+      "name": "F03-SAME-RADIO.dat",
+      "bytes": 77920,
+      "sha256": "7b0365204312dbd22946b272143b1b672268787979b663fa9a0e958d72de40e4"
+    },
+    {
+      "name": "F02-SAME-RADIO.json",
+      "bytes": 136076,
+      "sha256": "536886996a44bd1e98f72ad8242faeab1806243c4b9f459fc03ebfc8c0b93b3b"
+    },
+    {
+      "name": "F02-SAME-RADIO.dat",
+      "bytes": 77218,
+      "sha256": "1c891eb48a7ba8384d151fb618cf13939d4f8b816887c0fc747b54498eecac78"
+    },
+    {
+      "name": "F03-AFTER.json",
+      "bytes": 136076,
+      "sha256": "0a0e17769221926dc69415605d91a0fe62aca572fcd4587f7d3bd69b92595369"
+    },
+    {
+      "name": "F03-COMBINED-TEST.dat",
+      "bytes": 77920,
+      "sha256": "7b0365204312dbd22946b272143b1b672268787979b663fa9a0e958d72de40e4"
+    },
+    {
+      "name": "F02-AFTER.json",
+      "bytes": 135812,
+      "sha256": "5d6e0d54f2c09cb05efad129edee8d2d89ef353f75e660bc5bb7947373cd3419"
+    },
+    {
+      "name": "F02-COMBINED-TEST.dat",
+      "bytes": 77920,
+      "sha256": "cbfe52aeca07d9a494c6fb51091cef5ddb94f49452051ed9314d2c34a886ed3a"
+    },
+    {
+      "name": "mini5-diagnostic.json",
+      "bytes": 68085,
+      "sha256": "7ae2cb681038433f84a2d46ce217f26fd7bebeb814881225edde263a0bdb2a44"
+    },
+    {
+      "name": "F08-CHANNEL999.dat",
+      "bytes": 85946,
+      "sha256": "0ce78c29cd04cfbb1e48bc5fdceb33c2d32a3202a95f9b413b6c55fef2c17b80"
+    },
+    {
+      "name": "F03-PLUS-GROUP17.dat",
+      "bytes": 85932,
+      "sha256": "55d5b69308333aac2c280ee0b0a13cffe6319de68d40f2a3b0debe451a83bf2c"
+    },
+    {
+      "name": "F03-PLUS.dat",
+      "bytes": 85932,
+      "sha256": "04fcfea318a79e2c3e610b791fd60ecfdd20773b40fe3f4c7fc76391787cd444"
+    },
+    {
+      "name": "MINI5_BLUETOOTH_FACTORY_RESAVED.dat",
+      "bytes": 85932,
+      "sha256": "a74eb22c6bb383e6c6314cbb1d14143944f779d82d632227888b7daef52e46a3"
+    },
+    {
+      "name": "MINI5_FACTORY_ORIGINAL_cable_CPS.dat",
+      "bytes": 77920,
+      "sha256": "9e912bc6b1ea7df71951292d016650c952a5452aa2d796765750223cc167e847"
+    },
+    {
+      "name": "F03-GROUP17.dat",
+      "bytes": 85932,
+      "sha256": "8c4af851a0a72b3a4f6007d32efd61a8acb3700dc87d7b488fe0c240b3794865"
+    },
+    {
+      "name": "F02-VFOA-SQUELCH-COMBINED.dat",
+      "bytes": 88868,
+      "sha256": "3242d8a6351cdc4e2e7bd445fcff94d822ec34df7c0baaa59906892c453a4e4c"
+    },
+    {
+      "name": "F02-VFO-PTT-BOTH.dat",
+      "bytes": 88868,
+      "sha256": "c7d4d54bdaaf85dac2833dff829b9e9a51866277e2a8bedcf54951fa76ea104c"
+    },
+    {
+      "name": "F02-PTT-3000ms.dat",
+      "bytes": 88868,
+      "sha256": "b9bb5c760fbff3c954b2e76fbbf123eb0abd0c4037e3056953e1914d54f278ab"
+    },
+    {
+      "name": "F02-PTT-100ms.dat",
+      "bytes": 88868,
+      "sha256": "a11c18ac64315918b8073bad7119e15ec0054fe0e1de1b2def323f0d84a9ef00"
+    }
+  ]
+}

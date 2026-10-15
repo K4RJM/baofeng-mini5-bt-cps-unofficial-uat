@@ -20,12 +20,23 @@ The wired factory CPS display/default issue and its later write resetting delay 
 
 ## Current finding status
 
+### October 15 supplied-file evidence update
+
+All 21 newly supplied files were inspected offline. All 16 native DATs preserve their fields through export/reimport; three matched DAT/capture pairs agree on every decoded field and all 33,344 planned bytes. Two directly verify the corrected F02 high codes. This strengthens F02's evidence without changing its implementation or the finding count.
+
+- **F01 remains open:** the original capture has one unmapped byte at radio `0x9018` that reconstruction changes from decoded 1 to 0. Its purpose is unknown; no write-policy change is made.
+- **F03 remains open:** three distinct factory DATs (Off/group 17, Plus/group 1, Plus/group 17) produce identical complete images in the current encoder. Only the combined case has a matching independent raw capture, so a replacement mapping is not established.
+- **F08 remains open:** the supplied native channel-999 file round-trips, but no corresponding populated raw capture establishes radio mapping. The planner's existing guard stays enforced.
+- **F13 remains open:** independent evidence coverage improves; the remaining field, browser and physical behavior coverage is still incomplete.
+
+See [the detailed evidence and file-pairing limits](F02-F03-EVIDENCE-2026-10-15.md). The optional `scripts/check-oct15-evidence.mjs` replays these checks against private originals. No application code, radio operation or version change is included in this evidence update.
+
 | Status | Findings |
 | --- | --- |
 | Corrected | F02, F04, F09, F11, F12, F14, F15 |
 | Open | F01, F03, F05, F06, F07, F08, F10, F13 |
 
-F03 remains open: the reported factory A Plus/group 17 byte 0x10 and retained native frames do not establish an unambiguous mapping across the full domain; CHIRP describes a conflicting bit split. Physical VFO B signaling and actual timing still require verification. Other open findings retain their earlier evidence requirements. F13 has more regression coverage but remains open.
+F03 remains open: the supplied factory DATs, captured A Plus/group 17 byte 0x10 and retained native frames do not establish an unambiguous mapping across the full domain; CHIRP describes a conflicting bit split. Physical VFO B signaling and actual timing still require verification. Other open findings retain their earlier evidence requirements. F13 has more regression coverage but remains open.
 
 ## Deployment and rollback
 

@@ -6,6 +6,8 @@ Seven new codec regressions failed before the decoder correction. Coverage inclu
 
 All 1,042 retained native encoder frames (66,688 bytes) match. The historical native varied-read fixture loses both squelch code-2 values; its comparison now explicitly expects exactly those two F02 differences, preserving the original artifact. No general oracle normalization was added.
 
+The subsequent 21-file evidence review adds 16 successful native DAT semantic round trips and three independent DAT/raw-capture pairs matching every decoded field and all 33,344 image bytes. Two pairs directly preserve the confirmed F02 high codes. `node scripts/check-oct15-evidence.mjs <private-evidence-directory>` reproduces these results and explicitly characterizes still-open F01, F03 and F08. Full details and the mismatched same-radio file-pair limitation are in the [evidence review](F02-F03-EVIDENCE-2026-10-15.md). Originals remain private; the public manifest contains only filenames, sizes and hashes.
+
 All ten other protected files are byte-identical to v20.10. The decoder manifest records its old hash and evidence. Encoder, writer, reader, memory layout and connection-recovery code are unchanged. No physical radio operation was performed. Physical timing and VFO B behavior remain pending.
 
 The separate UAT deployment was verified in the browser with its development banner and commit-specific version. It has its own Pages workflow and no LIVE deployment credential. The original LIVE workflow remains unchanged.
