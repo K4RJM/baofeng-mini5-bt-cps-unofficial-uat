@@ -16,7 +16,11 @@ for(const [input,capture]of [['work/cps-write-input.json','outputs/cps-write-cap
 for(const label of ['base','varied']){
  const raw=new Uint8Array(fs.readFileSync(path.join(directory,'work/decoder-'+label+'.img'))).slice(0,33344);
  const native=readDat(fs.readFileSync(path.join(directory,'work/native-read-'+label+'.dat')),schemas);
- assert.deepEqual(decodeRadio(raw),native);assert.deepEqual(readDat(radioDat(raw,schemas),schemas),native);
+ // The old native VFO read oracle incorrectly reduces MuteMode 2 to 0.
+ // Retain its result as historical evidence; allow only these two documented F02 differences.
+ const expected=structuredClone(native);
+ if(label==='varied'){assert.equal(native.vfos.vfoASQMode,0);assert.equal(native.vfos.vfoBSQMode,0);expected.vfos.vfoASQMode=2;expected.vfos.vfoBSQMode=2;}
+ assert.deepEqual(decodeRadio(raw),expected);assert.deepEqual(readDat(radioDat(raw,schemas),schemas),expected);
  assert.deepEqual(readDat(writeDat(native,schemas),schemas),native);
 }
-console.log(JSON.stringify({nativeFramesCompared:frames,nativePayloadBytesCompared:frames*64,retainedDecoderFixtures:2,physicalRadioAccess:false,notes:'Historical finite fixtures; settings in the retained decoder oracle include hand-transcribed rules. This does not close F02, F03 or F13.'},null,2));
+console.log(JSON.stringify({nativeFramesCompared:frames,nativePayloadBytesCompared:frames*64,retainedDecoderFixtures:2,physicalRadioAccess:false,notes:'Historical finite fixtures; two documented F02 MuteMode differences from the old native read oracle are expected. Settings rules also include hand-transcribed code. This does not close F03 or F13.'},null,2));

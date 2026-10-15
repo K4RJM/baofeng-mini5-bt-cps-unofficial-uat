@@ -1,4 +1,39 @@
-# Audit remediation — v20.10
+# Audit remediation — v20.11
+
+Date: October 15, 2026. Baseline: LIVE v20.10, commit 02b5a1dd02a166261590ad679a92723994911d09.
+
+**Seven of the 15 findings are corrected; eight remain open.** This release corrects F02 only. F03 investigation adds evidence and regression coverage without changing its packing. The maintainer authorized publishing these tested corrections to LIVE and clarified that the permanent UAT site is for future development.
+
+## Corrected in v20.11
+
+F02: preserve PTT delay codes 0–28, VFO PTT-ID 0–3 and both VFO squelch codes 0–2 directly from their stored bytes. Existing UI options and writer validation already support these values. Unknown values remain unrecognized and are blocked by the unchanged write validator. The encoder, transport, command order, full 262-block write, acknowledgements, no-retry rule, disconnect/reset behavior and write protections are unchanged.
+
+The wired factory CPS display/default issue and its later write resetting delay to 0 are documented separately from our Bluetooth decoder defect. No firmware defect or Bluetooth-app cause is inferred from those factory observations. See [F02/F03 evidence and physical checks](F02-F03-EVIDENCE-2026-10-15.md).
+
+## Verification
+
+- Full suite: **65 passing, 5 explicitly marked TODO failures, 0 unexpected failures** (70 tests). The remaining TODOs reproduce F01, F03, F05, F07 and F10.
+- Seven F02 codec tests failed on the old decoder before passing with this change; all 39 supported single-field codes, 216 combined settings cases, fixed byte fixtures, unknown-code rejection and editor/DAT preservation are covered.
+- All 120 F03 direction/group combinations are exercised by its still-open round-trip test. Separate characterization tests show the 60-to-52 packing collision and retained factory byte examples without claiming resolution.
+- Private native encoder comparison: all 1,042 frames / 66,688 bytes still match. Two retained decoder fixtures pass with exactly two documented F02 squelch corrections to the old native read oracle.
+- Only radio-decoder.mjs changes executable protected-core logic. All ten other protected files are byte-identical to v20.10. No physical radio connection, read or write was performed.
+
+## Current finding status
+
+| Status | Findings |
+| --- | --- |
+| Corrected | F02, F04, F09, F11, F12, F14, F15 |
+| Open | F01, F03, F05, F06, F07, F08, F10, F13 |
+
+F03 remains open: the reported factory A Plus/group 17 byte 0x10 and retained native frames do not establish an unambiguous mapping across the full domain; CHIRP describes a conflicting bit split. Physical VFO B signaling and actual timing still require verification. Other open findings retain their earlier evidence requirements. F13 has more regression coverage but remains open.
+
+## Deployment and rollback
+
+[Permanent UAT](https://k4rjm.github.io/baofeng-mini5-bt-cps-unofficial-uat/) uses its own repository, version banner and automatic deployment. UAT changes cannot publish to LIVE through that workflow. [Deployment instructions](DEPLOYMENT.md) cover isolated promotion and rollback to the saved v20.10 reference. No unfinished features are included with this correction.
+
+---
+
+# Historical remediation record — v20.10
 
 Date: October 14, 2026. Baseline: app commit `14cfb85498b682545f221e4345503739d70ae3e9`, published with the audit at `2a7946153dcf1ee494248ddea18132869e454a69`.
 

@@ -5,7 +5,7 @@
     "validation.mjs": "8699bdcd0f68dc816a015031c86e3031eb7ea4a066056129b35c962c66388b24",
     "writer.mjs": "7af4db87d813b597f179a87bff25e51418c645c2436ec8d029927f84f2ef2d73",
     "radio-encoder.mjs": "9c7f7fd9c327d2c93e02cfd736d8806fbde7131fad775abe94ed23dba03d2455",
-    "radio-decoder.mjs": "abe095c7b4a10670bafc7954cc23271e0ee6d23c0ff74b33b8ff71318b186378",
+    "radio-decoder.mjs": "ce82646b1c1b5dcf61f1ba799d9c8eb4c1fa065642f6986c0880ac5aa544cdef",
     "schemas.json": "1423bf5a130230dd03b5b775fe7656ed8084fce42ac0c4a79af1d36f6053c6c7",
     "function-options.json": "e26d5f139ee8661a397c537fe2aed12042dd04a895b39ca6868b08f056128310",
     "editor-options.json": "d2908363cb8dc154ebc39995ae5388919d37f99c54910d1f327513e808ffa40f",
@@ -26,6 +26,17 @@
         "radio-encoder.mjs": "c6f324d33259548e832a437256a201a7211cc75903ab954532fc7c374c5c55d6"
       },
       "evidence": "docs/AUDIT-REMEDIATION.md"
+    },
+    {
+      "date": "2026-10-15",
+      "scope": "Maintainer-authorized F02 decoder correction using reported hardware evidence at 0x900C, 0x900B and 0x801B. Preserve direct byte values, including matching VFO B squelch storage; reject unknown values through unchanged writer validation. No encoder, transport or connection-reset changes.",
+      "files": [
+        "radio-decoder.mjs"
+      ],
+      "baselineSha256": {
+        "radio-decoder.mjs": "abe095c7b4a10670bafc7954cc23271e0ee6d23c0ff74b33b8ff71318b186378"
+      },
+      "evidence": "docs/F02-F03-EVIDENCE-2026-10-15.md"
     }
   ]
 }

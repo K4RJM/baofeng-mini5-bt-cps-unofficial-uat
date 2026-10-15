@@ -6,11 +6,15 @@ This separate repository automatically tests and deploys its main branch to UAT 
 
 Promote only explicitly reviewed application commits/patches onto the current LIVE branch; never copy the UAT workflow or stamp script to LIVE. Keep each correction separate from experimental features. Roll back either environment by reverting the specific change in its own repository and letting its test/deploy workflow run; do not reset or force-push shared history.
 
+Current development baseline: LIVE v20.11, commit 5e3d4c8ec7d3c24ff5c6aae5cebe6a24ed915340.
+
 # Baofeng Mini 5 BT CPS – Unofficial
 
 Free, noncommercial browser software by K4RJM, hosted on GitHub Pages.
 
-**Current release: v20.10.** Six audit findings are corrected: DAT resource limits, channel-only Undo, retained read diagnostics, unsaved-edit tracking, dialog names and verification documentation. Nine findings remain open. See the [remediation tracker](docs/AUDIT-REMEDIATION.md) and [current verification](docs/VERIFICATION.md).
+**Current release: v20.11.** F02 now preserves the supported PTT delay, VFO PTT-ID and VFO squelch codes during radio decoding. Seven audit findings are corrected and eight remain open. F03 packing is unchanged pending unambiguous evidence. See the [remediation tracker](docs/AUDIT-REMEDIATION.md), [evidence review](docs/F02-F03-EVIDENCE-2026-10-15.md) and [verification](docs/VERIFICATION.md).
+
+[Open LIVE](https://k4rjm.github.io/baofeng-mini5-bt-cps-unofficial/) · [Open UAT for future development](https://k4rjm.github.io/baofeng-mini5-bt-cps-unofficial-uat/). The deployments use separate repositories; see [promotion and rollback](docs/DEPLOYMENT.md).
 
 ## Earlier releases
 

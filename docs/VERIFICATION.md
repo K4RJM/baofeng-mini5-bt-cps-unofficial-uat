@@ -1,4 +1,18 @@
-# Verification status — v20.10, October 14, 2026
+# Verification status — v20.11, October 15, 2026
+
+F02 decoding is corrected; F03 remains open. See [remediation status](AUDIT-REMEDIATION.md) and [evidence details](F02-F03-EVIDENCE-2026-10-15.md). **65 tests pass; five expected TODO failures remain; no unexpected failures.**
+
+Seven new codec regressions failed before the decoder correction. Coverage includes all 39 accepted codes in the four affected fields, 216 combinations, independently specified transport bytes, full canonical-image comparisons, native DAT round trips, unknown-code rejection and real editor handlers. The 292-case option sweep excludes only F03 packing fields and tones; F03 has an exhaustive 120-case test that remains TODO.
+
+All 1,042 retained native encoder frames (66,688 bytes) match. The historical native varied-read fixture loses both squelch code-2 values; its comparison now explicitly expects exactly those two F02 differences, preserving the original artifact. No general oracle normalization was added.
+
+All ten other protected files are byte-identical to v20.10. The decoder manifest records its old hash and evidence. Encoder, writer, reader, memory layout and connection-recovery code are unchanged. No physical radio operation was performed. Physical timing and VFO B behavior remain pending.
+
+The separate UAT deployment was verified in the browser with its development banner and commit-specific version. It has its own Pages workflow and no LIVE deployment credential. The original LIVE workflow remains unchanged.
+
+---
+
+# Historical verification — v20.10, October 14, 2026
 
 The current release contains six audit corrections described in [AUDIT-REMEDIATION.md](AUDIT-REMEDIATION.md). Nine findings remain open. Automated results: **53 passing tests, 6 explicitly marked TODO failures, no unexpected failures**. The TODO cases reproduce unresolved radio findings; a successful CI exit does not close them.
 

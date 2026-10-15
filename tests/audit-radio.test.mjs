@@ -16,10 +16,10 @@ test('F01 OPEN: a read/configuration rebuild preserves unmapped captured bytes',
  const differences=Array.from(captured.keys()).filter(i=>captured[i]!==rebuilt[i]);
  assert.deepEqual(differences,[]);
 });
-test('F02 OPEN: all accepted non-tone option codes survive conversion',{todo:'Needs stock-CPS comparison for settings decoding'},()=>{
+test('F02: accepted non-tone options outside the unresolved F03 fields survive conversion',()=>{
  const failed=[];let checked=0;
  for(const [type,choices]of Object.entries(options))for(const [key,values]of Object.entries(choices)){
-  if(/CtsDcs/.test(key))continue;
+  if(/CtsDcs/.test(key)||/^vfo[AB](Dir|SignalGroup)$/.test(key))continue;
   for(const [value]of values){
    const input=fixture(),object=type==='KDH.Channel'?input.channelList[0][0]:Object.values(input).find(v=>v?.$type===type);
    if(!object)continue;object[key]=value;
@@ -27,11 +27,11 @@ test('F02 OPEN: all accepted non-tone option codes survive conversion',{todo:'Ne
    checked++;if(output[key]!==value)failed.push({type,key,input:value,output:output[key]});
   }
  }
- assert.ok(checked>300);assert.deepEqual(failed,[]);
+ assert.equal(checked,292);assert.deepEqual(failed,[]);
 });
 test('F03 OPEN: VFO direction and signaling group remain independent',{todo:'Needs verified native packing and firmware interpretation'},()=>{
  const failed=[];
- for(const side of ['A','B'])for(const direction of [0,1,2])for(const group of [0,15,16,19]){
+ for(const side of ['A','B'])for(const direction of [0,1,2])for(const group of Array.from({length:20},(_,i)=>i)){
   const input=fixture(),prefix='vfo'+side;input.vfos[prefix+'Dir']=direction;input.vfos[prefix+'SignalGroup']=group;
   const result=decodeRadio(makePlan(input,options).target).vfos;
   if(result[prefix+'Dir']!==direction||result[prefix+'SignalGroup']!==group)failed.push({side,direction,group,decodedDirection:result[prefix+'Dir'],decodedGroup:result[prefix+'SignalGroup']});
