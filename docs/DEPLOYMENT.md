@@ -21,6 +21,8 @@ Initial UAT baseline: LIVE v20.10 (`02b5a1dd02a166261590ad679a92723994911d09`); 
 
 ## Rollback
 
+The pre-F07 v20.11 baseline is commit `dcb609729bf2ea29e4ae25785de8666cf824d090`, saved at `rollback/v20.11-before-f07`. Revert the v20.12 correction commit to restore it through the normal tested deployment workflow. This restores the known F07 frequency-clearing limitation as well.
+
 The pre-F02 LIVE version is preserved at commit `02b5a1dd02a166261590ad679a92723994911d09` and branch `rollback/v20.10-before-f02`. Revert the v20.11 correction commit in the LIVE repository, run the existing checks and let its normal workflow redeploy. This restores the previous decoder and version indicators without rewriting shared history. If later changes depend on the correction, review the revert first. A rollback returns the known F02 decoding limitation too.
 
 For UAT, revert the specific development commit in the UAT repository. Its previous deployment remains available if a new build fails. Never roll back LIVE by pointing it at UAT source, and never force-push a shared branch as a routine rollback.

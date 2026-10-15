@@ -1,4 +1,12 @@
-# Verification status — v20.11, October 15, 2026
+# Verification status — v20.12, October 15, 2026
+
+F07's channel-frequency representation loss is corrected; hardware band verification remains open. **77 tests: 73 pass, four expected TODO failures, zero unexpected failures.** Six new tests failed on the previous release before passing with the correction. Coverage includes independent decimal-byte vectors, 96 malformed-nibble cases, empty/receive-only preservation, imported-frequency preflight rejection and complete diagnostic retention through real application handlers in an isolated harness.
+
+All 21 private-file checks, including three full 33,344-byte DAT/capture pairs, still pass. All 1,042 older native frames and two retained decoder fixtures match their documented expectations. The encoder, Bluetooth reader and connection recovery are unchanged; the writer changes only preflight channel-format validation. No hardware operation was performed. See [F07 evidence and physical checklist](F07-EVIDENCE-2026-10-15.md).
+
+---
+
+# Historical verification — v20.11, October 15, 2026
 
 F02 decoding is corrected; F03 remains open. See [remediation status](AUDIT-REMEDIATION.md) and [evidence details](F02-F03-EVIDENCE-2026-10-15.md). **65 tests pass; five expected TODO failures remain; no unexpected failures.**
 

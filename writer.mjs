@@ -26,7 +26,9 @@ export function makePlan(data,options){
  if(data?.channelList?.length!==1||data.channelList[0].length!==1000)throw Error('Expected the native CPS record layout');
  function choices(o){for(const [key,values] of Object.entries(options[o.$type]||{}))if(!values.some(([v])=>v===o[key]))throw Error(`Unrecognized CPS value: ${key}`);}
  function name(s,max){if(typeof s!=='string'||encodeName(s).length>max)throw Error('Name exceeds its CPS byte limit or cannot be encoded');}
- for(const c of data.channelList[0]){if(!c.rxFreq){if(c.txFreq)throw Error('An empty channel has a transmit frequency');continue;}choices(c);name(c.name,12);}
+ // File-format validation only. This is not a hardware frequency capability check.
+ function frequency(value){if(typeof value!=='string'||!(/^[1-9]\d{2}\.\d{5}$/).test(value))throw Error('Channel frequency must use the 100.00000–999.99999 MHz format; this is not a verified radio band limit.');}
+ for(const c of data.channelList[0]){if(c.rxFreq===''){if(c.txFreq!=='')throw Error('An empty channel has a transmit frequency');continue;}frequency(c.rxFreq);if(c.txFreq!=='')frequency(c.txFreq);choices(c);name(c.name,12);}
  choices(data.funCfgs);choices(data.vfos);choices(data.dtmfs);
  for(const k of ['vfoABusylock','vfoBBusyLock','busyLock'])if(![0,1].includes(data.vfos[k]))throw Error('Unrecognized VFO busy-lock value');
  for(const k of ['vfoScanRang_L','vfoScanRang_H'])if(!/^\d{1,3}$/.test(data.vfos[k])||Number(data.vfos[k])<1)throw Error('Invalid VFO scan limit');

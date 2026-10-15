@@ -38,7 +38,7 @@ test('F03 OPEN: VFO direction and signaling group remain independent',{todo:'Nee
  }
  assert.deepEqual(failed,[]);
 });
-test('F07 OPEN: every accepted frequency can be decoded without silent clearing',{todo:'Needs a verified frequency domain; this is not a claim of 650 MHz radio support'},()=>{
+test('F07 representation: accepted frequency text survives decoding without silent clearing',()=>{
  const data=fixture();data.channelList[0][0]=channel('DOMAIN','650.00000');
  const decoded=decodeRadio(makePlan(data,options).target);assert.equal(decoded.channelList[0][0].rxFreq,'650.00000');
 });

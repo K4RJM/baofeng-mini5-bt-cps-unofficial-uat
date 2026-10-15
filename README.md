@@ -1,18 +1,8 @@
-# UAT development environment
-
-[Open UAT](https://k4rjm.github.io/baofeng-mini5-bt-cps-unofficial-uat/) · [Open LIVE](https://k4rjm.github.io/baofeng-mini5-bt-cps-unofficial/)
-
-This separate repository automatically tests and deploys its main branch to UAT only. The UAT banner and diagnostic version identify the exact source commit. Initial baseline: LIVE v20.10, commit 02b5a1dd02a166261590ad679a92723994911d09. No cross-repository token or automatic LIVE promotion is configured.
-
-Promote only explicitly reviewed application commits/patches onto the current LIVE branch; never copy the UAT workflow or stamp script to LIVE. Keep each correction separate from experimental features. Roll back either environment by reverting the specific change in its own repository and letting its test/deploy workflow run; do not reset or force-push shared history.
-
-Current development baseline: LIVE v20.11, commit 5e3d4c8ec7d3c24ff5c6aae5cebe6a24ed915340.
-
 # Baofeng Mini 5 BT CPS – Unofficial
 
 Free, noncommercial browser software by K4RJM, hosted on GitHub Pages.
 
-**Current release: v20.11.** F02 now preserves the supported PTT delay, VFO PTT-ID and VFO squelch codes during radio decoding. Seven audit findings are corrected and eight remain open. F03 packing is unchanged pending unambiguous evidence. See the [remediation tracker](docs/AUDIT-REMEDIATION.md), [evidence review](docs/F02-F03-EVIDENCE-2026-10-15.md) and [verification](docs/VERIFICATION.md).
+**Current release: v20.12.** Channel frequencies no longer silently disappear at 600 MHz and above during decoding. Malformed or out-of-format channel frequencies are rejected; failed reads retain raw diagnostics and the previous workspace. This corrects F07's representation defect, not hardware band limits. Seven findings are corrected and eight remain open. F02 corrections are retained; F03 packing and Bluetooth transaction behavior are unchanged. See the [remediation tracker](docs/AUDIT-REMEDIATION.md), [F07 evidence and radio-test checklist](docs/F07-EVIDENCE-2026-10-15.md) and [verification](docs/VERIFICATION.md).
 
 [Open LIVE](https://k4rjm.github.io/baofeng-mini5-bt-cps-unofficial/) · [Open UAT for future development](https://k4rjm.github.io/baofeng-mini5-bt-cps-unofficial-uat/). The deployments use separate repositories; see [promotion and rollback](docs/DEPLOYMENT.md).
 

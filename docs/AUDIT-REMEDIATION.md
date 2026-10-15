@@ -1,4 +1,23 @@
-# Audit remediation — v20.11
+# Audit remediation — v20.12
+
+Date: October 15, 2026. Baseline: v20.11, commit `dcb609729bf2ea29e4ae25785de8666cf824d090`.
+
+**Seven findings are corrected; eight remain open.** F07's silent frequency loss is corrected in this release, while its hardware capability verification remains open. No other finding is reclassified.
+
+Channel frequencies in the existing 100.00000–999.99999 file-format range now survive decoding, including values previously cleared at 600 MHz and above. Malformed decimal bytes and nonempty values below that format are rejected with the raw diagnostic retained and the workspace unchanged. Preflight validation blocks out-of-format imported channel frequencies before connection. This does not establish hardware band limits or change the encoded payloads or Bluetooth transaction behavior.
+
+Verification: **73 passing tests, four expected TODO failures, zero unexpected failures** (77 total). Six new regressions failed before the correction. All 21 supplied private-file checks and 1,042 retained native-frame comparisons still pass. See the [F07 evidence and read-first hardware checklist](F07-EVIDENCE-2026-10-15.md).
+
+| Status | Findings |
+| --- | --- |
+| Corrected | F02, F04, F09, F11, F12, F14, F15 |
+| Open | F01, F03, F05, F06, F07 (representation corrected; hardware domain pending), F08, F10, F13 |
+
+The encoder, Bluetooth reader, memory map, command sequence, acknowledgements, disconnect/reset behavior and existing safety guards are unchanged. `writer.mjs` adds only format validation before a plan is made; no transport method changes. No physical radio operation was performed. Rollback is available at `rollback/v20.11-before-f07`.
+
+---
+
+# Historical remediation record — v20.11
 
 Date: October 15, 2026. Baseline: LIVE v20.10, commit 02b5a1dd02a166261590ad679a92723994911d09.
 

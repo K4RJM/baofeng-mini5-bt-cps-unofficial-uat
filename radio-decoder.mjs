@@ -5,10 +5,16 @@ const fields={sql:[0,10],saveMode:[1,2],vox:[2,10],backlight:[3,9],dualStandby:[
 const nameDecoder=new TextDecoder('gbk',{fatal:true});
 function name(b){const end=b.indexOf(255);return nameDecoder.decode(end<0?b:b.subarray(0,end));}
 function tone(b,o){const lo=b[o],hi=b[o+1];return hi===0?(lo>0&&lo<=210?tones[50+lo]:'OFF'):(lo!==0&&lo!==255?((hi*256+lo)/10).toFixed(1):'OFF');}
-function freq(b,o){let n=0;for(let i=3;i>=0;i--)n=n*100+(b[o+i]>>4)*10+(b[o+i]&15);return n>=10000000&&n<60000000?(n/100000).toFixed(5):'';}
-function channel(b){const c={$type:'KDH.Channel',id:0,rxFreq:'',strRxCtsDcs:'OFF',txFreq:'',strTxCtsDcs:'OFF',busyLock:0,txPower:0,bandwide:0,scanAdd:0,sqMode:0,pttid:0,signalGroup:0,fhss:0,name:''};
- c.rxFreq=freq(b,0);if(!c.rxFreq)return c;
- Object.assign(c,{txFreq:freq(b,4),strRxCtsDcs:tone(b,8),strTxCtsDcs:tone(b,10),signalGroup:b[12]%20,pttid:b[13]%4,txPower:b[14]%2,bandwide:(b[15]>>6)&1,sqMode:(b[15]>>4)&1,busyLock:(b[15]>>3)&1,scanAdd:(b[15]>>2)&1,fhss:b[15]&1,name:name(b.subarray(20,32))});return c;
+function freq(b,o,label){
+ const bytes=b.subarray(o,o+4);if(bytes.every(value=>value===255))return '';
+ let digits='';for(let i=3;i>=0;i--){const hi=bytes[i]>>4,lo=bytes[i]&15;if(hi>9||lo>9)throw Error(`${label} frequency could not be decoded. Save the diagnostic report for review.`);digits+=String(hi)+String(lo);}
+ // Preserve the existing editor/encoder representation, not an assumed hardware band.
+ if(digits[0]==='0')throw Error(`${label} is outside the supported frequency format (100.00000–999.99999 MHz). Save the diagnostic report for review.`);
+ return digits.slice(0,3)+'.'+digits.slice(3);
+}
+function channel(b,index){const c={$type:'KDH.Channel',id:0,rxFreq:'',strRxCtsDcs:'OFF',txFreq:'',strTxCtsDcs:'OFF',busyLock:0,txPower:0,bandwide:0,scanAdd:0,sqMode:0,pttid:0,signalGroup:0,fhss:0,name:''};
+ c.rxFreq=freq(b,0,`Channel ${index} receive`);if(!c.rxFreq)return c;
+ Object.assign(c,{txFreq:freq(b,4,`Channel ${index} transmit`),strRxCtsDcs:tone(b,8),strTxCtsDcs:tone(b,10),signalGroup:b[12]%20,pttid:b[13]%4,txPower:b[14]%2,bandwide:(b[15]>>6)&1,sqMode:(b[15]>>4)&1,busyLock:(b[15]>>3)&1,scanAdd:(b[15]>>2)&1,fhss:b[15]&1,name:name(b.subarray(20,32))});return c;
 }
 function vfo(v,b,side){const p='vfo'+side;let f=b[0]===255?'40012500':[...b.subarray(0,8)].join('');v[p+'Freq']=f.slice(0,-5)+'.'+f.slice(-5);
  v['strVFO'+side+'RxCtsDcs']=tone(b,8);v['strVFO'+side+'TxCtsDcs']=tone(b,10);
@@ -26,6 +32,6 @@ export function decodeRadio(raw){
  vfos.vfopttid=s[11];vfos.busyLock=s[15]%2;
  let low=s[44]+s[45]*256,high=s[46]+s[47]*256;vfos.vfoScanRang_L=String(low>1000?400:low);vfos.vfoScanRang_H=String(high>1000?520:high);
  const dtmfs={$type:'KDH.DTMF',localID:digits(d,0,3),group:Array.from({length:20},(_,i)=>digits(d,32+i*16,3)),groupName:Array.from({length:20},(_,i)=>name(d.subarray(37+i*16,47+i*16))),wordTime:d[7]%6,idleTime:d[8]%6,separator:d[9]%6,groupCall:d[10]%7,hangUp:s[57]%8,onlineCode:digits(d,384,16),offlineCode:digits(d,400,16)};
- return {$type:'KDH.AppData',channelList:[Array.from({length:1000},(_,i)=>channel(b.subarray(i*32,i*32+32)))],vfos,funCfgs,dtmfs};
+ return {$type:'KDH.AppData',channelList:[Array.from({length:1000},(_,i)=>channel(b.subarray(i*32,i*32+32),i+1))],vfos,funCfgs,dtmfs};
 }
 export function radioDat(raw,schemas){return writeDat(decodeRadio(raw),schemas);}
