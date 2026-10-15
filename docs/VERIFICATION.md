@@ -1,4 +1,10 @@
-# Verification status — v20.12, October 15, 2026
+# Verification status — v20.13, October 15, 2026
+
+Presentation-only release: the build badge moves to the top header and a keyboard-accessible “What’s new” dialog lists the three latest releases. The UAT overlay retains its distinct build and environment indicators. Radio/codec modules and safety guards are unchanged from v20.12. The existing suite reports 77 tests: 73 pass, four expected TODO failures and zero unexpected failures. LIVE packaging and the UAT version overlay both pass. No physical radio operation was performed.
+
+---
+
+# Historical verification — v20.12, October 15, 2026
 
 F07's channel-frequency representation loss is corrected; hardware band verification remains open. **77 tests: 73 pass, four expected TODO failures, zero unexpected failures.** Six new tests failed on the previous release before passing with the correction. Coverage includes independent decimal-byte vectors, 96 malformed-nibble cases, empty/receive-only preservation, imported-frequency preflight rejection and complete diagnostic retention through real application handlers in an isolated harness.
 

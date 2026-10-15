@@ -21,6 +21,8 @@ Initial UAT baseline: LIVE v20.10 (`02b5a1dd02a166261590ad679a92723994911d09`); 
 
 ## Rollback
 
+The v20.13 header/changelog update is separate from the v20.12 radio correction. Revert only its presentation commit to restore the v20.12 interface; the pre-update LIVE source is `1bbdd807e5a132f41ba20a9c55055022c2a8e056`.
+
 The pre-F07 v20.11 baseline is commit `dcb609729bf2ea29e4ae25785de8666cf824d090`, saved at `rollback/v20.11-before-f07`. Revert the v20.12 correction commit to restore it through the normal tested deployment workflow. This restores the known F07 frequency-clearing limitation as well.
 
 The pre-F02 LIVE version is preserved at commit `02b5a1dd02a166261590ad679a92723994911d09` and branch `rollback/v20.10-before-f02`. Revert the v20.11 correction commit in the LIVE repository, run the existing checks and let its normal workflow redeploy. This restores the previous decoder and version indicators without rewriting shared history. If later changes depend on the correction, review the revert first. A rollback returns the known F02 decoding limitation too.

@@ -74,3 +74,15 @@ dialog#appendDialog{width:min(680px,94vw);padding:22px}
 tbody tr.channel-row{cursor:pointer}tbody tr.channel-row:focus-visible{outline:2px solid var(--blue);outline-offset:-2px;background:var(--selected)}
 
 .channel-editor-actions{justify-content:space-between;flex-wrap:wrap}.editor-navigation{display:flex;gap:8px}.channel-editor-actions>.primary{margin-left:auto}@media(max-width:480px){.channel-editor-actions>.primary{margin-left:0;width:100%}.editor-navigation{width:100%}.editor-navigation button{flex:1}}
+
+/* Keep the release visible beside its compact changelog on every screen. */
+.brand-meta{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px}
+.build-badge{font-size:12px;font-weight:700;line-height:1.4;padding:3px 8px;color:var(--text);background:var(--selected);border-color:color-mix(in srgb,var(--blue) 35%,var(--border));font-variant-numeric:tabular-nums}
+.release-notes-button{font-size:12px;padding:3px 6px;background:transparent;border-color:transparent;color:var(--blue)}
+#releaseNotes{width:min(540px,94vw)}
+#releaseNotes h2{font-size:22px;margin:0}
+.release-entry{margin-top:18px}
+.release-entry+.release-entry{padding-top:14px;border-top:1px solid var(--border)}
+.release-entry h3{display:flex;align-items:center;gap:10px;font-size:16px;margin:0 0 6px}
+.release-entry p{font-size:13px;margin:0}
+@media(max-width:750px){.brand{gap:10px}.brand>div{min-width:0}.brand-meta{gap:4px 6px}.build-badge{font-size:11px}.release-notes-button{font-size:11px}}

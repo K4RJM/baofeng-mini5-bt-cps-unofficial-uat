@@ -1,4 +1,10 @@
-# Audit remediation — v20.12
+# Audit remediation — v20.13
+
+The header build badge and short changelog are presentation-only changes. Audit status remains **seven corrected findings and eight open**; the v20.12 corrections and limitations below are unchanged.
+
+---
+
+# Remediation detail — v20.12
 
 Date: October 15, 2026. Baseline: v20.11, commit `dcb609729bf2ea29e4ae25785de8666cf824d090`.
 
