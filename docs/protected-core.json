@@ -1,0 +1,31 @@
+{
+  "source": "Retained Baofeng Mini 5 BT CPS - Unofficial build 18",
+  "sha256": {
+    "dat.mjs": "e53f3cfed66bb8b6b7b8e5378a71ee5c262ef10624789a1f36a1f79f0580284d",
+    "validation.mjs": "8699bdcd0f68dc816a015031c86e3031eb7ea4a066056129b35c962c66388b24",
+    "writer.mjs": "7af4db87d813b597f179a87bff25e51418c645c2436ec8d029927f84f2ef2d73",
+    "radio-encoder.mjs": "9c7f7fd9c327d2c93e02cfd736d8806fbde7131fad775abe94ed23dba03d2455",
+    "radio-decoder.mjs": "abe095c7b4a10670bafc7954cc23271e0ee6d23c0ff74b33b8ff71318b186378",
+    "schemas.json": "1423bf5a130230dd03b5b775fe7656ed8084fce42ac0c4a79af1d36f6053c6c7",
+    "function-options.json": "e26d5f139ee8661a397c537fe2aed12042dd04a895b39ca6868b08f056128310",
+    "editor-options.json": "d2908363cb8dc154ebc39995ae5388919d37f99c54910d1f327513e808ffa40f",
+    "name-charset.json": "bb9dc2f56e441186e07132febfcc428faeededff8333d022a20f1d67cfab6505",
+    "read-test/reader.mjs": "f8166ce8c903f66e8d2abae820cb460e496f0976c8ef187e03dc6d80f1b86910",
+    "read-test/memory.mjs": "8d978253aff3d97d201592e11faf90bf34bd99f3dd252f4bfb790733924d3c45"
+  },
+  "reviews": [
+    {
+      "date": "2026-10-14",
+      "scope": "Audit remediation stage 1, authorized by maintainer to begin fixes. DAT parsing limits and encoder comments only; radio encoding logic, transport, commands and map unchanged.",
+      "files": [
+        "dat.mjs",
+        "radio-encoder.mjs"
+      ],
+      "baselineSha256": {
+        "dat.mjs": "d234ea4c2b21ac984285e7f79b8c048bd7df7898cf08b7f54614f2ca314804d3",
+        "radio-encoder.mjs": "c6f324d33259548e832a437256a201a7211cc75903ab954532fc7c374c5c55d6"
+      },
+      "evidence": "docs/AUDIT-REMEDIATION.md"
+    }
+  ]
+}

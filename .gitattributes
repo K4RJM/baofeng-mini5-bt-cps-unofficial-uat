@@ -1,0 +1,12 @@
+# Preserve the reviewed build 18 bytes on Windows and Linux checkouts.
+dat.mjs -text
+validation.mjs -text
+writer.mjs -text
+radio-encoder.mjs -text
+radio-decoder.mjs -text
+schemas.json -text
+function-options.json -text
+editor-options.json -text
+name-charset.json -text
+read-test/reader.mjs -text
+read-test/memory.mjs -text

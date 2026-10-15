@@ -1,0 +1,7 @@
+export const CAPACITY=999;
+export function emptyChannel(){return {$type:'KDH.Channel',id:0,rxFreq:'',strRxCtsDcs:'OFF',txFreq:'',strTxCtsDcs:'OFF',busyLock:0,txPower:0,bandwide:0,scanAdd:0,sqMode:0,pttid:0,signalGroup:0,fhss:0,name:''};}
+export function blankData(defaults){return {...structuredClone(defaults),channelList:[Array.from({length:1000},emptyChannel)]};}
+function index(i){if(!Number.isInteger(i)||i<0||i>=CAPACITY)throw Error('Choose a channel from 1 to 999.');}
+export function removeChannels(data,indices,compact=false){const chosen=new Set(indices);chosen.forEach(index);const next=structuredClone(data),list=next.channelList[0];if(compact){const kept=list.slice(0,CAPACITY).filter((c,i)=>!chosen.has(i)&&c.rxFreq);for(let i=0;i<CAPACITY;i++)list[i]=kept[i]||emptyChannel();}else chosen.forEach(i=>list[i]=emptyChannel());return next;}
+export function insertChannel(data,i,channel){index(i);if(!channel.rxFreq)throw Error('Enter a receive frequency for the new channel.');const next=structuredClone(data),list=next.channelList[0];let empty=list.findIndex((c,n)=>n>=i&&n<CAPACITY&&!c.rxFreq);if(empty<0)throw Error('No empty slot after this position. Inserting would discard channel 999.');for(let n=empty;n>i;n--)list[n]=list[n-1];list[i]=structuredClone(channel);return next;}
+export function moveChannel(data,from,to){index(from);index(to);const next=structuredClone(data),list=next.channelList[0],moving=list[from];if(from<to)for(let i=from;i<to;i++)list[i]=list[i+1];else for(let i=from;i>to;i--)list[i]=list[i-1];list[to]=moving;return next;}
