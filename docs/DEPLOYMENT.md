@@ -28,3 +28,7 @@ The pre-F07 v20.11 baseline is commit `dcb609729bf2ea29e4ae25785de8666cf824d090`
 The pre-F02 LIVE version is preserved at commit `02b5a1dd02a166261590ad679a92723994911d09` and branch `rollback/v20.10-before-f02`. Revert the v20.11 correction commit in the LIVE repository, run the existing checks and let its normal workflow redeploy. This restores the previous decoder and version indicators without rewriting shared history. If later changes depend on the correction, review the revert first. A rollback returns the known F02 decoding limitation too.
 
 For UAT, revert the specific development commit in the UAT repository. Its previous deployment remains available if a new build fails. Never roll back LIVE by pointing it at UAT source, and never force-push a shared branch as a routine rollback.
+
+## v20.14 channel-validation correction
+
+The exact pre-correction LIVE source is `1b1c6b434c130e3d799bf258ff9bce2d6bef6fe3`. Promote only the reviewed F07 validation release after the isolated UAT checks. Reverting that release restores v20.13 through the existing workflow; it also restores its broad channel-input acceptance. Protocol, encoder/decoder and disconnect/reset changes are not part of this release.

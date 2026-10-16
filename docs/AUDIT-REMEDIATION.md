@@ -1,4 +1,20 @@
-# Audit remediation — v20.13
+# Audit remediation — v20.14
+
+October 16, 2026. Baseline: LIVE v20.13, commit `1b1c6b434c130e3d799bf258ff9bce2d6bef6fe3`.
+
+**F07 channel validation is implemented. Seven findings remain corrected and eight open; no unverified finding is closed.** The recorded factory-CPS channel RX/TX ranges and 1.25 kHz grid now apply to changed channel frequencies and every channel in write preflight. Invalid/off-grid values report the channel and field before confirmation, connection or encoding. They are never rounded or silently changed. Existing DAT/read values remain available for inspection, export and unrelated edits. Empty channels and blank receive-only TX are retained. VFO rules remain separate.
+
+Eight new regression tests cover both fields at band edges and adjacent values, all 124 nonzero grid remainders, unchanged import/export, real edit/apply/next and write-preflight handlers, blanks, and separate VFO rules. Five reproduced missing restrictions before the fix. The existing broad-format decoder tests still preserve raw evidence and now also assert programming rejection for unsupported channels.
+
+The remaining F07 work is the scoped physical/VFO questions in the [evidence record](F07-EVIDENCE-2026-10-15.md), not a repeat of the completed factory-CPS tests. F01, F03, F05, F06, F08, F10 and F13 retain their existing status. Your completed hardware testing remains credited below.
+
+Only channel edit validation and write-plan preflight change executable behavior. The encoder/decoder, Reader/Writer transaction methods, frame layout, acknowledgements, disconnect/reset behavior, existing backup acknowledgement and all other write protections are unchanged. No additional physical-radio operation was performed in this development session.
+
+See [verification](VERIFICATION.md) and [deployment/rollback](DEPLOYMENT.md).
+
+---
+
+# Historical audit remediation — v20.13
 
 ## Evidence reconciliation — October 16, 2026
 

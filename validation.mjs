@@ -1,4 +1,16 @@
-// Edit checks only. These do not establish hardware band limits or transmit authority.
+// Channel input policy from recorded factory-CPS tests; not RF certification.
+// Keep this separate from VFO rules and lossless DAT/read preservation.
+export function channelFrequencyError(value){
+ if(value==='')return null;
+ if(typeof value!=='string'||!(/^[1-9]\d{2}\.\d{5}$/).test(value))return 'enter MHz with five decimal places, for example 146.52000.';
+ // Five decimal places in MHz are integer 10 Hz units. Avoid floating-point rounding.
+ const units=Number(value.replace('.',''));
+ if(!((units>=13600000&&units<=17399875)||(units>=40000000&&units<=51999875)))return 'use 136.00000–173.99875 or 400.00000–519.99875 MHz for channels, based on the recorded factory CPS limits.';
+ if(units%125!==0)return 'use 1.25 kHz steps (0.00125 MHz), for example 146.52125. This frequency has not been rounded.';
+ return null;
+}
+
+// Edit checks preserve unchanged imported values. Write preflight checks all channels.
 export function validateEdits(current,baseline,options,charset){
  const originalChannels=new Set(baseline.channelList[0].slice(0,999).map(c=>JSON.stringify(c)));
  const errors=[];const add=(path,message)=>errors.push(`${path.replace(/Radio\.channelList\[1\]\.(\d+)/,(_,i)=>`Channel ${Number(i)+1}`).replace('Radio.funCfgs','Optional settings').replace('Radio.vfos','VFO').replace('Radio.dtmfs','DTMF')}: ${message}`);
@@ -15,6 +27,7 @@ export function validateEdits(current,baseline,options,charset){
    if(v&&typeof v==='object'){walk(v,old,p);continue;}
    const choices=options[o.$type]?.[k];if(choices){if(!choices.some(([code])=>code===v))add(p,'select a listed CPS choice.');continue;}
    if(k==='name')name(v,p,12);
+   else if(o.$type==='KDH.Channel'&&(k==='rxFreq'||k==='txFreq')){const error=channelFrequencyError(v);if(error)add(p,error);}
    else if(k==='rxFreq'||k==='txFreq'||/^vfo[AB]Freq$/.test(k))frequency(v,p,k==='rxFreq'||k==='txFreq');
    else if(/^vfo[AB]Offset$/.test(k)){if(typeof v!=='string'||!/^\d{3}\.\d{4}$/.test(v))add(p,'enter an offset like 000.6000 (three digits and four decimal places).');}
    else if(k==='localID')dtmf(v,p,3);

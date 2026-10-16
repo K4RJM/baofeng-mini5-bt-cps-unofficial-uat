@@ -2,13 +2,14 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {decodeRadio} from '../radio-decoder.mjs';
-import {crypt} from '../radio-encoder.mjs';
+import {crypt,offlineFrames} from '../radio-encoder.mjs';
 import {makePlan} from '../writer.mjs';
+import {SIZE,offset as memoryOffset} from '../read-test/memory.mjs';
 import {readDat,writeDat} from '../dat.mjs';
 import {fixture,options,schemas} from './fixtures.mjs';
 import {appHarness} from './app-harness.mjs';
 
-test('F07: independent decimal-byte vectors preserve the complete editor format domain',()=>{
+test('F07: independent decimal-byte vectors preserve the complete stored format domain',()=>{
  const vectors=[
   ['100.00000',[0x00,0x00,0x00,0x10]],
   ['146.52000',[0x00,0x20,0x65,0x14]],
@@ -24,7 +25,12 @@ test('F07: independent decimal-byte vectors preserve the complete editor format 
   assert.equal(decoded.channelList[0][0][key],value);
   assert.equal(decoded.channelList[0][0].name,'TEST A\0','other channel fields must survive');
   const saved=readDat(writeDat(decoded,schemas),schemas);
-  assert.deepEqual(saved,decoded);assert.deepEqual(makePlan(saved,options).target,raw);
+  assert.deepEqual(saved,decoded);
+  // Lossless representation remains broader than the channel programming policy.
+  const rebuilt=new Uint8Array(SIZE);for(const f of offlineFrames(saved))rebuilt.set(f.subarray(4),memoryOffset((f[1]<<8)|f[2]));
+  rebuilt[memoryOffset(0x9022)]=1;assert.deepEqual(rebuilt,raw);
+  if(['146.52000','433.92500'].includes(value))assert.deepEqual(makePlan(saved,options).target,raw);
+  else assert.throws(()=>makePlan(saved,options),/Channel 1.*frequency/i);
  }
 });
 

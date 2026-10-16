@@ -38,9 +38,10 @@ test('F03 OPEN: VFO direction and signaling group remain independent',{todo:'Nee
  }
  assert.deepEqual(failed,[]);
 });
-test('F07 representation: accepted frequency text survives decoding without silent clearing',()=>{
- const data=fixture();data.channelList[0][0]=channel('DOMAIN','650.00000');
- const decoded=decodeRadio(makePlan(data,options).target);assert.equal(decoded.channelList[0][0].rxFreq,'650.00000');
+test('F07 representation: out-of-band stored frequency survives decoding and is blocked for programming',()=>{
+ const plain=crypt(makePlan(fixture(),options).target);plain.set([0,0,0,0x65],0);
+ const decoded=decodeRadio(crypt(plain));assert.equal(decoded.channelList[0][0].rxFreq,'650.00000');
+ assert.throws(()=>makePlan(decoded,options),/Channel 1.*frequency/i);
 });
 test('F08 containment: channel 999 survives DAT export while the unresolved write guard stays enforced',()=>{
  const data=fixture();data.channelList[0][998]=channel('LAST');

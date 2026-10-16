@@ -2,7 +2,9 @@
 
 Free, noncommercial browser software by K4RJM, hosted on GitHub Pages.
 
-**Current release: v20.13.** The build number appears in the top header on both LIVE and UAT, beside a compact “What’s new” changelog. The existing write-confirmation window now includes a preparation checklist and one acknowledgement covering readiness, the backup reminder and risk acceptance. The checklist’s timing statement comes from maintainer-reported physical testing. Radio programming behavior is unchanged.
+**Current release: v20.14.** Channel edits and write preflight now enforce the recorded factory-CPS RX/TX ranges (136.00000–173.99875 and 400.00000–519.99875 MHz) and exact 1.25 kHz steps. DAT import, radio reads and unchanged-value export preserve the original data; unsupported values are blocked from programming, never silently rounded. VFO rules and all Bluetooth transaction behavior are unchanged. F07’s channel validation is implemented; its remaining physical/VFO scope is recorded in the [evidence](docs/F07-EVIDENCE-2026-10-15.md).
+
+**Retained v20.13 interface:** The build number appears in the top header on both LIVE and UAT, beside a compact “What’s new” changelog. The existing write-confirmation window now includes a preparation checklist and one acknowledgement covering readiness, the backup reminder and risk acceptance. The checklist’s timing statement comes from maintainer-reported physical testing. Radio programming behavior is unchanged.
 
 **Retained v20.12 correction:** Channel frequencies no longer silently disappear at 600 MHz and above during decoding. Malformed or out-of-format channel frequencies are rejected; failed reads retain raw diagnostics and the previous workspace. This corrects F07's representation defect, not hardware band limits. Seven findings are corrected and eight remain open. F02 corrections are retained; F03 packing and Bluetooth transaction behavior are unchanged. See the [remediation tracker](docs/AUDIT-REMEDIATION.md), [F07 evidence and radio-test checklist](docs/F07-EVIDENCE-2026-10-15.md) and [verification](docs/VERIFICATION.md).
 
@@ -55,7 +57,7 @@ Programming errors, software defects, or interrupted communication may render yo
 
 ## Pending / limitations
 
-Physical testing already includes K4RJM’s successful programming, Bluetooth reads and reconnections, factory CPS comparisons and independent radio-memory captures. The identified baseline is Radio 100 / V0.05 / V1.7. See the [Open Audit Findings](docs/AUDIT-REMEDIATION.md) for the evidence already collected and the specific gaps. Remaining work includes unresolved field mappings, integration of recorded factory CPS channel limits into validation, persistence/reconnection reliability, other hardware variants and reception of dialed DTMF sequences. Cable transport, firmware flashing, banks/zones and blank-template radio writing remain unsupported.
+Physical testing already includes K4RJM’s successful programming, Bluetooth reads and reconnections, factory CPS comparisons and independent radio-memory captures. The identified baseline is Radio 100 / V0.05 / V1.7. See the [Open Audit Findings](docs/AUDIT-REMEDIATION.md) for the evidence already collected and the specific gaps. Remaining work includes unresolved field mappings, scoped hardware/VFO frequency checks, persistence/reconnection reliability, other hardware variants and reception of dialed DTMF sequences. Cable transport, firmware flashing, banks/zones and blank-template radio writing remain unsupported.
 
 RepeaterBook approval, CORS/identification, individual app-bound tokens, export/attribution permission and approved limits remain pending. See [integration review](docs/REPEATERBOOK.md).
 

@@ -2,8 +2,8 @@
   "source": "Retained Baofeng Mini 5 BT CPS - Unofficial build 18",
   "sha256": {
     "dat.mjs": "e53f3cfed66bb8b6b7b8e5378a71ee5c262ef10624789a1f36a1f79f0580284d",
-    "validation.mjs": "8699bdcd0f68dc816a015031c86e3031eb7ea4a066056129b35c962c66388b24",
-    "writer.mjs": "f81bda08c4cbcb53cfc5f1aa9cc6c6d219b73264b04430e2dfcdee232e3cc931",
+    "validation.mjs": "45f62b18f37753ad887585d91b6c3a571e2d10fad966e21d8aecb8231ae7ac59",
+    "writer.mjs": "4c1d0ed87bea5171f5bf17e1741cf8b943a2e04fd016a5754b1cfd70d728ca8a",
     "radio-encoder.mjs": "9c7f7fd9c327d2c93e02cfd736d8806fbde7131fad775abe94ed23dba03d2455",
     "radio-decoder.mjs": "b836a58541233b045260f8987188e3cd22249f161cd126d9a3322111ba3d7484",
     "schemas.json": "1423bf5a130230dd03b5b775fe7656ed8084fce42ac0c4a79af1d36f6053c6c7",
@@ -48,6 +48,19 @@
       "baselineSha256": {
         "radio-decoder.mjs": "ce82646b1c1b5dcf61f1ba799d9c8eb4c1fa065642f6986c0880ac5aa544cdef",
         "writer.mjs": "7af4db87d813b597f179a87bff25e51418c645c2436ec8d029927f84f2ef2d73"
+      },
+      "evidence": "docs/F07-EVIDENCE-2026-10-15.md"
+    },
+    {
+      "date": "2026-10-16",
+      "scope": "Maintainer-authorized F07 channel input policy from recorded factory-CPS ranges and 1.25 kHz grid. Shared edit/preflight validation only; unchanged imported/read values remain exportable. No normalization, VFO rule change, encoding, frame, command, ACK, disconnect/reset or transaction-method changes.",
+      "files": [
+        "validation.mjs",
+        "writer.mjs"
+      ],
+      "baselineSha256": {
+        "validation.mjs": "8699bdcd0f68dc816a015031c86e3031eb7ea4a066056129b35c962c66388b24",
+        "writer.mjs": "f81bda08c4cbcb53cfc5f1aa9cc6c6d219b73264b04430e2dfcdee232e3cc931"
       },
       "evidence": "docs/F07-EVIDENCE-2026-10-15.md"
     }

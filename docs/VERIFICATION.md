@@ -1,4 +1,14 @@
-# Verification status — v20.13, October 15, 2026
+# Verification status — v20.14, October 16, 2026
+
+The F07 channel-input policy uses the existing manual factory-CPS evidence. Eight new tests cover accepted RX/TX boundaries, rejected adjacent values and regions, every off-grid remainder, no normalization, imported-value preservation and pre-connection blocking, Apply/Next behavior, blank TX/empty channels, and unchanged VFO acceptance. Five tests failed before the correction. Broad stored-format and malformed-BCD regressions remain in place; out-of-policy values can still be decoded/exported but cannot pass write preflight.
+
+The complete suite reports **85 tests: 81 pass, four expected TODO failures, zero unexpected failures**. The TODOs still track F01, F03, F05 and F10. Twelve complete accepted payload/frame comparisons match the v20.13 baseline. Protected-file review limits changes to validation and preflight; transport methods and other guards remain unchanged.
+
+K4RJM’s physical testing and captures are credited in the historical evidence below. This correction is tested through automated and browser checks; no additional physical-radio operations are performed by the coding session. See [F07 scope and remaining checks](F07-EVIDENCE-2026-10-15.md).
+
+---
+
+# Historical verification — v20.13, October 15, 2026
 
 ## Physical evidence already completed — record reconciled October 16, 2026
 
