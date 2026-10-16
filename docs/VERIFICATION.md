@@ -1,3 +1,9 @@
+# Verification — v20.15, F07 closure
+
+Documentation/Help/version-only closure based on K4RJM’s completed physical/factory-CPS tests and the v20.12/v20.14 corrections. Full suite: 85 tests, 81 passing, four expected TODOs, zero unexpected failures. F07 targeted tests: 15 pass. Original private evidence: 21 files verified, 16 native DAT round trips, five complete captures, three complete 33,344-byte matching pairs. No new physical-radio test. All radio/validation/transport modules match v20.14 exactly. [Publication checkpoint](CODEX-PROGRESS.md) records actual UAT/LIVE verification separately.
+
+---
+
 # Verification status — v20.14, October 16, 2026
 
 The F07 channel-input policy uses the existing manual factory-CPS evidence. Eight new tests cover accepted RX/TX boundaries, rejected adjacent values and regions, every off-grid remainder, no normalization, imported-value preservation and pre-connection blocking, Apply/Next behavior, blank TX/empty channels, and unchanged VFO acceptance. Five tests failed before the correction. Broad stored-format and malformed-BCD regressions remain in place; out-of-policy values can still be decoded/exported but cannot pass write preflight.

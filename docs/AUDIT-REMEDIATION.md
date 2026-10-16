@@ -1,3 +1,23 @@
+# Audit remediation — v20.15
+
+**F07: Closed — Verified. Eight of the original 15 findings are resolved; seven remain open: F01, F03, F05, F06, F08, F10 and F13.** F03 and F06 have new completed hardware evidence awaiting their own separate release and disposition; they are not being bundled into this closure.
+
+The original F07 channel conversion defect is corrected, and channel edits/write preflight follow the completed factory-CPS frequency tests. Supported RX/TX bounds are 136.00000–173.99875 and 400.00000–519.99875 MHz on a 1.25 kHz grid. The app rejects off-grid values rather than reproducing factory downward rounding. Existing imported/read values remain intact for export; unsupported channel programming is blocked. VFO reception and channel memory are distinct. The [F07 closure](F07-EVIDENCE-2026-10-15.md) reconciles the remaining scope without requesting repeat physical testing.
+
+This documentation closure changes no radio, validation or transport behavior. Full regression: 85 tests, 81 passing, four expected TODOs, zero unexpected failures; all 21 existing private-file checks pass. See [progress and publication status](CODEX-PROGRESS.md).
+
+## Current disposition
+
+| Status | Findings |
+| --- | --- |
+| Corrected / closed | F02, F04, F07, F09, F11, F12, F14, F15 |
+| Awaiting individual evidence closure | F03 (accepted factory-compatible VFO limitation), F06 (completed write/reboot/readback) |
+| Open investigation | F01, F05, F08, F10, F13 |
+
+The master task authorizes one tested correction/closure at a time, UAT verification before LIVE, and a separate version for each. F07 is finished first because its v20.14 implementation/release was in progress when that instruction arrived. F03 is next, then F06. No speculative protocol changes or autonomous physical writes are authorized.
+
+---
+
 # Audit remediation — v20.14
 
 October 16, 2026. Baseline: LIVE v20.13, commit `1b1c6b434c130e3d799bf258ff9bce2d6bef6fe3`.

@@ -32,3 +32,9 @@ For UAT, revert the specific development commit in the UAT repository. Its previ
 ## v20.14 channel-validation correction
 
 The exact pre-correction LIVE source is `1b1c6b434c130e3d799bf258ff9bce2d6bef6fe3`. Promote only the reviewed F07 validation release after the isolated UAT checks. Reverting that release restores v20.13 through the existing workflow; it also restores its broad channel-input acceptance. Protocol, encoder/decoder and disconnect/reset changes are not part of this release.
+
+## One-finding release procedure — October 16, 2026
+
+The master task explicitly authorizes incremental LIVE promotion after the full regression suite and exact UAT release have passed verification. Each completed finding, including an accepted limitation, receives its own new version and LIVE tag. Keep [CODEX-PROGRESS.md](CODEX-PROGRESS.md) current. Do not begin the next finding until publication is verified. Post-publication progress-only commits may use [skip ci]; they record evidence and do not republish or reuse an application version. The following release packages that updated record.
+
+Rollback for v20.15: restore/revert to the v20.14 release source at c38d90f8bf047e8ccc84eb3032f05bf0d59c4fef through a new reviewed commit, then test and deploy normally. Do not force-push. The v20.15 closure changes no transport or memory behavior.
