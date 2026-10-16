@@ -1,5 +1,27 @@
 # Audit remediation — v20.13
 
+## Evidence reconciliation — October 16, 2026
+
+**Physical testing has been performed by K4RJM.** Earlier statements about no physical radio operations described the coding/automated verification sessions, not the whole project. Existing hardware results count toward verification; they must not be discarded or needlessly repeated. The application remains v20.13; this update corrects Help and documentation only.
+
+**Open Audit Findings: eight. Corrected: seven (F02, F04, F09, F11, F12, F14, F15).** An open finding can already have substantial completed work. The table separates that evidence from the remaining engineering task.
+
+| Finding | Completed work / existing evidence | What remains |
+| --- | --- | --- |
+| F01 — Radio-memory preservation | A real capture identifies the unmapped byte at 0x9018; reconstruction changes it. The supplied test summary also reports a factory-CPS change. | Establish the byte’s role and a safe preservation policy. Retained snapshots alone do not identify the intervening writer or prove that normalization is intentional. |
+| F03 — VFO direction / SignalCode collision | Three distinct factory DAT inputs reproduce the collision. Factory write/read and a matching Bluetooth capture establish A PLUS / group 17 at 0x800E = 0x10. | Obtain the missing isolated raw states for Off/group 17 and Plus/group 1, then establish the A/B mapping and behavior. No speculative encoder change. |
+| F05 — Radio and DAT compatibility | Radio 100 / V0.05 / V1.7 is identified; native DATs and captures have been compared. The supplied test summary reports factory-CPS recovery of an inoperable radio. | Define and implement a supported-device/source policy. Model identity and a parsed DAT do not establish firmware compatibility; successful recovery does not establish compatibility for other profiles. |
+| F06 — Write completion and disconnect | K4RJM has physically programmed, read and reconnected the radio, observed its post-write reboot, and reported cases requiring Wireless CPS or PC Bluetooth toggles. | Record final-ACK/disconnect timing, persistence after reboot/power cycling, and repeated reconnection results for an identified build/browser/radio. Existing operations are evidence; reliable recovery is still unresolved. |
+| F07 — Frequency validation | v20.12 fixed silent frequency loss and malformed-decimal handling. Prior manual testing recorded factory-CPS channel RX/TX ranges, 1.25 kHz increments/downward normalization, rejected cases and separate VFO behavior. | Incorporate those recorded channel rules into validation and regressions without applying them blindly to VFOs or silently rounding existing data. Resolve only the remaining radio-specific capability/behavior questions. See the [F07 evidence table](F07-EVIDENCE-2026-10-15.md). |
+| F08 — Channel 999 | A native factory DAT contains channel 999 and passes export/reimport checks. | Obtain an independent populated radio capture and establish final-pair mapping before changing the existing writer restriction. |
+| F10 — Bluetooth timeouts | Real connection/recovery problems are reported; a simulated unresolved native promise demonstrates an unbounded wait. | Add and test deadlines, cancellation and late-result handling without retrying uncertain writes. Reports alone do not identify this failure as the cause of every Bluetooth problem. |
+| F13 — Independent verification | Sixteen factory DATs, five complete Bluetooth diagnostics, three exact DAT/capture pairs, retained native frames, browser checks and K4RJM’s hands-on tests are already recorded. | Extend independent coverage to the unresolved cases, retaining build/device/results for each test. This is targeted coverage work, not a claim that physical testing is absent. |
+
+### Next correction
+
+F07 channel validation is the next bounded software task: use the recorded factory-CPS channel limits, test both RX and TX boundaries and the 1.25 kHz grid, retain empty/receive-only behavior, and review imported/off-grid data handling. Preserve decoded evidence and do not silently rewrite frequencies. VFO rules remain separate. New radio tests should address named gaps rather than repeat the completed factory-CPS checks. Bluetooth protocol, disconnect/reset behavior and writing restrictions are unchanged by this documentation update.
+
+
 The header build badge, short changelog and single-checkbox preparation checklist are presentation-only changes; the existing backup/risk acknowledgement remains a self-confirmation, with no backup-file verification. Audit status remains **seven corrected findings and eight open**; the v20.12 corrections and limitations below are unchanged.
 
 ---
@@ -19,7 +41,7 @@ Verification: **73 passing tests, four expected TODO failures, zero unexpected f
 | Corrected | F02, F04, F09, F11, F12, F14, F15 |
 | Open | F01, F03, F05, F06, F07 (representation corrected; hardware domain pending), F08, F10, F13 |
 
-The encoder, Bluetooth reader, memory map, command sequence, acknowledgements, disconnect/reset behavior and existing safety guards are unchanged. `writer.mjs` adds only format validation before a plan is made; no transport method changes. No physical radio operation was performed. Rollback is available at `rollback/v20.11-before-f07`.
+The encoder, Bluetooth reader, memory map, command sequence, acknowledgements, disconnect/reset behavior and existing safety guards are unchanged. `writer.mjs` adds only format validation before a plan is made; no transport method changes. These development checks performed no additional physical radio operations. Rollback is available at `rollback/v20.11-before-f07`.
 
 ---
 
@@ -41,7 +63,7 @@ The wired factory CPS display/default issue and its later write resetting delay 
 - Seven F02 codec tests failed on the old decoder before passing with this change; all 39 supported single-field codes, 216 combined settings cases, fixed byte fixtures, unknown-code rejection and editor/DAT preservation are covered.
 - All 120 F03 direction/group combinations are exercised by its still-open round-trip test. Separate characterization tests show the 60-to-52 packing collision and retained factory byte examples without claiming resolution.
 - Private native encoder comparison: all 1,042 frames / 66,688 bytes still match. Two retained decoder fixtures pass with exactly two documented F02 squelch corrections to the old native read oracle.
-- Only radio-decoder.mjs changes executable protected-core logic. All ten other protected files are byte-identical to v20.10. No physical radio connection, read or write was performed.
+- Only radio-decoder.mjs changes executable protected-core logic. All ten other protected files are byte-identical to v20.10. These automated/offline checks performed no additional physical radio connection, read or write. K4RJM’s supplied physical evidence is recorded below.
 
 ## Current finding status
 
@@ -94,7 +116,7 @@ The [original audit](https://github.com/K4RJM/baofeng-mini5-bt-cps-unofficial/bl
 - Deterministic channel-operation coverage adds 32 varied 999-slot layouts, checking order, settings, hidden-record preservation and native DAT round trips.
 - Retained private artifacts: 1,042 native CPS frames / 66,688 payload bytes matched; two retained decoder fixtures and their DAT round trips matched. Private fixtures remain outside the repository and public package. The retained decoder oracle includes hand-transcribed settings rules, so this finite comparison does not close F02, F03 or F13.
 - Nine protected files remain byte-identical to retained build 18. `dat.mjs` changes only input parsing/resource limits and adds the browser File reader. `writeDat` is unchanged. `radio-encoder.mjs` changes comments only; executable encoding code is unchanged.
-- No physical radio connection, read, write, reboot or firmware operation was performed. No RepeaterBook request or token was used.
+- The coding-session checks performed no additional physical radio connection, read, write, reboot or firmware operation. This does not describe K4RJM’s separate hardware tests. No RepeaterBook request or token was used.
 
 Run `npm test` and `npm run package`. The optional local command `node scripts/check-private-cps-fixtures.mjs <retained-fixture-directory>` checks existing private artifacts without copying them into the repository.
 

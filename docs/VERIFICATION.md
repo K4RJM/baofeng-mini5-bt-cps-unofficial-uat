@@ -1,6 +1,19 @@
 # Verification status — v20.13, October 15, 2026
 
-Presentation-only release: the build badge moves to the top header and a keyboard-accessible “What’s new” dialog lists the three latest releases. The UAT overlay retains its distinct build and environment indicators. The existing write dialog gains the requested preparation checklist, keeping exactly one checkbox and the existing confirmation gate. Its timing statement reflects maintainer-reported testing, not a new timing guarantee or agent hardware test. Radio/codec modules and safety guards are unchanged from v20.12. The existing suite reports 77 tests: 73 pass, four expected TODO failures and zero unexpected failures. LIVE packaging and the UAT version overlay both pass. No physical radio operation was performed.
+## Physical evidence already completed — record reconciled October 16, 2026
+
+K4RJM performed physical-radio testing. Recorded evidence includes successful programming and normal operation on Radio 100 / V0.05 / V1.7; Bluetooth reads, writes, reboot/disconnect and reconnection observations; and typical programming times below one minute. Intermittent recovery problems remain part of the evidence, not an absence of testing.
+
+The 21 supplied private files include 16 factory DATs and five complete Bluetooth diagnostics labeled build 20.10. Three matched DAT/capture pairs agree on every decoded field and all 33,344 bytes when compared with the corrected decoder. Two directly confirm the F02 high codes. See [F02/F03 evidence](F02-F03-EVIDENCE-2026-10-15.md). Offline analysis of physical captures remains hardware-derived evidence; it is distinct from synthetic simulations.
+
+The prior manual test summary also records factory-CPS channel limits and rounding, plus separate VFO reception behavior. These are now listed in [F07 evidence](F07-EVIDENCE-2026-10-15.md). They have not yet been incorporated into channel validation. The [Open Audit Findings](AUDIT-REMEDIATION.md) identify only the remaining mapping, compatibility, persistence/recovery and coverage gaps. Existing evidence does not establish every configuration or certify a later build automatically.
+
+The historical statements below describe the scope of each development/checking session. They do not mean that the project received no physical testing.
+
+## v20.13 automated and interface verification
+
+
+Presentation-only release: the build badge moves to the top header and a keyboard-accessible “What’s new” dialog lists the three latest releases. The UAT overlay retains its distinct build and environment indicators. The existing write dialog gains the requested preparation checklist, keeping exactly one checkbox and the existing confirmation gate. Its timing statement reflects maintainer-reported testing, not a new timing guarantee or agent hardware test. Radio/codec modules and safety guards are unchanged from v20.12. The existing suite reports 77 tests: 73 pass, four expected TODO failures and zero unexpected failures. LIVE packaging and the UAT version overlay both pass. These automated/interface checks performed no additional physical radio operations.
 
 ---
 
@@ -8,7 +21,7 @@ Presentation-only release: the build badge moves to the top header and a keyboar
 
 F07's channel-frequency representation loss is corrected; hardware band verification remains open. **77 tests: 73 pass, four expected TODO failures, zero unexpected failures.** Six new tests failed on the previous release before passing with the correction. Coverage includes independent decimal-byte vectors, 96 malformed-nibble cases, empty/receive-only preservation, imported-frequency preflight rejection and complete diagnostic retention through real application handlers in an isolated harness.
 
-All 21 private-file checks, including three full 33,344-byte DAT/capture pairs, still pass. All 1,042 older native frames and two retained decoder fixtures match their documented expectations. The encoder, Bluetooth reader and connection recovery are unchanged; the writer changes only preflight channel-format validation. No hardware operation was performed. See [F07 evidence and physical checklist](F07-EVIDENCE-2026-10-15.md).
+All 21 private-file checks, including three full 33,344-byte DAT/capture pairs, still pass. All 1,042 older native frames and two retained decoder fixtures match their documented expectations. The encoder, Bluetooth reader and connection recovery are unchanged; the writer changes only preflight channel-format validation. These development checks performed no additional hardware operations. See [F07 evidence and physical checklist](F07-EVIDENCE-2026-10-15.md).
 
 ---
 
@@ -22,7 +35,7 @@ All 1,042 retained native encoder frames (66,688 bytes) match. The historical na
 
 The subsequent 21-file evidence review adds 16 successful native DAT semantic round trips and three independent DAT/raw-capture pairs matching every decoded field and all 33,344 image bytes. Two pairs directly preserve the confirmed F02 high codes. `node scripts/check-oct15-evidence.mjs <private-evidence-directory>` reproduces these results and explicitly characterizes still-open F01, F03 and F08. Full details and the mismatched same-radio file-pair limitation are in the [evidence review](F02-F03-EVIDENCE-2026-10-15.md). Originals remain private; the public manifest contains only filenames, sizes and hashes.
 
-All ten other protected files are byte-identical to v20.10. The decoder manifest records its old hash and evidence. Encoder, writer, reader, memory layout and connection-recovery code are unchanged. No physical radio operation was performed. Physical timing and VFO B behavior remain pending.
+All ten other protected files are byte-identical to v20.10. The decoder manifest records its old hash and evidence. Encoder, writer, reader, memory layout and connection-recovery code are unchanged. These automated/offline checks performed no additional physical radio operations. Actual PTT-ID timing and VFO B signaling behavior remain pending.
 
 The separate UAT deployment was verified in the browser with its development banner and commit-specific version. It has its own Pages workflow and no LIVE deployment credential. The original LIVE workflow remains unchanged.
 
@@ -32,7 +45,7 @@ The separate UAT deployment was verified in the browser with its development ban
 
 The current release contains six audit corrections described in [AUDIT-REMEDIATION.md](AUDIT-REMEDIATION.md). Nine findings remain open. Automated results: **53 passing tests, 6 explicitly marked TODO failures, no unexpected failures**. The TODO cases reproduce unresolved radio findings; a successful CI exit does not close them.
 
-Private retained checks matched 1,042 native CPS frames (66,688 payload bytes), two decoder fixtures and native DAT round trips. These are finite historical comparisons. The decoder fixture generator includes hand-transcribed settings rules and is not an independent oracle for every field. No physical radio operation was performed for this release.
+Private retained checks matched 1,042 native CPS frames (66,688 payload bytes), two decoder fixtures and native DAT round trips. These are finite historical comparisons. The decoder fixture generator includes hand-transcribed settings rules and is not an independent oracle for every field. No additional hardware operations were performed in that coding session; the later build-20.10 physical captures are recorded above.
 
 All seven dialog heading references pass static validation. The local preview could not be reached from the in-app browser. Screen-reader testing remains pending. The original layout and styling are unchanged.
 
@@ -46,7 +59,7 @@ The sections below are historical records, not current release certification.
 
 ## Automated checks
 
-All 26 tests pass. No physical radio access.
+All 26 tests pass. These automated checks did not access a physical radio.
 
 - Eleven protected core files match retained build 18 SHA-256 hashes byte for byte.
 - Native DAT round trips preserve Chinese names, NUL padding and the extra record; malformed/truncated/trailing-byte/wrong-assembly files are rejected.
@@ -67,13 +80,13 @@ Verified the actual local app in the in-app Chromium browser:
 - Optional setting changes, separate upper/lower VFO columns, all 20 DTMF groups and absence of console errors in these checks.
 - RepeaterBook pending-approval display and disabled controls.
 
-No browser Connect/Read/Write was performed against a physical radio. Drag reorder is implemented and shares the tested move operation, but the pointer drag gesture was not exercised in browser QA. Idle timing and radio-failure behavior were simulated, not physically tested. File export was reopened in this browser and audited against retained CPS fixtures; the installed Windows CPS was not opened for this release.
+This browser QA session did not perform Connect/Read/Write against a physical radio. Drag reorder is implemented and shares the tested move operation, but the pointer drag gesture was not exercised in browser QA. Idle timing and radio-failure behavior were simulated, not physically tested. File export was reopened in this browser and audited against retained CPS fixtures; the installed Windows CPS was not opened for this release.
 
 ## Hosting and remaining review
 
 Local HTTP readiness returned 200. All packaged assets use repository-relative URLs. A GitHub Actions Pages workflow and public-file allowlist are included, following [GitHub's workflow documentation](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages). GitHub Actions execution, remote publication and actual hosted Bluetooth permissions are not verified because this build has not been pushed or deployed.
 
-The prior user reported successful build 18 operation on Radio 100 / V0.05 / V1.7, with a manual Wireless CPS toggle required before rereading. That core remains unchanged. Physical validation of build 19 and approval of any future protocol or blank-template writing change remain pending. RepeaterBook API approval and browser-compatible access/export terms remain pending. No RepeaterBook API request or token use occurred.
+K4RJM reported successful build 18 operation on Radio 100 / V0.05 / V1.7, with a manual Wireless CPS toggle required before rereading. That core remains unchanged. At that stage, build 19 physical validation was not yet recorded. Later physical results are acknowledged above. Future protocol or blank-template writing changes still require separate approval. RepeaterBook API approval and browser-compatible access/export terms remain pending. No RepeaterBook API request or token use occurred.
 
 ## v20.9 post-write connection cleanup
 

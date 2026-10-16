@@ -55,7 +55,7 @@ Programming errors, software defects, or interrupted communication may render yo
 
 ## Pending / limitations
 
-Physical-radio testing of this interface and other variants; reception of dialed DTMF sequences; protocol-level post-write session fix; cable transport; firmware flashing; banks/zones; blank-template radio-writing approval. The previous hardware-tested build worked on Radio 100 / V0.05 / V1.7, which does not certify other radios.
+Physical testing already includes K4RJM’s successful programming, Bluetooth reads and reconnections, factory CPS comparisons and independent radio-memory captures. The identified baseline is Radio 100 / V0.05 / V1.7. See the [Open Audit Findings](docs/AUDIT-REMEDIATION.md) for the evidence already collected and the specific gaps. Remaining work includes unresolved field mappings, integration of recorded factory CPS channel limits into validation, persistence/reconnection reliability, other hardware variants and reception of dialed DTMF sequences. Cable transport, firmware flashing, banks/zones and blank-template radio writing remain unsupported.
 
 RepeaterBook approval, CORS/identification, individual app-bound tokens, export/attribution permission and approved limits remain pending. See [integration review](docs/REPEATERBOOK.md).
 
@@ -63,7 +63,7 @@ Read [SAFETY.md](docs/SAFETY.md) before programming. Blank workspaces support ed
 
 Build 20.8 adds Previous / Next to the channel editor. Moving applies valid workspace edits, skips empty slots unless Show empty slots is on, crosses table pages and ignores the table search filter. Invalid edits block navigation; closing discards only the current staged edits. Unchanged navigation creates no Undo entry. Insert-above editing keeps its existing single-insertion behavior. Radio programming is unchanged.
 
-Build 20.9 requests browser Bluetooth disconnection immediately after all 262 blocks are acknowledged. Reconnect waits for explicit confirmation that the radio has finished rebooting; Wireless CPS OFF/ON remains a fallback. This is an unverified hardware workaround, with added lifecycle/error logs and the correct build/browser in diagnostic reports. No new radio opcode, memory map change or automatic write retry.
+Build 20.9 requests browser Bluetooth disconnection immediately after all 262 blocks are acknowledged. Reconnect waits for explicit confirmation that the radio has finished rebooting; Wireless CPS OFF/ON remains a fallback. K4RJM has performed programming and reconnection tests and reported intermittent recovery problems. Reliable recovery across repeated write/reboot cycles remains unestablished; lifecycle/error logs and build/browser details support that investigation. No new radio opcode, memory map change or automatic write retry.
 
 ## Run locally
 
