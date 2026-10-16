@@ -1,6 +1,6 @@
 # Verification status — v20.13, October 15, 2026
 
-Presentation-only release: the build badge moves to the top header and a keyboard-accessible “What’s new” dialog lists the three latest releases. The UAT overlay retains its distinct build and environment indicators. Radio/codec modules and safety guards are unchanged from v20.12. The existing suite reports 77 tests: 73 pass, four expected TODO failures and zero unexpected failures. LIVE packaging and the UAT version overlay both pass. No physical radio operation was performed.
+Presentation-only release: the build badge moves to the top header and a keyboard-accessible “What’s new” dialog lists the three latest releases. The UAT overlay retains its distinct build and environment indicators. The existing write dialog gains the requested preparation checklist, keeping exactly one checkbox and the existing confirmation gate. Its timing statement reflects maintainer-reported testing, not a new timing guarantee or agent hardware test. Radio/codec modules and safety guards are unchanged from v20.12. The existing suite reports 77 tests: 73 pass, four expected TODO failures and zero unexpected failures. LIVE packaging and the UAT version overlay both pass. No physical radio operation was performed.
 
 ---
 

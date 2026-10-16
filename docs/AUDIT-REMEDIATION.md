@@ -1,6 +1,6 @@
 # Audit remediation — v20.13
 
-The header build badge and short changelog are presentation-only changes. Audit status remains **seven corrected findings and eight open**; the v20.12 corrections and limitations below are unchanged.
+The header build badge, short changelog and single-checkbox preparation checklist are presentation-only changes; the existing backup/risk acknowledgement remains a self-confirmation, with no backup-file verification. Audit status remains **seven corrected findings and eight open**; the v20.12 corrections and limitations below are unchanged.
 
 ---
 

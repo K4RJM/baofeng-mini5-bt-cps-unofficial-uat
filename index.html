@@ -10,7 +10,7 @@
 <footer><span>Independent software. Not affiliated with Baofeng or RepeaterBook.</span><a href="https://github.com/K4RJM/baofeng-mini5-bt-cps-unofficial" target="_blank" rel="noopener">Source on GitHub ↗</a></footer></main></div>
 <dialog id="releaseNotes" aria-labelledby="releaseNotesTitle">
 <div class="dialog-head"><h2 id="releaseNotesTitle">What’s new</h2><button id="closeReleaseNotes" aria-label="Close changelog" autofocus>×</button></div>
-<section class="release-entry"><h3>20.13 <span class="tag">Current release</span></h3><p>Build number is visible in the top header on every screen, with this quick changelog beside it. Radio programming is unchanged.</p></section>
+<section class="release-entry"><h3>20.13 <span class="tag">Current release</span></h3><p>Build number and a quick changelog are available in the top header. The programming confirmation includes a preparation checklist with one confirmation checkbox.</p></section>
 <section class="release-entry"><h3>20.12</h3><p>Fixed channel frequencies disappearing during a radio read. Invalid stored frequencies are reported, with the previous workspace and raw diagnostic preserved. This does not expand the radio’s supported bands.</p></section>
 <section class="release-entry"><h3>20.11</h3><p>Corrected reading PTT-ID delay, VFO PTT-ID and VFO squelch settings, including 3000 ms, BOTH and QT/DQT + DTMF.</p></section>
 </dialog>
@@ -27,7 +27,24 @@
 </dialog>
 <dialog id="editor" aria-labelledby="editorTitle"><div class="dialog-head"><h2 id="editorTitle">Edit channel</h2><button id="cancel" aria-label="Close channel editor">×</button></div><p>Previous / Next applies edits to this workspace. Radio programming is a separate action.</p><div id="editErrors" role="alert" class="error"></div><div id="fields" class="grid"></div><div class="dialog-actions channel-editor-actions"><div id="editorNavigation" class="editor-navigation" role="group" aria-label="Channel navigation"><button id="editPrevious">← Previous</button><button id="editNext">Next →</button></div><button id="apply" class="primary">Apply channel edits</button></div></dialog>
 <dialog id="deleteDialog" aria-labelledby="deleteTitle"><h2 id="deleteTitle">Delete channels</h2><p>Leave empty slots to preserve channel numbers, or remove all gaps and renumber the remaining channels in order.</p><div class="dialog-actions"><button id="deleteLeave">Leave slots empty</button><button id="deleteRenumber">Delete and renumber</button><button id="deleteCancel">Cancel</button></div></dialog>
-<dialog id="warning" aria-labelledby="writeTitle" aria-describedby="writeSummary"><h2 id="writeTitle">⚠ Write radio — experimental</h2><p>Programming errors, software defects, or interrupted communication may render your radio inoperable. Always maintain a backup dat for use with official CPS and programming cable.</p><p id="writeSummary"></p><p>A matching 5RMINI model does not confirm firmware or hardware compatibility. This transport was tested on Radio 100, firmware V0.05, hardware V1.7. No firmware flashing is included.</p><label class="check"><input type="checkbox" id="hasBackup">I have an existing CPS .dat backup and accept the risk of radio damage.</label><div class="dialog-actions"><button id="cancelWrite">Cancel</button><button id="confirmWrite" class="danger" disabled>Confirm radio write</button></div></dialog>
+<dialog id="warning" aria-labelledby="writeTitle" aria-describedby="writeSummary">
+<h2 id="writeTitle">Before Programming Your Radio</h2>
+<p class="programming-time"><strong>Programming typically takes less than one minute</strong>, based on our physical testing. Programming time is generally similar regardless of the number of channels in use.</p>
+<h3 class="programming-checklist-title">I have checked and confirmed the following:</h3>
+<ul class="programming-checklist">
+<li><strong>Bluetooth distance:</strong> My radio is within 3–6 feet (1–2 meters) of my computer, with minimal obstructions.</li>
+<li><strong>Radio battery:</strong> My radio has sufficient battery power to complete programming without interruption.</li>
+<li><strong>Computer power:</strong> My computer is plugged in or sufficiently charged, and sleep mode will not interrupt programming.</li>
+<li><strong>Browser:</strong> I will not close, refresh, or navigate away from this website while programming is underway.</li>
+<li><strong>Radio operation:</strong> I will not turn off or operate the radio until programming is complete.</li>
+<li><strong>Backup:</strong> I have an existing CPS .dat backup and accept the risk of radio damage.</li>
+</ul>
+<div class="programming-risk"><strong>Experimental Software — Radio Damage Risk</strong><p>Programming errors, software defects, or interrupted communication may render your radio inoperable. Always maintain a backup dat for use with official CPS and programming cable.</p></div>
+<p class="programming-compatibility">A matching 5RMINI model does not confirm firmware or hardware compatibility. This transport was tested on Radio 100, firmware V0.05, hardware V1.7. No firmware flashing is included.</p>
+<p id="writeSummary"></p>
+<label class="check programming-confirmation"><input type="checkbox" id="hasBackup"><strong>I have checked the conditions above and confirm that I am ready to program my radio.</strong></label>
+<div class="dialog-actions"><button id="cancelWrite">Cancel</button><button id="confirmWrite" class="danger" disabled>Confirm radio write</button></div>
+</dialog>
 <dialog id="resetSession" aria-labelledby="resetTitle"><h2 id="resetTitle">Reconnect after radio restart</h2><p>Wait until the radio has finished restarting and Wireless CPS is ON. Stop scanning and close other programming apps. Reconnect when ready; if it fails, toggle Wireless CPS OFF, then ON and use the fallback button.</p><div class="dialog-actions" style="flex-wrap:wrap"><button id="resetCancel">Cancel</button><button id="resetRebootReady" class="primary" hidden>Radio has restarted — reconnect</button><button id="resetReady">I toggled Wireless CPS — continue</button></div></dialog>
 <dialog id="idle" aria-labelledby="idleTitle"><h2 id="idleTitle">Keep the Bluetooth connection?</h2><p>There has been no activity for ten minutes. Disconnecting in <strong id="idleSeconds">60</strong> seconds to save battery.</p><div class="dialog-actions"><button id="idleDisconnect">Disconnect now</button><button id="idleKeep" class="primary">Stay connected</button></div></dialog>
 <dialog id="moveDialog" aria-labelledby="moveTitle"><h2 id="moveTitle">Move channel</h2><p>The channels between the old and new positions shift by one slot.</p><label>Destination channel<input id="moveTo" type="number" min="1" max="999" step="1"></label><div class="dialog-actions"><button id="moveCancel">Cancel</button><button id="moveApply" class="primary">Move</button></div></dialog>
