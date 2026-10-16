@@ -8,9 +8,9 @@ Updated October 16, 2026. Resume here, then read AUDIT-REMEDIATION.md; inspect a
 - Final disposition: Closed — Verified on Physical Hardware.
 - Work: independently reproduced both original diagnostics, all 322 intended changes and zero unrelated changes; reviewed existing acknowledged/reboot/verify behavior without modifying it; added captured-record and application-flow regressions; updated Help and audit.
 - Tests: 89 total, 86 passing, three expected TODOs (F01/F05/F10), zero unexpected failures. All 21 original files, six F03 files and two F06 files pass offline checks. Exact 33,344-byte post-read reconstruction matches independent hardware capture.
-- UAT publication: pending v20.17 deployment/verification.
-- LIVE publication: pending verified UAT; no promotion claimed yet.
-- Release commit and tag: pending; intended v20.17.
+- UAT: published and browser-verified 20.17-UAT.7358da1; commit 7358da1e8968ec3454ee87c6823fad4ec2d752c3; Pages run 38952384811 succeeded. Editor, Help and F06 changelog verified.
+- LIVE: published and browser-verified build 20.17 and F06 changelog; commit b667e4b6d493e7717566e7f636a549bc963c4c25; Pages run 38952619870 succeeded. Exact application payload matched tested UAT.
+- Release: [v20.17](https://github.com/K4RJM/baofeng-mini5-bt-cps-unofficial/releases/tag/v20.17), verified tag target b667e4b6d493e7717566e7f636a549bc963c4c25.
 - Files changed: package.json, index.html, app.mjs, README.md, tests/f06-evidence.test.mjs, tests/evidence/f06-oct16-private-files.json, scripts/check-f06-evidence.mjs, scripts/package.mjs, docs/F06-EVIDENCE-2026-10-16.md, docs/AUDIT-REMEDIATION.md, docs/AUDIT-2026-10-14.md, docs/VERIFICATION.md, docs/CODEX-PROGRESS.md.
 - Rollback: v20.16 / 1d7cd4459f145b7c335737677cd42dfab5eb7315.
 - Remaining: F01, F05, F08, F10, F13 (five). Next: F05 current-device identity and source policy.
@@ -58,6 +58,6 @@ Updated October 16, 2026. Resume here, then read AUDIT-REMEDIATION.md; inspect a
 
 ## Remaining master-task sequence
 
-Finish Phase 1 before features: F06, F05, F01, F08, F10, F13; review all 15 dispositions and regression coverage. Accepted factory-compatible limitation is allowed; an unverified corruption risk is not. Keep each completed finding independently versioned, UAT tested, LIVE verified and tagged.
+Finish Phase 1 before features: F05, F01, F08, F10, F13; review all 15 dispositions and regression coverage. Accepted factory-compatible limitation is allowed; an unverified corruption risk is not. Keep each completed finding independently versioned, UAT tested, LIVE verified and tagged.
 
 Phase 2 (not started): A restore supported model-specific CHIRP IMG import/export, B CHIRP CSV import/export, C local RepeaterBook CSV import, D coherent import/export/preview/conflict interface. Genuine compatible fixtures and independent validation required. Never program automatically on file import; preserve DAT, identity, memory, frequency and overwrite safeguards. No RepeaterBook live API integration/token is required.
