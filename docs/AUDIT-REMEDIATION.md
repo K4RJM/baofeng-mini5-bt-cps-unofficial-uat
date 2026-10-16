@@ -1,3 +1,20 @@
+# Audit remediation — v20.16
+
+**F03: Closed — Accepted Factory-Compatible VFO Limitation. Nine of 15 findings are resolved; six remain: F01, F05, F06, F08, F10, F13.** The factory wired CPS and Bluetooth CPS exhibit the same tested VFO A OFF/17, PLUS/1 and PLUS/17 representation (0x800E=0x10; readback PLUS/17). The cause is not conclusively identified. Memory-channel programming is unaffected. No encoder or decoder changes, and no repeat F03 physical testing is requested.
+
+Six newly inspected private files corroborate input/readback settings and the captured VFO A region. The separately reported fresh PLUS/1–PLUS/17 full-image equality is attributed accurately; the saved OFF/17–PLUS/1 pair has other differences. See the [accepted limitation and evidence](F02-F03-EVIDENCE-2026-10-15.md).
+
+All 120 A/B combination cases are retained as characterization instead of a false expectation of independent fields. New independent hardware-byte and channel-isolation regressions pass. Full suite: 87 tests, 84 pass, three expected TODOs, zero unexpected failures. Original 21 and new six private-file checks pass. [Progress/publication](CODEX-PROGRESS.md) records the release gate. F06 is next as its own hardware-evidence closure.
+
+| Status | Findings |
+| --- | --- |
+| Corrected / Closed — Verified | F02, F04, F07, F09, F11, F12, F14, F15 |
+| Closed — Accepted Limitation | F03 |
+| Awaiting separate evidence closure | F06 |
+| Open investigation | F01, F05, F08, F10, F13 |
+
+---
+
 # Audit remediation — v20.15
 
 **F07: Closed — Verified. Eight of the original 15 findings are resolved; seven remain open: F01, F03, F05, F06, F08, F10 and F13.** F03 and F06 have new completed hardware evidence awaiting their own separate release and disposition; they are not being bundled into this closure.

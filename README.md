@@ -2,7 +2,7 @@
 
 Free, noncommercial browser software by K4RJM, hosted on GitHub Pages.
 
-**Current release: v20.15.** F07 is closed using completed factory-CPS testing and the channel-frequency preservation/validation regressions. Channel RX/TX limits are 136.00000–173.99875 and 400.00000–519.99875 MHz on a 1.25 kHz grid. Off-grid inputs are rejected without rounding; imported/read values remain preserved. VFO rules and Bluetooth behavior are unchanged. Eight findings are resolved and seven await disposition. See [current progress](docs/CODEX-PROGRESS.md).
+**Current release: v20.16.** F03 is closed as an accepted factory-compatible VFO limitation, corroborated by completed physical tests and independent captured bytes. OFF/group 17, PLUS/group 1 and PLUS/group 17 can read back as PLUS/group 17. Memory-channel programming is unaffected. The codec and Bluetooth behavior are unchanged. Nine findings resolved; six await disposition. See [current progress](docs/CODEX-PROGRESS.md) and [evidence](docs/F02-F03-EVIDENCE-2026-10-15.md).
 
 **Retained v20.13 interface:** The build number appears in the top header on both LIVE and UAT, beside a compact “What’s new” changelog. The existing write-confirmation window now includes a preparation checklist and one acknowledgement covering readiness, the backup reminder and risk acceptance. The checklist’s timing statement comes from maintainer-reported physical testing. Radio programming behavior is unchanged.
 

@@ -1,5 +1,5 @@
-// Executable open findings. TODO marks deliberately failing expectations, not fixes.
-// Remove a TODO only with the corresponding reviewed correction and independent evidence.
+// Executable findings and accepted limitations. TODO marks deliberately failing open expectations.
+// Replace a TODO only with a reviewed correction or explicitly accepted, evidenced limitation.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {setTimeout as delay} from 'node:timers/promises';
@@ -16,7 +16,7 @@ test('F01 OPEN: a read/configuration rebuild preserves unmapped captured bytes',
  const differences=Array.from(captured.keys()).filter(i=>captured[i]!==rebuilt[i]);
  assert.deepEqual(differences,[]);
 });
-test('F02: accepted non-tone options outside the unresolved F03 fields survive conversion',()=>{
+test('F02: accepted non-tone options outside the separately characterized F03 fields survive conversion',()=>{
  const failed=[];let checked=0;
  for(const [type,choices]of Object.entries(options))for(const [key,values]of Object.entries(choices)){
   if(/CtsDcs/.test(key)||/^vfo[AB](Dir|SignalGroup)$/.test(key))continue;
@@ -29,14 +29,18 @@ test('F02: accepted non-tone options outside the unresolved F03 fields survive c
  }
  assert.equal(checked,292);assert.deepEqual(failed,[]);
 });
-test('F03 OPEN: VFO direction and signaling group remain independent',{todo:'Needs verified native packing and firmware interpretation'},()=>{
+test('F03 accepted limitation: retain all 120 direction/group cases and their known asymmetry',()=>{
  const failed=[];
  for(const side of ['A','B'])for(const direction of [0,1,2])for(const group of Array.from({length:20},(_,i)=>i)){
   const input=fixture(),prefix='vfo'+side;input.vfos[prefix+'Dir']=direction;input.vfos[prefix+'SignalGroup']=group;
   const result=decodeRadio(makePlan(input,options).target).vfos;
   if(result[prefix+'Dir']!==direction||result[prefix+'SignalGroup']!==group)failed.push({side,direction,group,decodedDirection:result[prefix+'Dir'],decodedGroup:result[prefix+'SignalGroup']});
  }
- assert.deepEqual(failed,[]);
+ // Characterization, not a claim that all combinations are independent or hardware-certified.
+ assert.equal(failed.length,52);
+ assert.deepEqual(['A','B'].flatMap(side=>[0,1,2].map(direction=>[side,direction,failed.filter(x=>x.side===side&&x.direction===direction).length])),[['A',0,4],['A',1,16],['A',2,20],['B',0,4],['B',1,4],['B',2,4]]);
+ assert.deepEqual(failed.find(x=>x.side==='A'&&x.direction===0&&x.group===16),{side:'A',direction:0,group:16,decodedDirection:1,decodedGroup:16});
+ assert.deepEqual(failed.find(x=>x.side==='A'&&x.direction===1&&x.group===0),{side:'A',direction:1,group:0,decodedDirection:1,decodedGroup:16});
 });
 test('F07 representation: out-of-band stored frequency survives decoding and is blocked for programming',()=>{
  const plain=crypt(makePlan(fixture(),options).target);plain.set([0,0,0,0x65],0);

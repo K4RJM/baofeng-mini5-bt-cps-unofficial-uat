@@ -1,0 +1,83 @@
+{
+  "description": "Private physical evidence; originals are not published. Direction/group codes are zero-based.",
+  "files": [
+    {
+      "name": "F03-OFF-GROUP17.dat",
+      "bytes": 80066,
+      "sha256": "66daa8d65bd3e4407e9db2fb0e5efa23515ea731707fd9753fe65159e4041f7f",
+      "vfo": [
+        0,
+        16,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "F03-OFF-GROUP17.json",
+      "bytes": 136442,
+      "sha256": "75eaa59792f183bfc73844508500f816215ec8a7571bd3aa182a670b88597d3b",
+      "build": "20.14",
+      "capturedAt": "2026-10-16T06:23:37.925Z",
+      "rawLength": 33344,
+      "rawSha256": "6da83bbebf48c70d7c6e3bcc4dc58408b0ae793e104d213b562a4b04f071b9e8",
+      "byte800E": 16,
+      "vfoAHex": "4047093e4a47073200000000ff001000000000360000000000000000ffffffff",
+      "vfo": [
+        1,
+        16,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "F03-OFF17-READBACK.dat",
+      "bytes": 80066,
+      "sha256": "ba62439128a748b61ec8ebfcd60aac3f11c53b416c78dde3910722f6de913214",
+      "vfo": [
+        1,
+        16,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "F03-PLUS-GROUP1.dat",
+      "bytes": 80094,
+      "sha256": "e50e008462ffd0ab0b09237472a0626943b94ee3bbd083ad7591b1bfb5462fe7",
+      "vfo": [
+        1,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "F03-PLUS-GROUP1.json",
+      "bytes": 135988,
+      "sha256": "d2cdf83c58f342f3839f955759ee48e58446f34d44426cba8c2e7572290d1d6d",
+      "build": "20.14",
+      "capturedAt": "2026-10-16T07:29:39.204Z",
+      "rawLength": 33344,
+      "rawSha256": "f0ec15d6a12713587086140e2749708e9bc21b1ed2c40582ee6b9d587c2f00e1",
+      "byte800E": 16,
+      "vfoAHex": "4047093e4a47073200000000ff001000000000360000000000000000ffffffff",
+      "vfo": [
+        1,
+        16,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "F03-PLUS-GROUP1_factory cps.dat",
+      "bytes": 80094,
+      "sha256": "a7ce581034a9e38a1ba6cfd4863e2d37461f1e57b0ca9f4edbd12180f6035551",
+      "vfo": [
+        1,
+        16,
+        0,
+        0
+      ]
+    }
+  ]
+}

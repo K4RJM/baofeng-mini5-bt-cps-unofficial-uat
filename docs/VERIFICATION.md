@@ -1,3 +1,9 @@
+# Verification — v20.16, F03 accepted limitation
+
+87 tests: 84 pass, three expected TODOs (F01/F05/F10), zero unexpected failures. F03 coverage retains all 120 combinations and native constants; adds an independent 32-byte capture and channel-isolation regression. Six new private originals and all 21 prior files pass offline checks. Encoder, decoder, writer, reader, map, validation and connection recovery remain byte-identical to v20.15. Completed physical testing is credited in [F03 evidence](F02-F03-EVIDENCE-2026-10-15.md); this release process performs no new radio operation. [Publication checkpoint](CODEX-PROGRESS.md).
+
+---
+
 # Verification — v20.15, F07 closure
 
 Documentation/Help/version-only closure based on K4RJM’s completed physical/factory-CPS tests and the v20.12/v20.14 corrections. Full suite: 85 tests, 81 passing, four expected TODOs, zero unexpected failures. F07 targeted tests: 15 pass. Original private evidence: 21 files verified, 16 native DAT round trips, five complete captures, three complete 33,344-byte matching pairs. No new physical-radio test. All radio/validation/transport modules match v20.14 exactly. [Publication checkpoint](CODEX-PROGRESS.md) records actual UAT/LIVE verification separately.

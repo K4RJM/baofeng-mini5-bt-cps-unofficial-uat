@@ -73,7 +73,7 @@ for(const [name,field,value] of [
  assert.equal(data[object][key],value,name+': intended code');
 }
 
-// F03 characterization: this deliberately records a defect, not a successful fix.
+// F03 characterization: preserve the explicitly accepted factory-compatible limitation.
 const collisionNames=['F03-GROUP17.dat','F03-PLUS.dat','F03-PLUS-GROUP17.dat'];
 const expectedInputs=[[0,16],[1,0],[1,16]];
 const expectedPaths=[['vfos.vfoASignalGroup'],['vfos.vfoADir'],['vfos.vfoADir','vfos.vfoASignalGroup']];
@@ -110,5 +110,5 @@ same(dats.get('F03-SAME-RADIO.dat'),dats.get('F03-COMBINED-TEST.dat'),'F03 same-
 
 console.log('PASS: 21 fingerprints; 16 native DAT semantic round trips; 5 complete raw captures.');
 console.log('PASS: 3 independent DAT/capture pairs match every field and all 33,344 bytes; F02 codes 28/3/2 preserved.');
-console.log('OPEN: F03 whole-image collision reproduced; F01 captured-byte loss reproduced; F08 guard retained.');
+console.log('ACCEPTED F03: whole-image collision retained. OPEN: F01 captured-byte loss; F08 guard retained.');
 console.log('EVIDENCE CAUTION: F02-SAME-RADIO DAT and JSON contain different channel/settings states.');
