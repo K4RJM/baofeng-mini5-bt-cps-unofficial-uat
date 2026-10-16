@@ -1,0 +1,318 @@
+{
+  "description": "Original v20.14 physical write/reboot/readback evidence; raw private diagnostics are not published.",
+  "files": [
+    {
+      "name": "F06-BEFORE.json",
+      "bytes": 136252,
+      "sha256": "2dbe6661c664569bc4cc42f04fa6b5f883c6279325e32b236a5bf4494b9f888a",
+      "build": "20.14",
+      "capturedAt": "2026-10-16T08:04:56.413Z",
+      "decoded": true,
+      "rawLength": 33344,
+      "rawSha256": "f0ec15d6a12713587086140e2749708e9bc21b1ed2c40582ee6b9d587c2f00e1",
+      "transportStage": "read-complete",
+      "acknowledged": 0,
+      "previousStage": "read-complete",
+      "previousAck": 0,
+      "ch71": {
+        "$type": "KDH.Channel",
+        "id": 0,
+        "rxFreq": "",
+        "strRxCtsDcs": "OFF",
+        "txFreq": "",
+        "strTxCtsDcs": "OFF",
+        "busyLock": 0,
+        "txPower": 0,
+        "bandwide": 0,
+        "scanAdd": 0,
+        "sqMode": 0,
+        "pttid": 0,
+        "signalGroup": 0,
+        "fhss": 0,
+        "name": ""
+      },
+      "ch999": {
+        "$type": "KDH.Channel",
+        "id": 0,
+        "rxFreq": "146.52000",
+        "strRxCtsDcs": "OFF",
+        "txFreq": "146.52000",
+        "strTxCtsDcs": "OFF",
+        "busyLock": 0,
+        "txPower": 0,
+        "bandwide": 0,
+        "scanAdd": 0,
+        "sqMode": 0,
+        "pttid": 0,
+        "signalGroup": 0,
+        "fhss": 0,
+        "name": "F08TEST"
+      },
+      "ch1000": {
+        "$type": "KDH.Channel",
+        "id": 0,
+        "rxFreq": "",
+        "strRxCtsDcs": "OFF",
+        "txFreq": "",
+        "strTxCtsDcs": "OFF",
+        "busyLock": 0,
+        "txPower": 0,
+        "bandwide": 0,
+        "scanAdd": 0,
+        "sqMode": 0,
+        "pttid": 0,
+        "signalGroup": 0,
+        "fhss": 0,
+        "name": ""
+      },
+      "channel71RawHex": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "tailSha256": "c5b4de725eb0db2b8b25a69633ebe0aca57aa84b0be8c22e6447cae96c1847e9"
+    },
+    {
+      "name": "F06-AFTER.json",
+      "bytes": 135440,
+      "sha256": "843a0781291565e25420f450137e22d3405ecec814fde601f7e6754eedab5d2b",
+      "build": "20.14",
+      "capturedAt": "2026-10-16T08:16:51.975Z",
+      "decoded": true,
+      "rawLength": 33344,
+      "rawSha256": "58acdbf21346e0af77464d70dd246fb67cf102e33549e7069487c0e45775c931",
+      "transportStage": "read-complete",
+      "acknowledged": 0,
+      "ch71": {
+        "$type": "KDH.Channel",
+        "id": 0,
+        "rxFreq": "146.52000",
+        "strRxCtsDcs": "OFF",
+        "txFreq": "146.52000",
+        "strTxCtsDcs": "OFF",
+        "busyLock": 0,
+        "txPower": 1,
+        "bandwide": 0,
+        "scanAdd": 0,
+        "sqMode": 0,
+        "pttid": 0,
+        "signalGroup": 0,
+        "fhss": 0,
+        "name": "F06TEST"
+      },
+      "ch999": {
+        "$type": "KDH.Channel",
+        "id": 0,
+        "rxFreq": "",
+        "strRxCtsDcs": "OFF",
+        "txFreq": "",
+        "strTxCtsDcs": "OFF",
+        "busyLock": 0,
+        "txPower": 0,
+        "bandwide": 0,
+        "scanAdd": 0,
+        "sqMode": 0,
+        "pttid": 0,
+        "signalGroup": 0,
+        "fhss": 0,
+        "name": ""
+      },
+      "ch1000": {
+        "$type": "KDH.Channel",
+        "id": 0,
+        "rxFreq": "",
+        "strRxCtsDcs": "OFF",
+        "txFreq": "",
+        "strTxCtsDcs": "OFF",
+        "busyLock": 0,
+        "txPower": 0,
+        "bandwide": 0,
+        "scanAdd": 0,
+        "sqMode": 0,
+        "pttid": 0,
+        "signalGroup": 0,
+        "fhss": 0,
+        "name": ""
+      },
+      "channel71RawHex": "006f6523006f65230000000000000100ffffffff057f3663061c54ffffffffff",
+      "tailSha256": "ce3fac548a302ee21dbec508a607ad987957c5a09eae9a756943cce617b319e0"
+    }
+  ],
+  "comparison": {
+    "total": 322,
+    "sections": [
+      {
+        "label": "Channel records (1000 CPS slots)",
+        "start": "0000",
+        "end": "7CFF",
+        "changed": 46
+      },
+      {
+        "label": "Uninterpreted gap — purpose unknown",
+        "start": "7D00",
+        "end": "7FFF",
+        "changed": 276
+      },
+      {
+        "label": "A/B frequency-mode data",
+        "start": "8000",
+        "end": "803F",
+        "changed": 0
+      },
+      {
+        "label": "General settings",
+        "start": "9000",
+        "end": "903F",
+        "changed": 0
+      },
+      {
+        "label": "DTMF and remaining bytes",
+        "start": "A000",
+        "end": "A1BF",
+        "changed": 0
+      }
+    ],
+    "ranges": [
+      {
+        "start": "0x8c0",
+        "end": "0x8cf",
+        "count": 16
+      },
+      {
+        "start": "0x8d4",
+        "end": "0x8da",
+        "count": 7
+      },
+      {
+        "start": "0x7cc0",
+        "end": "0x7ccf",
+        "count": 16
+      },
+      {
+        "start": "0x7cd4",
+        "end": "0x7cda",
+        "count": 7
+      },
+      {
+        "start": "0x7d00",
+        "end": "0x7d0f",
+        "count": 16
+      },
+      {
+        "start": "0x7d14",
+        "end": "0x7d1a",
+        "count": 7
+      },
+      {
+        "start": "0x7d40",
+        "end": "0x7d4f",
+        "count": 16
+      },
+      {
+        "start": "0x7d54",
+        "end": "0x7d5a",
+        "count": 7
+      },
+      {
+        "start": "0x7d80",
+        "end": "0x7d8f",
+        "count": 16
+      },
+      {
+        "start": "0x7d94",
+        "end": "0x7d9a",
+        "count": 7
+      },
+      {
+        "start": "0x7dc0",
+        "end": "0x7dcf",
+        "count": 16
+      },
+      {
+        "start": "0x7dd4",
+        "end": "0x7dda",
+        "count": 7
+      },
+      {
+        "start": "0x7e00",
+        "end": "0x7e0f",
+        "count": 16
+      },
+      {
+        "start": "0x7e14",
+        "end": "0x7e1a",
+        "count": 7
+      },
+      {
+        "start": "0x7e40",
+        "end": "0x7e4f",
+        "count": 16
+      },
+      {
+        "start": "0x7e54",
+        "end": "0x7e5a",
+        "count": 7
+      },
+      {
+        "start": "0x7e80",
+        "end": "0x7e8f",
+        "count": 16
+      },
+      {
+        "start": "0x7e94",
+        "end": "0x7e9a",
+        "count": 7
+      },
+      {
+        "start": "0x7ec0",
+        "end": "0x7ecf",
+        "count": 16
+      },
+      {
+        "start": "0x7ed4",
+        "end": "0x7eda",
+        "count": 7
+      },
+      {
+        "start": "0x7f00",
+        "end": "0x7f0f",
+        "count": 16
+      },
+      {
+        "start": "0x7f14",
+        "end": "0x7f1a",
+        "count": 7
+      },
+      {
+        "start": "0x7f40",
+        "end": "0x7f4f",
+        "count": 16
+      },
+      {
+        "start": "0x7f54",
+        "end": "0x7f5a",
+        "count": 7
+      },
+      {
+        "start": "0x7f80",
+        "end": "0x7f8f",
+        "count": 16
+      },
+      {
+        "start": "0x7f94",
+        "end": "0x7f9a",
+        "count": 7
+      },
+      {
+        "start": "0x7fc0",
+        "end": "0x7fcf",
+        "count": 16
+      },
+      {
+        "start": "0x7fd4",
+        "end": "0x7fda",
+        "count": 7
+      }
+    ],
+    "channel71": 23,
+    "tail": 299,
+    "outside": 0,
+    "afterTailAllFF": true
+  }
+}

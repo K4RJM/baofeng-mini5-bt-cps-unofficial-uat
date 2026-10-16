@@ -1,3 +1,9 @@
+# Verification — v20.17, F06 physical closure
+
+89 tests: 86 pass, three expected TODOs (F01/F05/F10), zero unexpected failures. Literal captured channel 71 data and real application write/reconnect/readback handlers supplement existing cleanup tests. Independent F06 before/after comparison confirms 322 intended changed bytes, zero outside the two intended regions and exact full post-read reconstruction. Original 21-file and six-file F03 checks still pass. Radio/codec/validation/recovery source is unchanged. No autonomous physical operation performed. [F06 evidence](F06-EVIDENCE-2026-10-16.md), [publication checkpoint](CODEX-PROGRESS.md).
+
+---
+
 # Verification — v20.16, F03 accepted limitation
 
 87 tests: 84 pass, three expected TODOs (F01/F05/F10), zero unexpected failures. F03 coverage retains all 120 combinations and native constants; adds an independent 32-byte capture and channel-isolation regression. Six new private originals and all 21 prior files pass offline checks. Encoder, decoder, writer, reader, map, validation and connection recovery remain byte-identical to v20.15. Completed physical testing is credited in [F03 evidence](F02-F03-EVIDENCE-2026-10-15.md); this release process performs no new radio operation. [Publication checkpoint](CODEX-PROGRESS.md).

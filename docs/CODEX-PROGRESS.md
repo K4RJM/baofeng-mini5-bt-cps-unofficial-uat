@@ -2,7 +2,22 @@
 
 Updated October 16, 2026. Resume here, then read AUDIT-REMEDIATION.md; inspect actual branch heads, tags and deployed versions before making changes. One finding/feature per version; no autonomous physical writes. Never repeat completed hardware tests or reopen an accepted limitation without new evidence.
 
-## Current task — v20.16 / F03
+## Current task — v20.17 / F06
+
+- Initial status: successful physical programming/reboot known; final evidence disposition pending.
+- Final disposition: Closed — Verified on Physical Hardware.
+- Work: independently reproduced both original diagnostics, all 322 intended changes and zero unrelated changes; reviewed existing acknowledged/reboot/verify behavior without modifying it; added captured-record and application-flow regressions; updated Help and audit.
+- Tests: 89 total, 86 passing, three expected TODOs (F01/F05/F10), zero unexpected failures. All 21 original files, six F03 files and two F06 files pass offline checks. Exact 33,344-byte post-read reconstruction matches independent hardware capture.
+- UAT publication: pending v20.17 deployment/verification.
+- LIVE publication: pending verified UAT; no promotion claimed yet.
+- Release commit and tag: pending; intended v20.17.
+- Files changed: package.json, index.html, app.mjs, README.md, tests/f06-evidence.test.mjs, tests/evidence/f06-oct16-private-files.json, scripts/check-f06-evidence.mjs, scripts/package.mjs, docs/F06-EVIDENCE-2026-10-16.md, docs/AUDIT-REMEDIATION.md, docs/AUDIT-2026-10-14.md, docs/VERIFICATION.md, docs/CODEX-PROGRESS.md.
+- Rollback: v20.16 / 1d7cd4459f145b7c335737677cd42dfab5eb7315.
+- Remaining: F01, F05, F08, F10, F13 (five). Next: F05 current-device identity and source policy.
+- Known limits: physical reboot sequence is K4RJM testimony; final files contain successful read reports, not ACK timing traces. F01 unknown bytes, F08 trailing layout and F10 unexpected interruptions remain open. No repeat F06 physical test requested.
+- Approval needed: none for this evidence closure; no autonomous physical radio write authorized.
+
+## Completed release — v20.16 / F03
 
 - Initial status: open VFO direction/SignalCode overlap; factory behavior now independently corroborated and explicitly accepted by K4RJM.
 - Final disposition: Closed — Accepted Factory-Compatible VFO Limitation.

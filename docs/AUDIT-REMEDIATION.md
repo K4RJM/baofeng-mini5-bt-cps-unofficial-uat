@@ -1,3 +1,21 @@
+# Audit remediation — v20.17
+
+**F06: Closed — Verified on Physical Hardware. Ten of 15 findings resolved; five remain: F01, F05, F08, F10, F13.** K4RJM completed the LIVE v20.14 write/reboot/reconnect/readback workflow. Independent comparison of F06-BEFORE.json and F06-AFTER.json confirms exactly 322 changed bytes: 23 in channel 71, 299 in the intentionally cleared channel 999/trailing region, zero elsewhere. The post-reboot configuration contains F06TEST, 146.52000 simplex, Low power, no tones. VFO, general settings and DTMF are unchanged.
+
+The normal automatic reboot is expected behavior. Existing code records all-blocks-acknowledged separately from verified readback, cleans the browser link without radio commands, and waits for explicit reconnect. Regressions cover that flow and literal captured channel bytes. No Bluetooth, codec, validation or write-safety code changes. No repeat physical F06 testing requested. Unexpected interruption stays under F10; unknown-memory and final-record layout risks stay under F01/F08.
+
+Full suite: 89 tests, 86 pass, three expected TODOs, zero unexpected failures. The original 21 files, six F03 files and both F06 original files pass offline checks. [F06 evidence](F06-EVIDENCE-2026-10-16.md) distinguishes physical testimony from reproduced bytes; [permanent progress](CODEX-PROGRESS.md) records actual publication and next steps.
+
+| Status | Findings |
+| --- | --- |
+| Corrected / Closed — Verified | F02, F04, F06, F07, F09, F11, F12, F14, F15 |
+| Closed — Accepted Limitation | F03 |
+| Open investigation | F01, F05, F08, F10, F13 |
+
+Next: F05 exact current-device 5RMINI identity and source policy, using automated checks; no physical test is needed to establish compatibility of the two already tested radios.
+
+---
+
 # Audit remediation — v20.16
 
 **F03: Closed — Accepted Factory-Compatible VFO Limitation. Nine of 15 findings are resolved; six remain: F01, F05, F06, F08, F10, F13.** The factory wired CPS and Bluetooth CPS exhibit the same tested VFO A OFF/17, PLUS/1 and PLUS/17 representation (0x800E=0x10; readback PLUS/17). The cause is not conclusively identified. Memory-channel programming is unaffected. No encoder or decoder changes, and no repeat F03 physical testing is requested.
