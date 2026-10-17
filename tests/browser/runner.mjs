@@ -1,0 +1,34 @@
+const root=new URL('../../',import.meta.url),results=document.getElementById('results'),status=document.getElementById('status');let frame;
+const assert=(value,message)=>{if(!value)throw Error(message);};
+const until=async(fn,label)=>{const end=Date.now()+15000;while(!fn()){if(Date.now()>end)throw Error('Timed out: '+label);await new Promise(r=>setTimeout(r,20));}};
+function record(name,pass,error){const li=document.createElement('li');li.className=pass?'pass':'fail';li.textContent=(pass?'PASS: ':'FAIL: ')+name+(error?' — '+error:'');results.append(li);}
+async function fresh(mode='normal'){
+ frame?.contentWindow.f13?.fake.close();frame?.remove();
+ let html=await fetch(new URL('index.html',root),{cache:'no-store'}).then(r=>r.text());
+ const match=html.match(/<script type="module" src="(app\.mjs[^\"]*)"><\/script>/);assert(match,'Actual application module exists');
+ const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs',root).href}"><\/script>`;
+ html=html.replace('<head>','<head><base href="'+root.href+'">').replace(match[0],script);
+ frame=document.createElement('iframe');frame.title='Isolated CPS test application';frame.setAttribute('allow',"bluetooth 'none'");frame.srcdoc=html;document.getElementById('workspace').append(frame);
+ await until(()=>frame.contentWindow.f13?.ready||frame.contentWindow.f13?.failed,'application bootstrap');
+ return {w:frame.contentWindow,d:frame.contentDocument,state:frame.contentWindow.f13};
+}
+async function load(h){const transfer=new h.w.DataTransfer();transfer.items.add(new h.w.File([h.state.bytes],'browser-test.dat'));h.d.getElementById('file').files=transfer.files;h.d.getElementById('file').dispatchEvent(new h.w.Event('change',{bubbles:true}));await until(()=>h.d.getElementById('sourceTag').textContent==='CPS file loaded','native DAT load');}
+async function busyCheck(h){h.state.fake.faults.holdRead=true;h.d.getElementById('readRadio').click();await until(()=>h.state.fake.reads===1,'held read');const row=h.d.querySelector('[data-channel-index="0"]');h.d.getElementById('help').focus();row.focus();assert(h.d.getElementById('content').inert&&h.d.getElementById('tabs').inert,'Busy workspace must be inert');assert(h.d.activeElement!==row,'Inert row must refuse focus');assert(h.d.getElementById('open').disabled&&h.d.getElementById('save').disabled,'File controls must be disabled during the read');}
+document.getElementById('start').onclick=async()=>{
+ const start=document.getElementById('start');start.disabled=true;results.replaceChildren();status.textContent='Running';let failed=0;
+ const check=async(name,fn)=>{try{await fn();record(name,true);}catch(e){failed++;record(name,false,e.message);}};
+ try{
+  let h=await fresh();assert(h.state.ready&&!h.state.errors.length,'Unmodified application must load');const id=n=>h.d.getElementById(n);
+  await check('Native DAT import uses actual File / input events and never connects',async()=>{await load(h);assert(h.state.fake.sent.length===0&&h.state.fake.events.length===0,'File import must not contact radio');assert(h.d.querySelector('[data-channel-index="998"]'),'Channel 999 is displayed');});
+  await check('Checkbox clicks bubble without opening editor; row clicks open it',async()=>{const row=h.d.querySelector('[data-channel-index="0"]');row.querySelector('input').click();assert(!id('editor').open,'Checkbox must not edit');row.querySelector('td:nth-child(3)').click();assert(id('editor').matches(':modal'),'Row opens real modal dialog');id('cancel').click();});
+  await check('Invalid frequencies block navigation; valid short entries are padded',async()=>{h.d.querySelector('[data-channel-index="0"]').click();const input=h.d.querySelector('#fields [data-key="rxFreq"]');input.value='146.52001';input.dispatchEvent(new h.w.Event('input',{bubbles:true}));id('editNext').click();assert(id('editorTitle').textContent==='Edit channel 1'&&id('editErrors').textContent,'Invalid edit must stay in channel 1');input.value='146.52';id('editNext').click();assert(id('editorTitle').textContent==='Edit channel 3','Valid edit advances to next occupied channel');id('cancel').click();});
+  // Reload the native file to discard edited/selected state before transport checks.
+  await load(h);
+  await check('One-checkbox confirmation, modal focus isolation and Cancel',async()=>{id('writeRadio').focus();id('writeRadio').click();assert(id('warning').matches(':modal'),'Native write dialog is modal');assert(h.d.querySelectorAll('#warning input[type="checkbox"]').length===1,'Exactly one confirmation');assert(id('confirmWrite').disabled,'Unchecked confirmation is blocked');id('confirmWrite').click();assert(h.state.fake.events.length===0,'Disabled confirmation cannot connect');const row=h.d.querySelector('[data-channel-index="0"]');row.focus();assert(id('warning').contains(h.d.activeElement),'Modal prevents background focus');id('hasBackup').click();assert(!id('confirmWrite').disabled,'Checkbox enables confirmation');id('cancelWrite').click();assert(!id('warning').open&&h.d.activeElement===id('writeRadio'),'Cancel restores focus');assert(h.state.fake.writes===0,'Cancel never writes');});
+  await check('Real busy inertness, disabled controls and recovery',async()=>{await busyCheck(h);h.state.fake.release();await until(()=>!id('content').inert,'read completion');assert(h.state.fake.reads===521,'Complete read uses 521 blocks');assert(!id('open').disabled&&!id('save').disabled,'Controls recover');assert(h.state.errors.length===0,'No application errors');});
+  await check('Actual HTML number constraints reject channel 1000',async()=>{const move=[...h.d.querySelectorAll('[data-channel-index="0"] button')].find(b=>b.textContent==='Move');move.click();id('moveTo').value='1000';assert(!id('moveTo').checkValidity(),'1000 violates native max');id('moveApply').click();assert(id('moveDialog').open,'Invalid destination leaves dialog open');id('moveCancel').click();});
+  await check('Missing HTML control mutation is detected by actual app startup',async()=>{h=await fresh('missing-id');assert(h.state.failed&&h.state.errors.some(e=>/null|onclick/.test(e)),'Removing confirmWrite must break startup');});
+  await check('Removed inertness mutation is caught by the same busy check',async()=>{h=await fresh('inert-mutant');await load(h);let detected=false;try{await busyCheck(h);}catch(e){detected=/inert/i.test(e.message);}assert(detected,'The busy test must reject removed inertness');});
+ }catch(e){failed++;record('Harness setup',false,e.message);}
+ finally{frame?.contentWindow.f13?.fake.close();status.textContent=failed?`${failed} check(s) failed`:`All ${results.children.length} browser checks passed`;status.dataset.result=failed?'fail':'pass';start.disabled=false;}
+};
