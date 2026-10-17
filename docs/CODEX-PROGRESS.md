@@ -2,6 +2,19 @@
 
 Updated October 17, 2026. Resume here, then read AUDIT-REMEDIATION.md; inspect actual branch heads, tags and deployed versions before making changes. One finding/feature per version; no autonomous physical writes. Never repeat completed hardware tests or reopen an accepted limitation without new evidence.
 
+## Current task — v20.22 / F13
+
+- Date: October 17, 2026. Initial status: shared test oracles, synchronous transport responses and permissive DOM doubles could miss real defects.
+- Work: independent literal captured-byte checks; actual connect/discovery with delayed EventTarget notifications; real browser HTML/File/modal/inertness/write/reconnect checks; four code and two browser negative controls. No protected production module changed.
+- Tests: 146 Node tests pass, zero failures/TODOs; all five private evidence replays pass. Browser release verification pending.
+- Disposition: candidate; final closure and promotion require the browser gate below.
+- UAT: test harness staged separately; final v20.22 deployment pending.
+- LIVE: remains v20.21 until the exact UAT release passes.
+- Release tag: pending v20.22. Rollback: v20.21 / e187006d21868a81cbdee47be9a814795ec6c305.
+- Remaining: F13 pending final browser gate/publication; no Phase 2 code started. Next after release: preserve final audit dispositions, then investigate compatible CHIRP IMG fixtures under the master task.
+- Limits: no new physical-radio operation; no repeat completed hardware tests. Intermittent adapter recovery remains unproven. Experimental designation retained.
+- Approval needed: none for authorized test-only remediation and incremental publication. No autonomous physical writes.
+
 ## Completed release — v20.21 / F10
 
 - Date: October 17, 2026. Initial status: a native Bluetooth promise could hang before the response timer started, leaving the application busy.

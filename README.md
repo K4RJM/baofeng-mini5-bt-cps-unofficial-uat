@@ -2,7 +2,7 @@
 
 Free, noncommercial browser software by K4RJM, hosted on GitHub Pages.
 
-**Current release: v20.21.** F10 is remediated with bounded Bluetooth calls, cancellation and late-result isolation. Timed-out writes remain uncertain and are never retried; normal commands, payloads and post-write reboot handling are preserved. Fourteen findings are resolved; F13 remains. This does not claim a cure for intermittent PC/radio Bluetooth reset problems. See [F10 evidence](docs/F10-DEADLINES.md) and [progress](docs/CODEX-PROGRESS.md).
+**Current release: v20.22.** F13 is remediated with independent captured-byte checks, asynchronous GATT events, real-browser regression checks and deliberate mutation controls. All 15 original findings have final dispositions: 13 corrected/verified/remediated and two accepted factory-compatible limitations. Radio programming behavior is unchanged. Experimental status remains pending release qualification; intermittent PC/radio Bluetooth recovery is not claimed fixed. See [coverage and limits](docs/F13-COVERAGE.md), [audit status](docs/AUDIT-REMEDIATION.md) and [progress](docs/CODEX-PROGRESS.md).
 
 **Retained v20.13 interface:** The build number appears in the top header on both LIVE and UAT, beside a compact “What’s new” changelog. The existing write-confirmation window now includes a preparation checklist and one acknowledgement covering readiness, the backup reminder and risk acceptance. The checklist’s timing statement comes from maintainer-reported physical testing. Radio programming behavior is unchanged.
 

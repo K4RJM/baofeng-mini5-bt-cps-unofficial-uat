@@ -24,4 +24,4 @@ gaps.forEach((f,i)=>assert.deepEqual(f.subarray(4),i%2?last:transform(last),'nat
 assert.throws(()=>makePlan(JSON.parse(inputBytes),options),/1000.*not supported/i,'native synthetic record 1000 is not enabled');
 console.log('PASS: five private fingerprints, three complete 33,344-byte capture reconstructions, and exact factory write DAT/capture equality.');
 console.log('PASS: all 13 physical trailing blocks; twelve independently captured native trailing blocks; record 1000 remains blocked.');
-console.log('PENDING: physical Bluetooth write with channel 999 retained or changed; no radio accessed by this script.');
+console.log('SCOPE: factory output and retained physical captures are replayed offline; no new Bluetooth write is performed or claimed. See F08-EVIDENCE.md for the accepted disposition.');

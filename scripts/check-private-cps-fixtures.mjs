@@ -23,4 +23,4 @@ for(const label of ['base','varied']){
  assert.deepEqual(decodeRadio(raw),expected);assert.deepEqual(readDat(radioDat(raw,schemas),schemas),expected);
  assert.deepEqual(readDat(writeDat(native,schemas),schemas),native);
 }
-console.log(JSON.stringify({nativeFramesCompared:frames,nativePayloadBytesCompared:frames*64,retainedDecoderFixtures:2,physicalRadioAccess:false,notes:'Historical finite fixtures; two documented F02 MuteMode differences from the old native read oracle are expected. Settings rules also include hand-transcribed code. F01 is accepted factory-compatible behavior; these finite fixtures do not close F13.'},null,2));
+console.log(JSON.stringify({nativeFramesCompared:frames,nativePayloadBytesCompared:frames*64,retainedDecoderFixtures:2,physicalRadioAccess:false,notes:'Historical finite fixtures; two documented F02 MuteMode differences from the old native read oracle are expected. Settings rules also include hand-transcribed code. F01 is accepted factory-compatible behavior; these finite fixtures alone do not establish complete test coverage. See docs/F13-COVERAGE.md for the combined evidence.'},null,2));

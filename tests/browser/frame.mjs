@@ -1,4 +1,4 @@
-import {asyncRadio} from '../async-radio.mjs';
+import {asyncRadio} from '../async-radio.mjs?v=20.22';
 import {blankData,emptyChannel} from '../../channels.mjs';import {writeDat} from '../../dat.mjs';import {makePlan} from '../../writer.mjs';
 const root=new URL('../../',import.meta.url),json=p=>fetch(new URL(p,root)).then(r=>r.json());
 const [defaults,schemas,f,e]=await Promise.all(['defaults.json','schemas.json','function-options.json','editor-options.json'].map(json));

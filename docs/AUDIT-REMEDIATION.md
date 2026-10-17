@@ -1,3 +1,21 @@
+# Audit remediation — v20.22
+
+**F13: Remediated — Tested. All 15 original findings have final dispositions; zero remain open.** Thirteen are corrected, verified or remediated; F01 and F03 are explicitly accepted factory-compatible behavior/limitations.
+
+The independent byte tests, asynchronous event transport and real-browser suite address the original shared-oracle, synchronous-response and simplified-DOM gaps. Four isolated code mutations and two browser mutations demonstrate that the new checks detect the targeted regressions. All 146 Node tests pass with zero failures/TODOs. Real-browser release results and publication are recorded in [CODEX-PROGRESS.md](CODEX-PROGRESS.md); [F13-COVERAGE.md](F13-COVERAGE.md) maps each requirement and its limits.
+
+Radio programming, encoding, decoding, validation, memory map and connection recovery remain byte-identical to v20.21. Existing private evidence replays pass, including all 1,042 native frames and the original full physical captures. K4RJM's completed physical testing remains credited; no new physical-radio operation occurred. Experimental status is retained pending release qualification. Intermittent Windows/radio Bluetooth recovery remains a separate unresolved reliability question, not a claimed F13 fix.
+
+| Disposition | Findings |
+| --- | --- |
+| Corrected / verified / remediated | F02, F04, F05, F06, F07, F08, F09, F10, F11, F12, F13, F14, F15 |
+| Accepted factory-compatible behavior / limitation | F01, F03 |
+| Open original audit findings | None |
+
+Final cross-check: F04 parser limits, F09 scoped Undo, F11 capture retention, F12 unsaved-state protection and F14 dialog labels retain their regressions. F15 current-versus-historical evidence remains explicit. F01/F03 accepted limitations and F06/F07 hardware closures are preserved, not reopened. The remaining identity, memory-layout and interruption tests pass. No feature-development code is included.
+
+---
+
 # Audit remediation — v20.21
 
 **F10: Remediated — Tested with fault injection. Fourteen of 15 findings resolved; F13 remains open.** Native Bluetooth selection, connection, discovery, notification setup and sends now have deadlines. Cancellation and unexpected disconnect invalidate the session; late results cannot resume it. A still-pending native call prevents a second overlapping connection. Editing controls recover, while an attempted write remains locked and uncertain.

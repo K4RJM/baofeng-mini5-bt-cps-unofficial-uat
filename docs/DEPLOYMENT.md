@@ -19,7 +19,11 @@ Initial UAT baseline: LIVE v20.10 (`02b5a1dd02a166261590ad679a92723994911d09`); 
 4. Record the deployed LIVE commit and intended rollback before publishing. Promote only after the maintainer authorizes that correction. Deployment succeeds only after the test job succeeds.
 5. Verify the published version, relevant offline editing behavior and deployment result. Hardware checks require a separate controlled plan; deploying code does not authorize a radio write.
 
-## Rollback
+## F13 browser release gate
+
+For v20.22 and later application changes, run `tests/browser/index.html` on the deployed UAT candidate and require every check to pass before LIVE promotion. This page installs a simulated Bluetooth peripheral before loading the actual application; it cannot operate a physical radio. Keep its visible results with the release record. Node/GitHub CI tests do not substitute for this real-browser gate. After promotion, run the same isolated checks against LIVE and verify its version/changelog. New or changed harness modules must use updated cache URLs. Preserve the separate UAT workflow and never merge unrelated development changes.
+
+## Rollback references
 
 The v20.13 header/changelog/checklist update is separate from the v20.12 radio correction. Revert only its presentation commit to restore the v20.12 interface; the pre-update LIVE source is `1bbdd807e5a132f41ba20a9c55055022c2a8e056`.
 
