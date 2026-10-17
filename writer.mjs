@@ -17,7 +17,9 @@ function bluetoothPlan(raw){
  }));validateFrames(frames);return {frames,target};
 }
 export function checkIdentity(id){
- if(id.model!=='5RMINI')throw Error('The selected device is not a Mini 5 radio');
+ if(id?.model!=='5RMINI')throw Error('The selected device did not identify as 5RMINI');
+ const bytes=(value,n)=>Array.isArray(value)&&value.length===n&&Array.from(value).every(b=>Number.isInteger(b)&&b>=0&&b<=255);
+ if(!bytes(id.id,15)||!bytes(id.config,16)||![53,82,77,73,78,73,32,32].every((b,i)=>id.id[i]===b))throw Error('Incomplete or malformed 5RMINI identification; programming is blocked');
 }
 export function planFromRead(raw){
  if(!(raw instanceof Uint8Array)||raw.length!==SIZE)throw Error('Incomplete radio read');
@@ -78,13 +80,19 @@ export class Writer extends Reader {
   validateFrames(plan.frames);
   // Snapshot all mutable input before awaiting; never allow a mid-write edit.
   const frames=plan.frames.map(f=>f.slice());
+  // Identity belongs to this exact browser connection, never to a loaded file or earlier read.
+  const session={device:this.device,deviceId:this.device?.id,char:this.char,generation:this.generation};
+  const sameSession=()=>{if(!this.connected||this.device!==session.device||this.device?.id!==session.deviceId||this.char!==session.char||this.generation!==session.generation)throw Error('Radio connection changed; fresh identity verification is required');};
   this.busy=true;this.report={stage:'write-handshake',attempted:0,acknowledged:0,verified:false,deviceId:this.device?.id,startedAt:new Date().toISOString(),preWriteRead:false};
   try{
    this.report.totalBlocks=frames.length;this.report.payloadBytes=128;this.report.extraPaddingBytes=192;this.report.wirelessCpsEnabled=true;
    progress('Starting write session',0,frames.length);
+   sameSession();
    checkIdentity(await this.identify());
+   sameSession();
    this.report.stage='writing';
    for(let i=0;i<frames.length;i++){
+    sameSession();
     this.report.lastAddress=bleAddresses[i];this.#permit=frames[i];this.report.attempted++;
     const ack=await this.request(frames[i],1);
     if(ack[0]!==6||this.rx.length)throw Error(`Invalid write acknowledgement at 0x${bleAddresses[i].toString(16)}`);

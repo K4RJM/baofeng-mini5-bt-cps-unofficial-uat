@@ -2,7 +2,22 @@
 
 Updated October 16, 2026. Resume here, then read AUDIT-REMEDIATION.md; inspect actual branch heads, tags and deployed versions before making changes. One finding/feature per version; no autonomous physical writes. Never repeat completed hardware tests or reopen an accepted limitation without new evidence.
 
-## Current task — v20.17 / F06
+## Current task — v20.18 / F05
+
+- Initial status: fresh model checks existed, but final identity-object validation and session binding were incomplete; loaded-file trust wording was misleading.
+- Final disposition: Remediated — Tested.
+- Work: complete exact 5RMINI identity validation; device/id/characteristic/generation binding before each programming frame; explicit loaded-source policy; preserved protocol and reboot handling.
+- Tests: 96 total, 94 passing, two expected TODOs (F01/F10), zero unexpected failures. Seven new F05 tests, four failing before correction. Original 21, six F03 and two F06 file checks pass. Identity dimensions/model bytes match retained physical diagnostics.
+- UAT publication: pending v20.18 deployment/verification.
+- LIVE publication: pending verified UAT; no promotion claimed yet.
+- Release commit and tag: pending; intended v20.18.
+- Files changed: writer.mjs, tests/f05-identity.test.mjs, tests/audit-ui.test.mjs, package.json, index.html, app.mjs, README.md, scripts/package.mjs, docs/protected-core.json, docs/F05-IDENTITY-POLICY.md, docs/AUDIT-REMEDIATION.md, docs/AUDIT-2026-10-14.md, docs/VERIFICATION.md, docs/CODEX-PROGRESS.md.
+- Rollback: v20.17 / b667e4b6d493e7717566e7f636a549bc963c4c25.
+- Remaining: F01, F08, F10, F13 (four). Next: F01 unknown-memory preservation.
+- Known limits: model does not certify firmware/hardware variants. F10 still covers native operations that never settle; F01/F08 memory protections remain open and unchanged. No additional hardware compatibility test needed for the two already tested radios.
+- Approval needed: none for the authorized guard correction; no autonomous physical writes.
+
+## Completed release — v20.17 / F06
 
 - Initial status: successful physical programming/reboot known; final evidence disposition pending.
 - Final disposition: Closed — Verified on Physical Hardware.

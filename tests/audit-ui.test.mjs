@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import {appHarness} from './app-harness.mjs';
 import {fixture} from './fixtures.mjs';
 
-test('F05 OPEN: reimporting an app-generated starter does not establish hardware provenance',{todo:'Needs an explicit supported-radio and file-provenance policy'},async()=>{
+test('F05 source policy: starter reimport loads file data without hardware verification or automatic write',async()=>{
  const h=await appHarness();try{
   assert.equal(h.get('writeRadio').disabled,true);const starter=await h.exported();await h.open(starter);
-  assert.equal(h.connections.length,0);assert.equal(h.get('writeRadio').disabled,true);
+  assert.equal(h.connections.length,0);assert.equal(h.radio.report.stage,'idle');assert.equal(h.get('sourceTag').textContent,'CPS file loaded');assert.equal(h.get('warning').open,undefined);
  }finally{h.close();}
 });
 

@@ -3,7 +3,7 @@
   "sha256": {
     "dat.mjs": "e53f3cfed66bb8b6b7b8e5378a71ee5c262ef10624789a1f36a1f79f0580284d",
     "validation.mjs": "45f62b18f37753ad887585d91b6c3a571e2d10fad966e21d8aecb8231ae7ac59",
-    "writer.mjs": "4c1d0ed87bea5171f5bf17e1741cf8b943a2e04fd016a5754b1cfd70d728ca8a",
+    "writer.mjs": "b52c0d4ce22826ccae4edb19edd47fe2a1832a96353758fec876323afcf0b4db",
     "radio-encoder.mjs": "9c7f7fd9c327d2c93e02cfd736d8806fbde7131fad775abe94ed23dba03d2455",
     "radio-decoder.mjs": "b836a58541233b045260f8987188e3cd22249f161cd126d9a3322111ba3d7484",
     "schemas.json": "1423bf5a130230dd03b5b775fe7656ed8084fce42ac0c4a79af1d36f6053c6c7",
@@ -63,6 +63,17 @@
         "writer.mjs": "f81bda08c4cbcb53cfc5f1aa9cc6c6d219b73264b04430e2dfcdee232e3cc931"
       },
       "evidence": "docs/F07-EVIDENCE-2026-10-15.md"
+    },
+    {
+      "date": "2026-10-16",
+      "scope": "F05 master-task authorization: validate complete existing identification replies and bind upload to device/characteristic/generation. Guards only; unchanged handshake commands, frames, ACK semantics, readback, no-retry, disconnect/reset.",
+      "files": [
+        "writer.mjs"
+      ],
+      "baselineSha256": {
+        "writer.mjs": "4c1d0ed87bea5171f5bf17e1741cf8b943a2e04fd016a5754b1cfd70d728ca8a"
+      },
+      "evidence": "docs/F05-IDENTITY-POLICY.md"
     }
   ]
 }

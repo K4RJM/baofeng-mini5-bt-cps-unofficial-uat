@@ -1,3 +1,9 @@
+# Verification — v20.18, F05 identity guards
+
+96 tests: 94 pass, two expected TODOs (F01/F10), zero unexpected failures. Four of seven new F05 tests failed before correction; all now pass. Existing handshake/frames, expected reboot, ACK and no-retry checks remain intact. All 21 original, six F03 and two F06 private-file checks pass. Fresh identity is bound to the same connection without changing radio command/payload/ACK behavior. [Scope and policy](F05-IDENTITY-POLICY.md), [publication checkpoint](CODEX-PROGRESS.md).
+
+---
+
 # Verification — v20.17, F06 physical closure
 
 89 tests: 86 pass, three expected TODOs (F01/F05/F10), zero unexpected failures. Literal captured channel 71 data and real application write/reconnect/readback handlers supplement existing cleanup tests. Independent F06 before/after comparison confirms 322 intended changed bytes, zero outside the two intended regions and exact full post-read reconstruction. Original 21-file and six-file F03 checks still pass. Radio/codec/validation/recovery source is unchanged. No autonomous physical operation performed. [F06 evidence](F06-EVIDENCE-2026-10-16.md), [publication checkpoint](CODEX-PROGRESS.md).

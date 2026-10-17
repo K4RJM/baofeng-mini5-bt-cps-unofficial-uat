@@ -1,3 +1,19 @@
+# Audit remediation — v20.18
+
+**F05: Remediated — Tested. Eleven of 15 findings resolved; four remain: F01, F08, F10, F13.** Each programming operation requires a fresh, complete 5RMINI identity and stays bound to the same device, characteristic and connection generation. Wrong/missing/malformed identities and changed sessions fail closed. The source policy distinguishes a loaded native DAT from current physical identity; opening a file never programs or verifies a radio.
+
+Seven targeted tests exposed four pre-fix failures and now pass. The full suite has 96 tests: 94 passing, two expected TODOs (F01/F10), zero unexpected failures. All 29 retained private-file checks pass. Normal handshake commands, 262 write frames, ACK completion, expected reboot, disconnect/reset and no-retry behavior are unchanged. The two already tested MINI-5 radios do not require repeat physical compatibility testing. Firmware/hardware is not inferred from a model string.
+
+[F05 policy and evidence](F05-IDENTITY-POLICY.md) documents the exact guards and limits; [permanent progress](CODEX-PROGRESS.md) records publication. F10 retains unbounded native-promise handling; F01/F08 retain unknown-memory/final-record risks. Next: F01 preservation investigation, one finding at a time.
+
+| Status | Findings |
+| --- | --- |
+| Corrected / verified / remediated | F02, F04, F05, F06, F07, F09, F11, F12, F14, F15 |
+| Accepted factory-compatible limitation | F03 |
+| Open | F01, F08, F10, F13 |
+
+---
+
 # Audit remediation — v20.17
 
 **F06: Closed — Verified on Physical Hardware. Ten of 15 findings resolved; five remain: F01, F05, F08, F10, F13.** K4RJM completed the LIVE v20.14 write/reboot/reconnect/readback workflow. Independent comparison of F06-BEFORE.json and F06-AFTER.json confirms exactly 322 changed bytes: 23 in channel 71, 299 in the intentionally cleared channel 999/trailing region, zero elsewhere. The post-reboot configuration contains F06TEST, 146.52000 simplex, Low power, no tones. VFO, general settings and DTMF are unchanged.
