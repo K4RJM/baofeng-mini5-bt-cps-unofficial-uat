@@ -2,7 +2,7 @@
 
 Free, noncommercial browser software by K4RJM, hosted on GitHub Pages.
 
-**Current release: v20.18.** F05 is remediated: every write requires a fresh complete 5RMINI identity and stays bound to the same radio connection. Imported DATs are settings, not radio identity. Existing commands, payloads, reboot and no-retry behavior are preserved. Eleven findings are resolved; four remain. See [identity policy](docs/F05-IDENTITY-POLICY.md) and [progress](docs/CODEX-PROGRESS.md).
+**Current release: v20.19.** F01 is closed as accepted factory-compatible memory reconstruction. Retained factory CPS outputs support the existing behavior; programming code and protections are unchanged. Twelve findings are resolved; three remain: F08, F10, F13. See [F01 evidence](docs/F01-FACTORY-COMPATIBILITY.md) and [progress](docs/CODEX-PROGRESS.md).
 
 **Retained v20.13 interface:** The build number appears in the top header on both LIVE and UAT, beside a compact “What’s new” changelog. The existing write-confirmation window now includes a preparation checklist and one acknowledgement covering readiness, the backup reminder and risk acceptance. The checklist’s timing statement comes from maintainer-reported physical testing. Radio programming behavior is unchanged.
 

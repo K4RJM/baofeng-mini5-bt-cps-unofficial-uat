@@ -1,3 +1,9 @@
+# Verification — v20.19, F01 accepted factory-compatible behavior
+
+Release gates: full regression (96 total, 95 passing, one expected F10 TODO), all 29 retained private-file checks, both factory write-output comparisons (1,042 frames / 66,688 payload bytes), protected-core hashes and packaging. The F01 test retains the original synthetic cases and adds the actual 0x9018 normalization. No programming code changed. Results must pass before deployment; actual publication is recorded in [progress](CODEX-PROGRESS.md). [Evidence and limits](F01-FACTORY-COMPATIBILITY.md).
+
+---
+
 # Verification — v20.18, F05 identity guards
 
 96 tests: 94 pass, two expected TODOs (F01/F10), zero unexpected failures. Four of seven new F05 tests failed before correction; all now pass. Existing handshake/frames, expected reboot, ACK and no-retry checks remain intact. All 21 original, six F03 and two F06 private-file checks pass. Fresh identity is bound to the same connection without changing radio command/payload/ACK behavior. [Scope and policy](F05-IDENTITY-POLICY.md), [publication checkpoint](CODEX-PROGRESS.md).

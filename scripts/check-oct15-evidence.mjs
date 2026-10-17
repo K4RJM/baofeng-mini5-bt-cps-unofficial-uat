@@ -110,5 +110,5 @@ same(dats.get('F03-SAME-RADIO.dat'),dats.get('F03-COMBINED-TEST.dat'),'F03 same-
 
 console.log('PASS: 21 fingerprints; 16 native DAT semantic round trips; 5 complete raw captures.');
 console.log('PASS: 3 independent DAT/capture pairs match every field and all 33,344 bytes; F02 codes 28/3/2 preserved.');
-console.log('ACCEPTED F03: whole-image collision retained. OPEN: F01 captured-byte loss; F08 guard retained.');
+console.log('ACCEPTED F03: whole-image collision retained. ACCEPTED F01: factory-compatible 0x9018 normalization; F08 guard remains open.');
 console.log('EVIDENCE CAUTION: F02-SAME-RADIO DAT and JSON contain different channel/settings states.');

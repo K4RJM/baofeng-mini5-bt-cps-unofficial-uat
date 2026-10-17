@@ -1,3 +1,19 @@
+# Audit remediation — v20.19
+
+**F01: Closed — Accepted Factory-Compatible Behavior. Twelve of 15 findings resolved; three remain: F08, F10, F13.** K4RJM accepted the existing reconstruction policy after comparison with retained factory CPS output. Both factory outputs match the unchanged encoder across 1,042 frames / 66,688 payload bytes, including zero at 0x9018. The physical 1-to-0 observation remains documented. Its interpretation as a new-radio marker is a hypothesis, not an established field definition.
+
+No programming code or safety protection changes. The rejected read-first/exact-reconstruction prototype is excluded. The original F01 probe is retained as an explicit normalization regression; F10 remains the only expected TODO. See [F01 evidence and limits](F01-FACTORY-COMPATIBILITY.md), [verification](VERIFICATION.md), and [publication](CODEX-PROGRESS.md).
+
+| Status | Findings |
+| --- | --- |
+| Corrected / verified / remediated | F02, F04, F05, F06, F07, F09, F11, F12, F14, F15 |
+| Accepted factory-compatible behavior / limitation | F01, F03 |
+| Open | F08, F10, F13 |
+
+Next: F08 channel 999 and trailing-region layout. Its existing guard remains unchanged; no partial writes or speculative encoder changes.
+
+---
+
 # Audit remediation — v20.18
 
 **F05: Remediated — Tested. Eleven of 15 findings resolved; four remain: F01, F08, F10, F13.** Each programming operation requires a fresh, complete 5RMINI identity and stays bound to the same device, characteristic and connection generation. Wrong/missing/malformed identities and changed sessions fail closed. The source policy distinguishes a loaded native DAT from current physical identity; opening a file never programs or verifies a radio.

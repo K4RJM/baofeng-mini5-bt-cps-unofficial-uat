@@ -1,0 +1,25 @@
+{
+  "scope": "Selected nonpersonal evidence from retained offline instrumentation of the factory CPS write routine. No physical radio was accessed by that harness.",
+  "files": [
+    {
+      "name": "outputs/cps-write-capture.json",
+      "bytes": 72820,
+      "sha256": "7610531ad06c75f98cc9dc8e427d0cc59217d9472f5f0d35e5096557eca3706b",
+      "frameCount": 521,
+      "radio9013": 0,
+      "radio9018": 0,
+      "gapFrames": 12,
+      "gapPayloadByte": 255
+    },
+    {
+      "name": "outputs/cps-full-test-capture.json",
+      "bytes": 72820,
+      "sha256": "1d80dc3b9739dba0e7ce4ad9d9ffa273ab63f0cef6ffa34ece654c05cb9fe7a0",
+      "frameCount": 521,
+      "radio9013": 0,
+      "radio9018": 0,
+      "gapFrames": 12,
+      "gapPayloadByte": 255
+    }
+  ]
+}

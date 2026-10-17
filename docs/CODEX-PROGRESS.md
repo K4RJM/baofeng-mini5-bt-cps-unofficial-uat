@@ -2,6 +2,22 @@
 
 Updated October 16, 2026. Resume here, then read AUDIT-REMEDIATION.md; inspect actual branch heads, tags and deployed versions before making changes. One finding/feature per version; no autonomous physical writes. Never repeat completed hardware tests or reopen an accepted limitation without new evidence.
 
+## Current task — v20.19 / F01
+
+- Date: October 16, 2026.
+- Initial status: DAT reconstruction changes unmapped bytes; factory compatibility needed a final disposition.
+- Final disposition: Closed — Accepted Factory-Compatible Behavior, explicitly requested by K4RJM.
+- Work: compared both retained factory outputs; recorded exact scope and physical 0x9018 observation; retained normalization regression; recorded the proposed new-radio marker as an unconfirmed hypothesis. No writer, codec or transport change.
+- Tests: 96 total, 95 pass, one expected F10 TODO, zero unexpected failures. All 29 retained private-file checks pass; both factory write-output replays match all 1,042 frames / 66,688 payload bytes. Protected-core hashes pass.
+- UAT publication: pending v20.19 deployment/verification.
+- LIVE publication: pending verified UAT; no promotion claimed yet.
+- Release commit and tag: pending; intended v20.19.
+- Files changed: package.json, index.html, app.mjs, README.md, tests/audit-radio.test.mjs, tests/evidence/f01-factory-captures.json, scripts/check-oct15-evidence.mjs, scripts/check-private-cps-fixtures.mjs, scripts/package.mjs, docs/F01-FACTORY-COMPATIBILITY.md, docs/AUDIT-REMEDIATION.md, docs/AUDIT-2026-10-14.md, docs/VERIFICATION.md, docs/CODEX-PROGRESS.md.
+- Rollback: v20.18 / accd878c03831ab7ea21beee2e63a835da986e19.
+- Remaining: F08, F10, F13 (three). Next: F08 channel 999/trailing layout, retaining its existing guard until justified.
+- Known limits: no universal assertion that unmapped bytes are unused; 0x9018 meaning remains unconfirmed. Factory compatibility does not certify all variants. The proposed read-first guard was rejected, restored out of active source, archived locally and never published; do not revive or bundle it.
+- Approval needed: none for this explicitly accepted closure and authorized incremental release. No autonomous physical writes; no repeat F01 hardware test requested.
+
 ## Completed release — v20.18 / F05
 
 - Initial status: fresh model checks existed, but final identity-object validation and session binding were incomplete; loaded-file trust wording was misleading.
