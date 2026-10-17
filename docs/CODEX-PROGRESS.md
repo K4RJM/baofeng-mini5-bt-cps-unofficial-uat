@@ -1,17 +1,17 @@
 # Permanent project checkpoint
 
-Updated October 16, 2026. Resume here, then read AUDIT-REMEDIATION.md; inspect actual branch heads, tags and deployed versions before making changes. One finding/feature per version; no autonomous physical writes. Never repeat completed hardware tests or reopen an accepted limitation without new evidence.
+Updated October 17, 2026. Resume here, then read AUDIT-REMEDIATION.md; inspect actual branch heads, tags and deployed versions before making changes. One finding/feature per version; no autonomous physical writes. Never repeat completed hardware tests or reopen an accepted limitation without new evidence.
 
-## Current task — v20.19 / F01
+## Completed release — v20.19 / F01
 
-- Date: October 16, 2026.
+- Accepted October 16; LIVE release completed October 17, 2026.
 - Initial status: DAT reconstruction changes unmapped bytes; factory compatibility needed a final disposition.
 - Final disposition: Closed — Accepted Factory-Compatible Behavior, explicitly requested by K4RJM.
 - Work: compared both retained factory outputs; recorded exact scope and physical 0x9018 observation; retained normalization regression; recorded the proposed new-radio marker as an unconfirmed hypothesis. No writer, codec or transport change.
 - Tests: 96 total, 95 pass, one expected F10 TODO, zero unexpected failures. All 29 retained private-file checks pass; both factory write-output replays match all 1,042 frames / 66,688 payload bytes. Protected-core hashes pass.
-- UAT publication: pending v20.19 deployment/verification.
-- LIVE publication: pending verified UAT; no promotion claimed yet.
-- Release commit and tag: pending; intended v20.19.
+- UAT: published and browser-verified 20.19-UAT.4fff43a; commit 4fff43a51fdf986e35f47282e261973a98bd4b25; Pages run 38986533680 succeeded. Editor, changelog and updated Help verified.
+- LIVE: published and browser-verified build 20.19 and F01 changelog; commit 4e2750b778c3affb3caf5c4ea6a9380053ca2dc1; Pages run 39007297727 succeeded. All 14 release-file hashes match tested UAT.
+- Release: [v20.19](https://github.com/K4RJM/baofeng-mini5-bt-cps-unofficial/releases/tag/v20.19), verified target 4e2750b778c3affb3caf5c4ea6a9380053ca2dc1.
 - Files changed: package.json, index.html, app.mjs, README.md, tests/audit-radio.test.mjs, tests/evidence/f01-factory-captures.json, scripts/check-oct15-evidence.mjs, scripts/check-private-cps-fixtures.mjs, scripts/package.mjs, docs/F01-FACTORY-COMPATIBILITY.md, docs/AUDIT-REMEDIATION.md, docs/AUDIT-2026-10-14.md, docs/VERIFICATION.md, docs/CODEX-PROGRESS.md.
 - Rollback: v20.18 / accd878c03831ab7ea21beee2e63a835da986e19.
 - Remaining: F08, F10, F13 (three). Next: F08 channel 999/trailing layout, retaining its existing guard until justified.
@@ -92,3 +92,4 @@ Updated October 16, 2026. Resume here, then read AUDIT-REMEDIATION.md; inspect a
 Finish Phase 1 before features: F01, F08, F10, F13; review all 15 dispositions and regression coverage. Accepted factory-compatible limitation is allowed; an unverified corruption risk is not. Keep each completed finding independently versioned, UAT tested, LIVE verified and tagged.
 
 Phase 2 (not started): A restore supported model-specific CHIRP IMG import/export, B CHIRP CSV import/export, C local RepeaterBook CSV import, D coherent import/export/preview/conflict interface. Genuine compatible fixtures and independent validation required. Never program automatically on file import; preserve DAT, identity, memory, frequency and overwrite safeguards. No RepeaterBook live API integration/token is required.
+
