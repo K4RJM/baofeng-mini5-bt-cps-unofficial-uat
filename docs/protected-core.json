@@ -3,14 +3,14 @@
   "sha256": {
     "dat.mjs": "e53f3cfed66bb8b6b7b8e5378a71ee5c262ef10624789a1f36a1f79f0580284d",
     "validation.mjs": "45f62b18f37753ad887585d91b6c3a571e2d10fad966e21d8aecb8231ae7ac59",
-    "writer.mjs": "7d19d0eeb82abfb8811a2f19edc20f88fba1af0ec2b85e9305f625340b27bc4f",
+    "writer.mjs": "3641df4e2c9c735e335ad036ac897a0c484ff29d60835c6cfce8751e36eb81bb",
     "radio-encoder.mjs": "3fb1a10ea06f74385c0f573b8dc296eb488867403849b3cf79709d02f52e8b59",
     "radio-decoder.mjs": "b836a58541233b045260f8987188e3cd22249f161cd126d9a3322111ba3d7484",
     "schemas.json": "1423bf5a130230dd03b5b775fe7656ed8084fce42ac0c4a79af1d36f6053c6c7",
     "function-options.json": "e26d5f139ee8661a397c537fe2aed12042dd04a895b39ca6868b08f056128310",
     "editor-options.json": "d2908363cb8dc154ebc39995ae5388919d37f99c54910d1f327513e808ffa40f",
     "name-charset.json": "bb9dc2f56e441186e07132febfcc428faeededff8333d022a20f1d67cfab6505",
-    "read-test/reader.mjs": "f8166ce8c903f66e8d2abae820cb460e496f0976c8ef187e03dc6d80f1b86910",
+    "read-test/reader.mjs": "3cf5dd44979344cb5ed764bd8503242dc412bc9d055d1495a553512554de19e3",
     "read-test/memory.mjs": "8d978253aff3d97d201592e11faf90bf34bd99f3dd252f4bfb790733924d3c45"
   },
   "reviews": [
@@ -87,6 +87,19 @@
         "writer.mjs": "b52c0d4ce22826ccae4edb19edd47fe2a1832a96353758fec876323afcf0b4db"
       },
       "evidence": "docs/F08-EVIDENCE.md"
+    },
+    {
+      "date": "2026-10-17",
+      "scope": "F10 master-task authorization and next instruction: bound confirmed stalled native Bluetooth calls; cancel abandoned operations and reject late callbacks. No command, payload, address, ACK-byte, no-write-retry or post-acknowledgement reboot/cleanup changes. Native-call timeout or unexpected link loss ends setup; ordinary settled NetworkError setup retries remain bounded at three. Physical writes are not performed.",
+      "files": [
+        "read-test/reader.mjs",
+        "writer.mjs"
+      ],
+      "baselineSha256": {
+        "read-test/reader.mjs": "f8166ce8c903f66e8d2abae820cb460e496f0976c8ef187e03dc6d80f1b86910",
+        "writer.mjs": "7d19d0eeb82abfb8811a2f19edc20f88fba1af0ec2b85e9305f625340b27bc4f"
+      },
+      "evidence": "docs/F10-DEADLINES.md"
     }
   ]
 }

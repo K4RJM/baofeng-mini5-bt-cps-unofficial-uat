@@ -1,5 +1,5 @@
 // Experimental CPS-range writer. Never retries an ambiguous memory write.
-import {Reader,allowedCommand} from './read-test/reader.mjs';
+import {Reader,allowedCommand} from './read-test/reader.mjs?v=20.21';
 import {SIZE,offset,compare} from './read-test/memory.mjs';
 import {addresses,offlineFrames,encodeName} from './radio-encoder.mjs?v=20.20';
 import {channelFrequencyError} from './validation.mjs?v=20.14';
@@ -56,14 +56,15 @@ export function validateFrames(frames){
 }
 export class Writer extends Reader {
  #permit=null;
- constructor(){super();this.report={stage:'idle',attempted:0,acknowledged:0,verified:false};}
+ constructor(settings){super(settings);this.report={stage:'idle',attempted:0,acknowledged:0,verified:false};}
  async send(bytes){
   if(allowedCommand(bytes))return super.send(bytes);
   if(!this.#permit||!equal(bytes,this.#permit))throw Error('Write blocked outside the approved transaction');
   if(!this.char||!this.connected)throw Error('Connection ended before the block could be sent');
   this.#permit=null; // One use only, including an ambiguous transport failure.
-  if(this.char.properties.writeWithoutResponse)await this.char.writeValueWithoutResponse(bytes);
-  else if(this.char.properties.write)await this.char.writeValueWithResponse(bytes);
+  const characteristic=this.char;
+  if(characteristic.properties.writeWithoutResponse)await this.native('Sending Bluetooth data',()=>characteristic.writeValueWithoutResponse(bytes),this.deadlines.send);
+  else if(characteristic.properties.write)await this.native('Sending Bluetooth data',()=>characteristic.writeValueWithResponse(bytes),this.deadlines.send);
   else throw Error('Bluetooth characteristic cannot send data');
  }
  async capture(progress){const raw=new Uint8Array(SIZE);for(let i=0;i<addresses.length;i++){const b=await this.block(addresses[i]);raw.set(b.payload,offset(addresses[i]));progress?.(i+1,521);}if(this.rx.length)throw Error('Unexpected trailing response bytes');return raw;}

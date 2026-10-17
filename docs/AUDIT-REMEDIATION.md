@@ -1,3 +1,19 @@
+# Audit remediation — v20.21
+
+**F10: Remediated — Tested with fault injection. Fourteen of 15 findings resolved; F13 remains open.** Native Bluetooth selection, connection, discovery, notification setup and sends now have deadlines. Cancellation and unexpected disconnect invalidate the session; late results cannot resume it. A still-pending native call prevents a second overlapping connection. Editing controls recover, while an attempted write remains locked and uncertain.
+
+The normal identification/read/write command sequence, 521 reads, 262 write frames, payloads, ACK checks, one-use permits and post-ACK cleanup/reset flow are preserved. No automatic write retry or experimental lab probe/session-reuse/E command was added. The existing response timeout stays four seconds. An actual setup link loss or native deadline now stops that attempt; already-settled NetworkError setup failures retain the three-attempt bound and 600 ms retry gap.
+
+135 tests pass with no TODOs. Thirty new fault/race/UI checks cover the corrected lifecycle; the original F10 stall probe now passes. No physical radio was operated. Existing physical evidence remains credited; intermittent Windows/radio reconnection reliability is not claimed resolved by this software-deadline correction. See [F10 design, evidence and limits](F10-DEADLINES.md) and [publication checkpoint](CODEX-PROGRESS.md).
+
+| Status | Findings |
+| --- | --- |
+| Corrected / verified / remediated | F02, F04, F05, F06, F07, F08, F09, F10, F11, F12, F14, F15 |
+| Accepted factory-compatible behavior / limitation | F01, F03 |
+| Open | F13 |
+
+---
+
 # Audit remediation — v20.20
 
 **F08: Remediated — Tested. Thirteen of 15 findings resolved; two remain: F10 and F13.** The correction replaces the blanket channel-999 block with the factory trailing-buffer pattern, preserving an explicit block on unsupported record 1000. The exact factory write DAT reproduces all 33,344 bytes of the independently captured physical image. Completed channel-999 factory programming/Bluetooth reads and F06 clearing evidence are credited; no repeat capacity test is requested.

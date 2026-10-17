@@ -57,12 +57,12 @@ test('F08: channel 999 survives DAT export and evidenced reconstruction',()=>{
  assert.deepEqual(readDat(writeDat(data,schemas),schemas),data);
  assert.deepEqual(decodeRadio(makePlan(data,options).target).channelList[0][998],data.channelList[0][998]);
 });
-test('F10 OPEN: a stalled native send settles the transaction',{todo:'Needs reviewed native-operation deadlines; the radio protocol is unchanged'},async()=>{
- const radio=new Writer(),sim=simulatedRadio(radio),send=radio.char.writeValueWithoutResponse.bind(radio.char);let stop,entered;
+test('F10: a stalled native send settles the transaction without retry',async()=>{
+ const radio=new Writer({deadlines:{send:25}}),sim=simulatedRadio(radio),send=radio.char.writeValueWithoutResponse.bind(radio.char);let stop,entered;
  const reached=new Promise(resolve=>entered=resolve);
  radio.char.writeValueWithoutResponse=bytes=>bytes[0]===87?new Promise((resolve,reject)=>{stop=reject;entered();}):send(bytes);
  const operation=radio.upload(makePlan(fixture(),options),null,{confirmed:true}).then(()=> 'completed',()=> 'rejected');
- try{await reached;const result=await Promise.race([operation,delay(50).then(()=> 'still-pending')]);assert.notEqual(result,'still-pending');}
+ try{await reached;const result=await Promise.race([operation,delay(500).then(()=> 'still-pending')]);assert.equal(result,'rejected');assert.equal(radio.report.stage,'write-incomplete-or-uncertain');assert.equal(radio.busy,false);}
  finally{stop?.(Error('End simulated stalled operation'));await operation;radio.disconnect();}
  assert.equal(sim.writes().length,0);
 });

@@ -2,7 +2,7 @@
 
 Free, noncommercial browser software by K4RJM, hosted on GitHub Pages.
 
-**Current release: v20.20.** F08 is remediated: channel 999 uses the factory CPS trailing-memory pattern, verified against the exact factory write DAT and all 33,344 captured bytes. Ordinary edits preserve it; unsupported channel 1000 remains blocked. Existing full-write protocol and protections are unchanged. Thirteen findings are resolved; F10 and F13 remain. See [F08 evidence](docs/F08-EVIDENCE.md) and [progress](docs/CODEX-PROGRESS.md).
+**Current release: v20.21.** F10 is remediated with bounded Bluetooth calls, cancellation and late-result isolation. Timed-out writes remain uncertain and are never retried; normal commands, payloads and post-write reboot handling are preserved. Fourteen findings are resolved; F13 remains. This does not claim a cure for intermittent PC/radio Bluetooth reset problems. See [F10 evidence](docs/F10-DEADLINES.md) and [progress](docs/CODEX-PROGRESS.md).
 
 **Retained v20.13 interface:** The build number appears in the top header on both LIVE and UAT, beside a compact “What’s new” changelog. The existing write-confirmation window now includes a preparation checklist and one acknowledgement covering readiness, the backup reminder and risk acceptance. The checklist’s timing statement comes from maintainer-reported physical testing. Radio programming behavior is unchanged.
 

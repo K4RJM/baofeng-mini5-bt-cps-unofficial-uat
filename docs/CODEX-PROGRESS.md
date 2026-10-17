@@ -2,6 +2,21 @@
 
 Updated October 17, 2026. Resume here, then read AUDIT-REMEDIATION.md; inspect actual branch heads, tags and deployed versions before making changes. One finding/feature per version; no autonomous physical writes. Never repeat completed hardware tests or reopen an accepted limitation without new evidence.
 
+## Current task — v20.21 / F10
+
+- Date: October 17, 2026. Initial status: a native Bluetooth promise could hang before the response timer started, leaving the application busy.
+- Disposition: Remediated — Tested with fault injection; release gates and publication pending below.
+- Work: per-phase deadlines, cancellation/session invalidation, late-result isolation and unresolved-call quarantine. Original response timeout and successful command/payload/ACK/cleanup sequence preserved. No lab probes, new radio commands or automatic write retry.
+- Tests: 135 tests pass, zero failures, zero TODOs; all 30 targeted tests pass. Original F10 stall probe converted to a passing regression. Protected-core hashes and 38-file packaging pass.
+- UAT publication: pending v20.21 deployment/verification.
+- LIVE publication: authorized by the F10 master task after verified UAT and passing safety gates; pending.
+- Release commit and tag: pending; intended v20.21.
+- Files changed: read-test/reader.mjs, writer.mjs, app.mjs, index.html, package.json, README.md, tests/f10-deadlines.test.mjs, tests/audit-radio.test.mjs, scripts/package.mjs, docs/protected-core.json, docs/F10-DEADLINES.md, docs/AUDIT-REMEDIATION.md, docs/AUDIT-2026-10-14.md, docs/VERIFICATION.md, docs/CODEX-PROGRESS.md.
+- Rollback: v20.20 / c9953338d313f7be2b321cabb9852619a0939329.
+- Remaining: F13 independent test coverage. Do not start until this release is complete.
+- Limits: browser/OS work cannot be forcibly cancelled by JavaScript; unresolved native calls block overlapping reconnect until settled or a saved-work reload. Browser suspension can delay timers. No physical radio operated; no claim to fix intermittent adapter-reset/reconnection reliability. Existing F06 physical evidence is retained, not reopened.
+- Approval needed: none for this explicitly authorized bounded F10 correction/release; no autonomous physical writes. A future reconnect experiment is separate UAT work.
+
 ## Completed release — v20.20 / F08
 
 - Date: October 17, 2026. Initial status: editor exposed 999, but the writer blocked it because the trailing-buffer pattern was unresolved.

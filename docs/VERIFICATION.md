@@ -1,3 +1,9 @@
+# Verification — v20.21 / F10
+
+135 tests pass, zero failures, zero TODOs. Thirty new tests exercise browser-shaped chooser/connect/service/characteristic/notification operations held pending; timeout/cancel/link-loss; late completion and rejection; no overlapping reconnect; bounded retry/cancel; both native write modes; stalled identity/read/verify sends; final-block uncertainty; stale event isolation; exact repeated-read/full-write command sequencing; and actual application handlers/control recovery. The original F10 stall probe is now a passing regression. Protected-core hashes and packaging are release gates. Existing F02–F08 hardware-derived regressions remain in the full suite; no physical-radio operation occurs. [Design and evidence](F10-DEADLINES.md), [publication](CODEX-PROGRESS.md).
+
+---
+
 # Verification — v20.20 / F08
 
 105 tests: 104 passing, one expected F10 TODO, zero unexpected failures. Nine new targeted tests cover independent literal trailing bytes, slot 998 isolation, retaining/editing/clearing 999, blocked record 1000, edit/move/append/export boundaries, simulated full write/readback and actual UI handlers. Previous 29 private-file checks pass. Five-file F08 replay passes, including three full 33,344-byte reconstruction comparisons and exact factory write DAT/capture equality. Both original native replays still match all 1,042 frames / 66,688 payload bytes. Protected-core hashes and packaging pass. No physical radio write was performed during development. [Evidence](F08-EVIDENCE.md), [actual deployment status](CODEX-PROGRESS.md).
