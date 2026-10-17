@@ -2,18 +2,18 @@
 
 Updated October 17, 2026. Resume here, then read AUDIT-REMEDIATION.md; inspect actual branch heads, tags and deployed versions before making changes. One finding/feature per version; no autonomous physical writes. Never repeat completed hardware tests or reopen an accepted limitation without new evidence.
 
-## Current task — v20.21 / F10
+## Completed release — v20.21 / F10
 
 - Date: October 17, 2026. Initial status: a native Bluetooth promise could hang before the response timer started, leaving the application busy.
-- Disposition: Remediated — Tested with fault injection; release gates and publication pending below.
+- Disposition: Remediated — Tested with fault injection. Release gates passed; UAT and LIVE published and browser-verified.
 - Work: per-phase deadlines, cancellation/session invalidation, late-result isolation and unresolved-call quarantine. Original response timeout and successful command/payload/ACK/cleanup sequence preserved. No lab probes, new radio commands or automatic write retry.
-- Tests: 135 tests pass, zero failures, zero TODOs; all 30 targeted tests pass. Original F10 stall probe converted to a passing regression. Protected-core hashes and 38-file packaging pass.
-- UAT publication: pending v20.21 deployment/verification.
-- LIVE publication: authorized by the F10 master task after verified UAT and passing safety gates; pending.
-- Release commit and tag: pending; intended v20.21.
+- Tests: 135 tests pass, zero failures, zero TODOs; all 30 targeted tests pass. Original F10 stall probe converted to a passing regression. Protected-core hashes and 38-file packaging pass. Both retained native replays match all 1,042 frames / 66,688 bytes; five-file F08 evidence replay passes, including full physical-capture equality.
+- UAT: published and browser-verified 20.21-UAT.72c4de4; commit 72c4de4c3a48ba6abaff9d50fe12e05076cee756; Pages run 39053255371 succeeded. Native DAT including channel 999 loaded correctly; Help and changelog verified without connecting a radio.
+- LIVE: published and browser-verified build 20.21 and F10 changelog; commit e187006d21868a81cbdee47be9a814795ec6c305; Pages run 39053350965 succeeded. All 15 release-file hashes match tested UAT; separate deployment workflows preserved.
+- Release: [v20.21](https://github.com/K4RJM/baofeng-mini5-bt-cps-unofficial/releases/tag/v20.21), verified target e187006d21868a81cbdee47be9a814795ec6c305.
 - Files changed: read-test/reader.mjs, writer.mjs, app.mjs, index.html, package.json, README.md, tests/f10-deadlines.test.mjs, tests/audit-radio.test.mjs, scripts/package.mjs, docs/protected-core.json, docs/F10-DEADLINES.md, docs/AUDIT-REMEDIATION.md, docs/AUDIT-2026-10-14.md, docs/VERIFICATION.md, docs/CODEX-PROGRESS.md.
 - Rollback: v20.20 / c9953338d313f7be2b321cabb9852619a0939329.
-- Remaining: F13 independent test coverage. Do not start until this release is complete.
+- Remaining: F13 independent test coverage (one finding). Next: review independent fixture/browser/transport coverage without reopening accepted findings.
 - Limits: browser/OS work cannot be forcibly cancelled by JavaScript; unresolved native calls block overlapping reconnect until settled or a saved-work reload. Browser suspension can delay timers. No physical radio operated; no claim to fix intermittent adapter-reset/reconnection reliability. Existing F06 physical evidence is retained, not reopened.
 - Approval needed: none for this explicitly authorized bounded F10 correction/release; no autonomous physical writes. A future reconnect experiment is separate UAT work.
 
@@ -119,6 +119,6 @@ Updated October 17, 2026. Resume here, then read AUDIT-REMEDIATION.md; inspect a
 
 ## Remaining master-task sequence
 
-Finish Phase 1 before features: F01, F08, F10, F13; review all 15 dispositions and regression coverage. Accepted factory-compatible limitation is allowed; an unverified corruption risk is not. Keep each completed finding independently versioned, UAT tested, LIVE verified and tagged.
+Finish Phase 1 before features: F13 remains; then review all 15 dispositions and regression coverage. Accepted factory-compatible limitation is allowed; an unverified corruption risk is not. Keep each completed finding independently versioned, UAT tested, LIVE verified and tagged.
 
 Phase 2 (not started): A restore supported model-specific CHIRP IMG import/export, B CHIRP CSV import/export, C local RepeaterBook CSV import, D coherent import/export/preview/conflict interface. Genuine compatible fixtures and independent validation required. Never program automatically on file import; preserve DAT, identity, memory, frequency and overwrite safeguards. No RepeaterBook live API integration/token is required.
