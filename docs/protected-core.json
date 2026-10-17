@@ -3,8 +3,8 @@
   "sha256": {
     "dat.mjs": "e53f3cfed66bb8b6b7b8e5378a71ee5c262ef10624789a1f36a1f79f0580284d",
     "validation.mjs": "45f62b18f37753ad887585d91b6c3a571e2d10fad966e21d8aecb8231ae7ac59",
-    "writer.mjs": "b52c0d4ce22826ccae4edb19edd47fe2a1832a96353758fec876323afcf0b4db",
-    "radio-encoder.mjs": "9c7f7fd9c327d2c93e02cfd736d8806fbde7131fad775abe94ed23dba03d2455",
+    "writer.mjs": "7d19d0eeb82abfb8811a2f19edc20f88fba1af0ec2b85e9305f625340b27bc4f",
+    "radio-encoder.mjs": "3fb1a10ea06f74385c0f573b8dc296eb488867403849b3cf79709d02f52e8b59",
     "radio-decoder.mjs": "b836a58541233b045260f8987188e3cd22249f161cd126d9a3322111ba3d7484",
     "schemas.json": "1423bf5a130230dd03b5b775fe7656ed8084fce42ac0c4a79af1d36f6053c6c7",
     "function-options.json": "e26d5f139ee8661a397c537fe2aed12042dd04a895b39ca6868b08f056128310",
@@ -74,6 +74,19 @@
         "writer.mjs": "4c1d0ed87bea5171f5bf17e1741cf8b943a2e04fd016a5754b1cfd70d728ca8a"
       },
       "evidence": "docs/F05-IDENTITY-POLICY.md"
+    },
+    {
+      "date": "2026-10-17",
+      "scope": "F08 correction explicitly approved by K4RJM for UAT then LIVE on October 17. Factory trailing-buffer pattern corroborated by independent full-image captures. Replaces final-pair rejection with unsupported-record-1000 rejection. Writer change only refreshes encoder module URL; transaction methods unchanged. No new physical-radio write performed in this release session.",
+      "files": [
+        "radio-encoder.mjs",
+        "writer.mjs"
+      ],
+      "baselineSha256": {
+        "radio-encoder.mjs": "9c7f7fd9c327d2c93e02cfd736d8806fbde7131fad775abe94ed23dba03d2455",
+        "writer.mjs": "b52c0d4ce22826ccae4edb19edd47fe2a1832a96353758fec876323afcf0b4db"
+      },
+      "evidence": "docs/F08-EVIDENCE.md"
     }
   ]
 }

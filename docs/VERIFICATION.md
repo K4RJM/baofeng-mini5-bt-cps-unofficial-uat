@@ -1,3 +1,9 @@
+# Verification — v20.20 / F08
+
+105 tests: 104 passing, one expected F10 TODO, zero unexpected failures. Nine new targeted tests cover independent literal trailing bytes, slot 998 isolation, retaining/editing/clearing 999, blocked record 1000, edit/move/append/export boundaries, simulated full write/readback and actual UI handlers. Previous 29 private-file checks pass. Five-file F08 replay passes, including three full 33,344-byte reconstruction comparisons and exact factory write DAT/capture equality. Both original native replays still match all 1,042 frames / 66,688 payload bytes. Protected-core hashes and packaging pass. No physical radio write was performed during development. [Evidence](F08-EVIDENCE.md), [actual deployment status](CODEX-PROGRESS.md).
+
+---
+
 # Verification — v20.19, F01 accepted factory-compatible behavior
 
 Release gates: full regression (96 total, 95 passing, one expected F10 TODO), all 29 retained private-file checks, both factory write-output comparisons (1,042 frames / 66,688 payload bytes), protected-core hashes and packaging. The F01 test retains the original synthetic cases and adds the actual 0x9018 normalization. No programming code changed. Results must pass before deployment; actual publication is recorded in [progress](CODEX-PROGRESS.md). [Evidence and limits](F01-FACTORY-COMPATIBILITY.md).

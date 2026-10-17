@@ -2,6 +2,21 @@
 
 Updated October 17, 2026. Resume here, then read AUDIT-REMEDIATION.md; inspect actual branch heads, tags and deployed versions before making changes. One finding/feature per version; no autonomous physical writes. Never repeat completed hardware tests or reopen an accepted limitation without new evidence.
 
+## Current task — v20.20 / F08
+
+- Date: October 17, 2026. Initial status: editor exposed 999, but the writer blocked it because the trailing-buffer pattern was unresolved.
+- Final disposition: Remediated — Tested against independent factory output and physical-radio captures. K4RJM explicitly approved UAT and LIVE publication; no repeat channel-capacity test required.
+- Work: reproduce the observed twelve alternating trailing blocks, preserve ordinary edits with 999 present, retain unsupported-record-1000 rejection. Writer executable change is an encoder import URL refresh only; transaction logic/protocol/262-frame sequence/ACK/no-retry/disconnect/reset unchanged.
+- Tests: 105 total, 104 pass, one expected F10 TODO, zero unexpected failures; nine targeted tests. All previous 29 private-file checks, five-file F08 replay and 1,042 native frame comparisons pass. Exact factory write DAT to 33,344-byte capture match. Protected hashes and packaging pass.
+- UAT publication: pending v20.20 deployment/verification.
+- LIVE publication: authorized after verified UAT; pending deployment.
+- Release commit and tag: pending; intended v20.20.
+- Files changed: radio-encoder.mjs, writer.mjs, app.mjs, index.html, package.json, README.md, tests/f08-layout.test.mjs, tests/audit-radio.test.mjs, tests/evidence/f08-private-files.json, scripts/check-f08-evidence.mjs, scripts/check-oct15-evidence.mjs, scripts/package.mjs, docs/protected-core.json, docs/F08-EVIDENCE.md, docs/AUDIT-REMEDIATION.md, docs/AUDIT-2026-10-14.md, docs/VERIFICATION.md, docs/CODEX-PROGRESS.md.
+- Rollback: v20.19 / 4e2750b778c3affb3caf5c4ea6a9380053ca2dc1.
+- Remaining: F10, F13 (two). Next: F10 native-operation deadlines and interruption handling.
+- Known limits: factory buffer reuse is confirmed, but firmware's purpose for repeated storage is not. No new physical Bluetooth write of this release occurred in this session; do not misrepresent the prior factory/physical-capture evidence as such. Existing readback verifies stored data after an explicit write.
+- Approval needed: none for publication; K4RJM explicitly requested LIVE too. No autonomous physical writes.
+
 ## Completed release — v20.19 / F01
 
 - Accepted October 16; LIVE release completed October 17, 2026.
@@ -92,4 +107,3 @@ Updated October 17, 2026. Resume here, then read AUDIT-REMEDIATION.md; inspect a
 Finish Phase 1 before features: F01, F08, F10, F13; review all 15 dispositions and regression coverage. Accepted factory-compatible limitation is allowed; an unverified corruption risk is not. Keep each completed finding independently versioned, UAT tested, LIVE verified and tagged.
 
 Phase 2 (not started): A restore supported model-specific CHIRP IMG import/export, B CHIRP CSV import/export, C local RepeaterBook CSV import, D coherent import/export/preview/conflict interface. Genuine compatible fixtures and independent validation required. Never program automatically on file import; preserve DAT, identity, memory, frequency and overwrite safeguards. No RepeaterBook live API integration/token is required.
-

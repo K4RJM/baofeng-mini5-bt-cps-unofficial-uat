@@ -52,10 +52,10 @@ test('F07 representation: out-of-band stored frequency survives decoding and is 
  const decoded=decodeRadio(crypt(plain));assert.equal(decoded.channelList[0][0].rxFreq,'650.00000');
  assert.throws(()=>makePlan(decoded,options),/Channel 1.*frequency/i);
 });
-test('F08 containment: channel 999 survives DAT export while the unresolved write guard stays enforced',()=>{
+test('F08: channel 999 survives DAT export and evidenced reconstruction',()=>{
  const data=fixture();data.channelList[0][998]=channel('LAST');
  assert.deepEqual(readDat(writeDat(data,schemas),schemas),data);
- assert.throws(()=>makePlan(data,options),/last channel pair/);
+ assert.deepEqual(decodeRadio(makePlan(data,options).target).channelList[0][998],data.channelList[0][998]);
 });
 test('F10 OPEN: a stalled native send settles the transaction',{todo:'Needs reviewed native-operation deadlines; the radio protocol is unchanged'},async()=>{
  const radio=new Writer(),sim=simulatedRadio(radio),send=radio.char.writeValueWithoutResponse.bind(radio.char);let stop,entered;

@@ -100,7 +100,7 @@ same([crypt(originalRaw)[0x8058],crypt(rebuilt)[0x8058]],[1,0],'F01: decoded byt
 const last=dats.get('F08-CHANNEL999.dat');
 assert.ok(last.channelList[0][998].rxFreq,'F08: channel 999 populated');
 assert.ok(!last.channelList[0][999].rxFreq,'F08: hidden record empty');
-assert.throws(()=>target(last),/last channel pair must remain empty/,'F08: retain existing safety guard');
+assert.deepEqual(decodeRadio(target(last)).channelList[0][998],last.channelList[0][998],'F08: native record preserved in candidate');
 
 // Matching filenames alone do not establish a valid input/output pair.
 assert.equal(occupied(dats.get('F02-SAME-RADIO.dat')),0);
@@ -110,5 +110,5 @@ same(dats.get('F03-SAME-RADIO.dat'),dats.get('F03-COMBINED-TEST.dat'),'F03 same-
 
 console.log('PASS: 21 fingerprints; 16 native DAT semantic round trips; 5 complete raw captures.');
 console.log('PASS: 3 independent DAT/capture pairs match every field and all 33,344 bytes; F02 codes 28/3/2 preserved.');
-console.log('ACCEPTED F03: whole-image collision retained. ACCEPTED F01: factory-compatible 0x9018 normalization; F08 guard remains open.');
+console.log('ACCEPTED F03: whole-image collision retained. ACCEPTED F01: factory-compatible 0x9018 normalization; F08 physical Bluetooth verification remains open.');
 console.log('EVIDENCE CAUTION: F02-SAME-RADIO DAT and JSON contain different channel/settings states.');

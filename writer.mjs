@@ -1,7 +1,7 @@
 // Experimental CPS-range writer. Never retries an ambiguous memory write.
 import {Reader,allowedCommand} from './read-test/reader.mjs';
 import {SIZE,offset,compare} from './read-test/memory.mjs';
-import {addresses,offlineFrames,encodeName} from './radio-encoder.mjs';
+import {addresses,offlineFrames,encodeName} from './radio-encoder.mjs?v=20.20';
 import {channelFrequencyError} from './validation.mjs?v=20.14';
 
 const equal=(a,b)=>a.length===b.length&&a.every((x,i)=>x===b[i]);

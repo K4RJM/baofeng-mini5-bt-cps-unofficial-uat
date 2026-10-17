@@ -50,7 +50,12 @@ export function dtmfBlock(d){const b=new Uint8Array(448).fill(255);
 }
 export function offlineFrames(data){
  const image=new Uint8Array(33344).fill(255);data.channelList[0].forEach((c,i)=>image.set(encodeChannel(c),i*32));
- if(image.subarray(0x7cc0,0x7d00).some(b=>b!==255))throw Error('Unresolved CPS gap behavior: last channel pair must remain empty in this offline planner');
+ if(image.subarray(0x7ce0,0x7d00).some(b=>b!==255))throw Error('Channel 1000 is not supported for radio programming; its DAT record is preserved');
+ // Factory CPS reuses the final 64-byte channel buffer through the trailing range,
+ // applying its involutive byte transform again before each send. Confirmed by
+ // retained native output and F08-CHANNEL999.json; see docs/F08-EVIDENCE.md.
+ const finalPair=image.slice(0x7cc0,0x7d00),alternate=crypt(finalPair);
+ for(let i=0;i<12;i++)image.set(i%2?finalPair:alternate,0x7d00+i*64);
  image.set(vfoBlock(data.vfos,'A'),0x8000);image.set(vfoBlock(data.vfos,'B'),0x8020);image.set(crypt(settingsBlock(data)),0x8040);image.set(dtmfBlock(data.dtmfs),0x8080);
  return addresses.map(address=>{const off=address<0x8040?address:address===0x9000?0x8040:0x8080+address-0xa000;const f=new Uint8Array(68);f.set([87,address>>8,address&255,64]);f.set(crypt(image.subarray(off,off+64)),4);return f;});
 }

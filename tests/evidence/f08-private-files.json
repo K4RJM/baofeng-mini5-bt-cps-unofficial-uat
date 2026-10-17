@@ -1,0 +1,56 @@
+{
+  "scope": "Private files retained locally; only fingerprints and nonpersonal channel-999 test bytes published.",
+  "files": [
+    {
+      "name": "F08-CHANNEL999.dat",
+      "bytes": 85946,
+      "sha256": "0ce78c29cd04cfbb1e48bc5fdceb33c2d32a3202a95f9b413b6c55fef2c17b80"
+    },
+    {
+      "name": "F08-CHANNEL999-WRITE.dat",
+      "bytes": 80084,
+      "sha256": "97fc747cac50b83a903718a34a7f7b6be26fb09ac1d708d62cdc16e2346e44fc"
+    },
+    {
+      "name": "F08-CHANNEL999.json",
+      "bytes": 135440,
+      "sha256": "bc8af6dd40e2c38cd9f6fd370b9b95c1d3ca90d2c400aa72c0300c61ace61456",
+      "rawSha256": "f0ec15d6a12713587086140e2749708e9bc21b1ed2c40582ee6b9d587c2f00e1"
+    },
+    {
+      "name": "F06-BEFORE.json",
+      "bytes": 136252,
+      "sha256": "2dbe6661c664569bc4cc42f04fa6b5f883c6279325e32b236a5bf4494b9f888a",
+      "rawSha256": "f0ec15d6a12713587086140e2749708e9bc21b1ed2c40582ee6b9d587c2f00e1"
+    },
+    {
+      "name": "F06-AFTER.json",
+      "bytes": 135440,
+      "sha256": "843a0781291565e25420f450137e22d3405ecec814fde601f7e6754eedab5d2b",
+      "rawSha256": "58acdbf21346e0af77464d70dd246fb67cf102e33549e7069487c0e45775c931"
+    }
+  ],
+  "native": {
+    "inputSha256": "2a4f0db46fddc3abedb809af0a8bf7e4c55234f264a3d2c52d6af634749ac16c",
+    "captureSha256": "00a63ea66dc398bf4261dff0e54a256f6f776d6114047e24bcd78047e3bfbb07"
+  },
+  "channel999": {
+    "$type": "KDH.Channel",
+    "id": 0,
+    "rxFreq": "146.52000",
+    "strRxCtsDcs": "OFF",
+    "txFreq": "146.52000",
+    "strTxCtsDcs": "OFF",
+    "busyLock": 0,
+    "txPower": 0,
+    "bandwide": 0,
+    "scanAdd": 0,
+    "sqMode": 0,
+    "pttid": 0,
+    "signalGroup": 0,
+    "fhss": 0,
+    "name": "F08TEST"
+  },
+  "storedPairHex": "006f6523006f65230000000000000000ffffffff057f3863061c54ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+  "alternatingPairHex": "00206514002065140000000000000000ffffffff46303854455354ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+}
