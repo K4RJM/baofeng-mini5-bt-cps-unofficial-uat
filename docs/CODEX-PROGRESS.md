@@ -2,14 +2,19 @@
 
 Updated October 18, 2026. Resume here, then read AUDIT-REMEDIATION.md; inspect actual branch heads, tags and deployed versions before making changes. One finding/feature per version; no autonomous physical writes. Never repeat completed hardware tests or reopen an accepted limitation without new evidence.
 
-## Current task — v20.24 / Bluetooth status icon
+## Completed release — v20.24 / Bluetooth status icon
 
-- Date: October 18, 2026. Explicit clarification: connection-status icon beside Connect, not imagery in the main app logo.
-- Scope: decorative inline Bluetooth SVG, muted offline/blue online, existing Connected/Not connected text and state update retained. App version advances; no connection, disconnect/reset, radio-command or write-safety change.
-- Tests/publication: pending full suite, packaging and 12 isolated browser checks on UAT and LIVE. New browser check exercises simulated connect/disconnect, actual icon color and no programming commands.
-- UAT/LIVE/tag: pending v20.24. Rollback: v20.23 / acaff4e73cef1a30f433ce23199173f012477764.
-- Remaining original audit findings: none; F01/F03 accepted limitations remain. Intermittent Bluetooth recovery is not claimed fixed. No physical radio access.
-- Approval needed: none for the requested visual update and established tested publication process.
+- Date: October 18, 2026. Requested connection-status icon beside Connect; main app branding remains Ham-Rx Baofeng Mini-5.
+- Work: decorative inline Bluetooth SVG, muted offline and blue online. Existing Connected/Not connected text and connection-state update retained. No connection, disconnect/reset, protocol or write-safety change. App executable code differs only in the diagnostic version string.
+- Tests: 146 Node tests pass, zero failures/TODOs. All 12 isolated browser checks pass on UAT and LIVE, including simulated connect/disconnect, visible icon color change and zero programming commands. All 11 protected modules are byte-identical to v20.23. Packaging contains 44 files. Version, icon, changelog and existing public Help verified.
+- UAT: 20.24-UAT.5576170; commit 55761703356c8ceb06ea0ce87d8325b00952f995; Pages run 39097600277 succeeded. Separate UAT version stamp and deployment workflow preserved.
+- LIVE: Version 20.24; commit 26df5d051ae13d5a541fa66cf078eb8202aa93f8; Pages run 39136323624 succeeded. All nine release files match tested UAT; repository/site URLs unchanged.
+- Release: [v20.24](https://github.com/K4RJM/baofeng-mini5-bt-cps-unofficial/releases/tag/v20.24), verified tag target 26df5d051ae13d5a541fa66cf078eb8202aa93f8.
+- Files changed: app.mjs, docs/CODEX-PROGRESS.md, docs/VERIFICATION.md, index.html, package.json, README.md, style.css, tests/browser/index.html, tests/browser/runner.mjs.
+- Rollback: v20.23 / acaff4e73cef1a30f433ce23199173f012477764 through a reviewed forward commit and normal testing/deployment.
+- Remaining original audit findings: none. F01/F03 stay accepted factory-compatible limitations. Intermittent Bluetooth recovery is not claimed fixed. No physical radio accessed by these release checks; completed K4RJM hardware evidence remains credited.
+- Next: future development stays isolated on UAT. No Phase 2 file-format feature started. Requested branding, public limitations and Bluetooth indicator work are complete.
+- Approval needed: none for completed authorized publication. Future risky radio-writing changes require explicit approval; no autonomous physical writes.
 
 ## Completed release — v20.23 / Ham-Rx Baofeng Mini-5 public information
 
