@@ -30,7 +30,7 @@ document.getElementById('start').onclick=async()=>{
    for(const theme of ['light','dark']){h.d.documentElement.dataset.theme=theme;assert(h.w.getComputedStyle(rows[0]).backgroundColor!==h.w.getComputedStyle(rows[1]).backgroundColor,'Alternating shading in '+theme);}
    const wrap=h.d.getElementById('channelTableWrap');assert(wrap.scrollWidth<=wrap.clientWidth+1,'All columns fit a wide desktop');
    frame.style.width='390px';await new Promise(resolve=>h.w.requestAnimationFrame(resolve));
-   assert(wrap.scrollWidth>wrap.clientWidth,'Phone table scrolls horizontally');assert(rows[0].getBoundingClientRect().height>=39.9,'Phone rows retain touch spacing');
+   assert(wrap.scrollWidth>wrap.clientWidth,'Phone table scrolls horizontally');assert(rows[0].getBoundingClientRect().height>=39.9,'Phone rows retain touch spacing: '+rows[0].getBoundingClientRect().height);
    assert(h.d.documentElement.scrollWidth<=h.d.documentElement.clientWidth+1,'Phone has no whole-page horizontal overflow');
    frame.style.width='100%';delete h.d.documentElement.dataset.theme;
   });
