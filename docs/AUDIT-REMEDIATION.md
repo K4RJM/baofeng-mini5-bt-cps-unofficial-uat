@@ -1,6 +1,6 @@
 # Audit remediation — v20.23
 
-The application is now **Ham-Rx Mini-5**. [Public compatibility notes](KNOWN-LIMITATIONS.md) explain the accepted limitations and distinguish confirmed behavior from unconfirmed causes. No audit disposition is reopened or recategorized.
+The application is now **Ham-Rx Baofeng Mini-5**. [Public compatibility notes](KNOWN-LIMITATIONS.md) explain the accepted limitations and distinguish confirmed behavior from unconfirmed causes. No audit disposition is reopened or recategorized.
 
 **F13: Remediated — Tested. All 15 original findings have final dispositions; zero remain open.** Thirteen are corrected, verified or remediated; F01 and F03 are explicitly accepted factory-compatible behavior/limitations.
 

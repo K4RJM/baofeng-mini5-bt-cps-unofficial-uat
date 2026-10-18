@@ -1,4 +1,4 @@
-# Verification — v20.23 / Ham-Rx Mini-5 public information
+# Verification — v20.23 / Ham-Rx Baofeng Mini-5 public information
 
 Presentation/documentation release: new application name and normal version badge; programming-risk notices retained. Public Help and VFO guidance explain shared factory-compatible limitations, DAT backup scope and the separate factory-CPS display issue. No protected radio, codec, validation or connection module changes. The UAT-only stamp is adjusted for the new badge; repository isolation remains. Full-suite and browser gate results are recorded in [the publication checkpoint](CODEX-PROGRESS.md). No physical radio is operated by this release process.
 

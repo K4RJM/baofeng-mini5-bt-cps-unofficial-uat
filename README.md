@@ -1,8 +1,8 @@
-# Ham-Rx Mini-5
+# Ham-Rx Baofeng Mini-5
 
 Free, noncommercial browser software by K4RJM, hosted on GitHub Pages.
 
-**Current release: v20.23.** Ham-Rx Mini-5 is the new name for Baofeng Mini 5 BT CPS – Unofficial. The Experimental designation is removed at K4RJM’s request; the programming-risk notice, verification and write protections remain. Existing URLs and native DAT files remain compatible. Radio programming behavior is unchanged.
+**Current release: v20.23.** Ham-Rx Baofeng Mini-5 is the new name for Baofeng Mini 5 BT CPS – Unofficial. The Experimental designation is removed at K4RJM’s request; the programming-risk notice, verification and write protections remain. Existing URLs and native DAT files remain compatible. Radio programming behavior is unchanged.
 
 All 15 original audit findings have final dispositions: 13 corrected/verified/remediated and two accepted factory-compatible limitations. See [audit status](docs/AUDIT-REMEDIATION.md), [test coverage](docs/F13-COVERAGE.md) and [publication checkpoint](docs/CODEX-PROGRESS.md). Intermittent PC/radio Bluetooth recovery is not claimed fixed.
 
@@ -92,7 +92,7 @@ Open `http://127.0.0.1:8726`. Serving is required for modules; double-clicking i
 
 Commit to `K4RJM/baofeng-mini5-bt-cps-unofficial`. In **Settings → Pages**, choose **GitHub Actions**. The workflow tests pull requests and deploys from main after passing tests and packaging. Only allowlisted public files are uploaded; tests, private DAT files and captures are excluded.
 
-Live site: [Ham-Rx Mini-5](https://k4rjm.github.io/baofeng-mini5-bt-cps-unofficial/). A particular release is deployed only after its GitHub Actions run succeeds. No paid server, secret or shared token required. All assets use relative paths for repository-subpath hosting. `npm run package` prepares dist/.
+Live site: [Ham-Rx Baofeng Mini-5](https://k4rjm.github.io/baofeng-mini5-bt-cps-unofficial/). A particular release is deployed only after its GitHub Actions run succeeds. No paid server, secret or shared token required. All assets use relative paths for repository-subpath hosting. `npm run package` prepares dist/.
 
 ## Verification and provenance
 

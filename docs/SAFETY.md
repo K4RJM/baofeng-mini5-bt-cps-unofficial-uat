@@ -37,4 +37,4 @@ Channel data, captures and logs stay in tab memory until downloaded. No backend,
 
 ## Public compatibility notes
 
-Ham-Rx Mini-5 v20.23 removes the Experimental designation at K4RJM’s explicit request. This presentation change does not extend the tested firmware/hardware scope or change programming protections. The [known limitations](KNOWN-LIMITATIONS.md) explain shared VFO behavior, native DAT scope and the separate stock-CPS display caveat.
+Ham-Rx Baofeng Mini-5 v20.23 removes the Experimental designation at K4RJM’s explicit request. This presentation change does not extend the tested firmware/hardware scope or change programming protections. The [known limitations](KNOWN-LIMITATIONS.md) explain shared VFO behavior, native DAT scope and the separate stock-CPS display caveat.

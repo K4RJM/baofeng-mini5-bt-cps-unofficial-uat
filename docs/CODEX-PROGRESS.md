@@ -2,9 +2,9 @@
 
 Updated October 18, 2026. Resume here, then read AUDIT-REMEDIATION.md; inspect actual branch heads, tags and deployed versions before making changes. One finding/feature per version; no autonomous physical writes. Never repeat completed hardware tests or reopen an accepted limitation without new evidence.
 
-## Current task — v20.23 / Ham-Rx Mini-5 public information
+## Current task — v20.23 / Ham-Rx Baofeng Mini-5 public information
 
-- Date: October 18, 2026. Explicit request: explain shared factory-compatible limitations publicly, rename the app Ham-Rx Mini-5 and remove the Experimental designation.
+- Date: October 18, 2026. Explicit request: explain shared factory-compatible limitations publicly, rename the app Ham-Rx Baofeng Mini-5 and remove the Experimental designation.
 - Scope: title/header/Help/version/README/safety wording and public known-limitations document. Existing programming warning, one-checkbox confirmation and all radio safeguards remain. Cause attribution distinguishes shared VFO behavior from the separate stock-CPS display/write issue.
 - Tests/publication: pending full suite, package verification and UAT/LIVE browser checks. All protected radio modules must remain byte-identical to v20.22. No physical radio access.
 - UAT: separate badge stamp updated for the Version label; separate workflow preserved. Deployment pending.
@@ -24,7 +24,7 @@ Updated October 18, 2026. Resume here, then read AUDIT-REMEDIATION.md; inspect a
 - Files changed: app.mjs, docs/AUDIT-2026-10-14.md, docs/AUDIT-REMEDIATION.md, docs/CODEX-PROGRESS.md, docs/DEPLOYMENT.md, docs/F13-COVERAGE.md, docs/VERIFICATION.md, index.html, package.json, README.md, scripts/check-f08-evidence.mjs, scripts/check-oct15-evidence.mjs, scripts/check-private-cps-fixtures.mjs, scripts/package.mjs, tests/async-radio.mjs, tests/browser/frame.mjs, tests/browser/index.html, tests/browser/runner.mjs, tests/f13-independent.test.mjs, tests/f13-mutations.test.mjs, tests/f13-transport.test.mjs.
 - Rollback: v20.21 / e187006d21868a81cbdee47be9a814795ec6c305.
 - Limits: no physical radio operated during this release; completed K4RJM hardware evidence remains credited. Intermittent adapter recovery is not proven resolved. Browser tests cover the in-app Chromium environment, not every browser/OS/firmware variant.
-- Next: requested public explanation of factory-compatible limitations, app rename to Ham-Rx Mini-5 and removal of the Experimental designation in v20.23. The October 18 instruction supersedes the earlier instruction to retain that designation. Keep the programming-risk notice and unchanged radio behavior. Phase 2 file-format features have not started.
+- Next: requested public explanation of factory-compatible limitations, app rename to Ham-Rx Baofeng Mini-5 and removal of the Experimental designation in v20.23. The October 18 instruction supersedes the earlier instruction to retain that designation. Keep the programming-risk notice and unchanged radio behavior. Phase 2 file-format features have not started.
 - Approval needed: none for the expressly requested presentation/documentation release and established tested publication process. No autonomous physical writes.
 
 ## Completed release — v20.21 / F10

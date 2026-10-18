@@ -1,6 +1,6 @@
-# Ham-Rx Mini-5 — Known factory-compatible limitations
+# Ham-Rx Baofeng Mini-5 — Known factory-compatible limitations
 
-Updated October 18, 2026. Ham-Rx Mini-5 is the new name for **Baofeng Mini 5 BT CPS – Unofficial**. These notes explain the practical limits established by K4RJM’s physical tests, factory CPS comparisons and independent Bluetooth memory captures. They apply to the tested configuration; they do not certify every radio or firmware version.
+Updated October 18, 2026. Ham-Rx Baofeng Mini-5 is the new name for **Baofeng Mini 5 BT CPS – Unofficial**. These notes explain the practical limits established by K4RJM’s physical tests, factory CPS comparisons and independent Bluetooth memory captures. They apply to the tested configuration; they do not certify every radio or firmware version.
 
 ## VFO offset direction and DTMF group can overlap
 
@@ -18,13 +18,13 @@ DTMF groups are numbered signaling-code entries, not collections of channels. OF
 
 **Practical effect:** a selected VFO direction or signaling group can read back differently after programming, including a change from OFF to PLUS. Do not assume that selecting both fields makes them independent. Use saved memory channels with explicit receive/transmit frequencies for repeater operation, and review VFO settings after readback. This overlap does not affect normal memory-channel records. Verification of stored bytes does not verify all on-air behavior.
 
-The shared behavior likely involves radio firmware or the configuration format, but the exact cause has not been established. It is not a demonstrated defect unique to Ham-Rx Mini-5. The tested mapping is retained for factory compatibility; changing it without evidence could introduce a programming fault. The examples above do not establish every VFO A/B combination.
+The shared behavior likely involves radio firmware or the configuration format, but the exact cause has not been established. It is not a demonstrated defect unique to Ham-Rx Baofeng Mini-5. The tested mapping is retained for factory compatibility; changing it without evidence could introduce a programming fault. The examples above do not establish every VFO A/B combination.
 
 Audit disposition: **F03 — Closed, accepted factory-compatible VFO limitation.** See the [physical evidence and scope](F02-F03-EVIDENCE-2026-10-15.md). Historical open-status sections in that report describe the earlier investigation, not the current disposition.
 
 ## A native DAT backs up CPS configuration
 
-A native DAT stores channels and CPS settings. The same file can be opened in Ham-Rx Mini-5 for Bluetooth programming or stock Baofeng CPS for programming with a compatible cable. It does not contain firmware or every raw memory byte.
+A native DAT stores channels and CPS settings. The same file can be opened in Ham-Rx Baofeng Mini-5 for Bluetooth programming or stock Baofeng CPS for programming with a compatible cable. It does not contain firmware or every raw memory byte.
 
 Both programmers reconstruct the CPS memory layout. The retained factory write output uses fixed values in some areas that are not represented by editable settings; the Bluetooth CPS reproduces that behavior. Those areas can be normalized during a full configuration write. This is not evidence that every unmapped byte is unused, and factory compatibility alone does not establish a firmware fault.
 
@@ -36,7 +36,7 @@ Audit disposition: **F01 — Closed, accepted factory-compatible behavior.** See
 
 K4RJM observed stock wired CPS displaying defaults for some PTT-ID and VFO settings after reading the radio, while independent Bluetooth captures retained the intended stored values. A later factory-CPS write changed the PTT-ID delay back to code 0. Reading/displaying defaults and subsequently writing them are separate events.
 
-Ham-Rx Mini-5 retains the v20.11 correction that preserves the evidenced stored codes: **3000 ms PTT-ID delay**, **BOTH VFO PTT-ID**, and **QT/DQT + DTMF for VFO A**. This corrects the earlier Bluetooth decoder reduction; it does not prove every signaling function on every firmware version.
+Ham-Rx Baofeng Mini-5 retains the v20.11 correction that preserves the evidenced stored codes: **3000 ms PTT-ID delay**, **BOTH VFO PTT-ID**, and **QT/DQT + DTMF for VFO A**. This corrects the earlier Bluetooth decoder reduction; it does not prove every signaling function on every firmware version.
 
 **Practical effect:** recheck these settings before writing with stock CPS, especially when moving a configuration between programmers. Do not attribute the reported factory display/write sequence to the Bluetooth CPS or automatically classify it as a firmware fault. See [F02 evidence](F02-F03-EVIDENCE-2026-10-15.md#f02--corrected-decoding).
 
