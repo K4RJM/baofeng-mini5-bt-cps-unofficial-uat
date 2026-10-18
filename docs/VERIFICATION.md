@@ -1,3 +1,9 @@
+# Verification — v20.24 / Bluetooth connection-status icon
+
+Display-only change: the existing connection-state class now colors a decorative Bluetooth SVG beside the status text. The connection logic is unchanged. The browser suite gains an isolated simulated connect/disconnect check for icon state, visible color change and zero programming commands. Its runner cache URL is updated. Full-suite, UAT/LIVE browser and publication results are recorded in [the checkpoint](CODEX-PROGRESS.md). No physical radio is accessed.
+
+---
+
 # Verification — v20.23 / Ham-Rx Baofeng Mini-5 public information
 
 Presentation/documentation release: new application name and normal version badge; programming-risk notices retained. Public Help and VFO guidance explain shared factory-compatible limitations, DAT backup scope and the separate factory-CPS display issue. No protected radio, codec, validation or connection module changes. The UAT-only stamp is adjusted for the new badge; repository isolation remains. Full-suite and browser gate results are recorded in [the publication checkpoint](CODEX-PROGRESS.md). No physical radio is operated by this release process.

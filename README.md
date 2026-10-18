@@ -2,7 +2,9 @@
 
 Free, noncommercial browser software by K4RJM, hosted on GitHub Pages.
 
-**Current release: v20.23.** Ham-Rx Baofeng Mini-5 is the new name for Baofeng Mini 5 BT CPS – Unofficial. The Experimental designation is removed at K4RJM’s request; the programming-risk notice, verification and write protections remain. Existing URLs and native DAT files remain compatible. Radio programming behavior is unchanged.
+**Current release: v20.24.** A Bluetooth symbol beside Connect is muted when disconnected and blue when connected, with the existing text label retained. It follows the current link state; no connection or programming behavior changes.
+
+**Retained v20.23 update:** Ham-Rx Baofeng Mini-5 is the new name for Baofeng Mini 5 BT CPS – Unofficial. The Experimental designation is removed at K4RJM’s request; the programming-risk notice, verification and write protections remain. Existing URLs and native DAT files remain compatible. Radio programming behavior is unchanged.
 
 All 15 original audit findings have final dispositions: 13 corrected/verified/remediated and two accepted factory-compatible limitations. See [audit status](docs/AUDIT-REMEDIATION.md), [test coverage](docs/F13-COVERAGE.md) and [publication checkpoint](docs/CODEX-PROGRESS.md). Intermittent PC/radio Bluetooth recovery is not claimed fixed.
 

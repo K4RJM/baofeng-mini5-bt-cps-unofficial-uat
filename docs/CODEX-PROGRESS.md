@@ -2,6 +2,15 @@
 
 Updated October 18, 2026. Resume here, then read AUDIT-REMEDIATION.md; inspect actual branch heads, tags and deployed versions before making changes. One finding/feature per version; no autonomous physical writes. Never repeat completed hardware tests or reopen an accepted limitation without new evidence.
 
+## Current task — v20.24 / Bluetooth status icon
+
+- Date: October 18, 2026. Explicit clarification: connection-status icon beside Connect, not imagery in the main app logo.
+- Scope: decorative inline Bluetooth SVG, muted offline/blue online, existing Connected/Not connected text and state update retained. App version advances; no connection, disconnect/reset, radio-command or write-safety change.
+- Tests/publication: pending full suite, packaging and 12 isolated browser checks on UAT and LIVE. New browser check exercises simulated connect/disconnect, actual icon color and no programming commands.
+- UAT/LIVE/tag: pending v20.24. Rollback: v20.23 / acaff4e73cef1a30f433ce23199173f012477764.
+- Remaining original audit findings: none; F01/F03 accepted limitations remain. Intermittent Bluetooth recovery is not claimed fixed. No physical radio access.
+- Approval needed: none for the requested visual update and established tested publication process.
+
 ## Completed release — v20.23 / Ham-Rx Baofeng Mini-5 public information
 
 - Date: October 18, 2026. Explicit request: public factory-compatible limitations, final name Ham-Rx Baofeng Mini-5, removal of the Experimental and Unofficial branding. The naming instruction was refined before LIVE publication.
