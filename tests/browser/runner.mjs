@@ -20,6 +20,20 @@ document.getElementById('start').onclick=async()=>{
  try{
   let h=await fresh();assert(h.state.ready&&!h.state.errors.length,'Unmodified application must load');const id=n=>h.d.getElementById(n);
   await check('Native DAT import uses actual File / input events and never connects',async()=>{await load(h);assert(h.state.fake.sent.length===0&&h.state.fake.events.length===0,'File import must not contact radio');assert(h.d.querySelector('[data-channel-index="998"]'),'Channel 999 is displayed');});
+  await check('Factory column order, compact rows, striping and responsive overflow',async()=>{
+   frame.style.width='1600px';await new Promise(resolve=>h.w.requestAnimationFrame(resolve));
+   const headers=[...h.d.querySelectorAll('#channelTableWrap th')].map(x=>x.textContent);
+   assert(JSON.stringify(headers)===JSON.stringify(['','Ch','RX MHz','RX tone','TX MHz','TX tone','Power','BW','Scan','DTMF','PTT-ID','Signal','Busy lock','FHSS','Name','Actions']),'Factory CPS column order');
+   const rows=[...h.d.querySelectorAll('.channel-row')];assert(rows[0].cells.length===16,'All factory fields displayed');
+   assert(rows[0].getBoundingClientRect().height<=32,'Desktop rows must be compact');
+   const ins=[...rows[0].querySelectorAll('button')].find(b=>b.textContent==='Ins Ch');assert(ins?.title==='Insert new channel above','Insertion label and tooltip');
+   for(const theme of ['light','dark']){h.d.documentElement.dataset.theme=theme;assert(h.w.getComputedStyle(rows[0]).backgroundColor!==h.w.getComputedStyle(rows[1]).backgroundColor,'Alternating shading in '+theme);}
+   const wrap=h.d.getElementById('channelTableWrap');assert(wrap.scrollWidth<=wrap.clientWidth+1,'All columns fit a wide desktop');
+   frame.style.width='390px';await new Promise(resolve=>h.w.requestAnimationFrame(resolve));
+   assert(wrap.scrollWidth>wrap.clientWidth,'Phone table scrolls horizontally');assert(rows[0].getBoundingClientRect().height>=40,'Phone rows retain touch spacing');
+   assert(h.d.documentElement.scrollWidth<=h.d.documentElement.clientWidth+1,'Phone has no whole-page horizontal overflow');
+   frame.style.width='100%';delete h.d.documentElement.dataset.theme;
+  });
   await check('Checkbox clicks bubble without opening editor; row clicks open it',async()=>{const row=h.d.querySelector('[data-channel-index="0"]');row.querySelector('input').click();assert(!id('editor').open,'Checkbox must not edit');row.querySelector('td:nth-child(3)').click();assert(id('editor').matches(':modal'),'Row opens real modal dialog');id('cancel').click();});
   await check('Invalid frequencies block navigation; valid short entries are padded',async()=>{h.d.querySelector('[data-channel-index="0"]').click();const input=h.d.querySelector('#fields [data-key="rxFreq"]');input.value='146.52001';input.dispatchEvent(new h.w.Event('input',{bubbles:true}));id('editNext').click();assert(id('editorTitle').textContent==='Edit channel 1'&&id('editErrors').textContent,'Invalid edit must stay in channel 1');input.value='146.52';id('editNext').click();assert(id('editorTitle').textContent==='Edit channel 3','Valid edit advances to next occupied channel');id('cancel').click();});
   // Reload the native file to discard edited/selected state before transport checks.

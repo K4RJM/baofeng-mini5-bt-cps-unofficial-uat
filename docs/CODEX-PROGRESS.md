@@ -2,6 +2,15 @@
 
 Updated October 18, 2026. Resume here, then read AUDIT-REMEDIATION.md; inspect actual branch heads, tags and deployed versions before making changes. One finding/feature per version; no autonomous physical writes. Never repeat completed hardware tests or reopen an accepted limitation without new evidence.
 
+## Current UAT preview — v20.25 / compact channel workspace
+
+- Explicit scope: UAT ONLY. LIVE remains v20.24. No LIVE publication is authorized for this layout.
+- Changes: compact header/sidebar/channel toolbar, approximately 29px desktop rows, alternating shading and grid separators, all factory CPS fields in factory order, Ins Ch / Insert new channel above. Smaller screens scroll horizontally and retain touch targets.
+- Display columns use existing saved channel fields and option labels; no decoder, encoder, transport, write-safety or connection change.
+- Verification: full regression suite and UAT browser/visual checks required before marking verified. Physical-radio operations prohibited.
+- Rollback: UAT commit 955e58c8c2e346d1cd3147e25464ee195e50d702 (v20.24); restore changed files in a forward commit. LIVE checkpoint ac9a36403d4f2cfa74d075fc6c6f734146f1129f must stay unchanged.
+- Next: K4RJM reviews spacing, column order and remaining markups in UAT; do not promote to LIVE without explicit approval.
+
 ## Completed release — v20.24 / Bluetooth status icon
 
 - Date: October 18, 2026. Requested connection-status icon beside Connect; main app branding remains Ham-Rx Baofeng Mini-5.
