@@ -2,15 +2,19 @@
 
 Updated October 18, 2026. Resume here, then read AUDIT-REMEDIATION.md; inspect actual branch heads, tags and deployed versions before making changes. One finding/feature per version; no autonomous physical writes. Never repeat completed hardware tests or reopen an accepted limitation without new evidence.
 
-## Current task — v20.23 / Ham-Rx Baofeng Mini-5 public information
+## Completed release — v20.23 / Ham-Rx Baofeng Mini-5 public information
 
-- Date: October 18, 2026. Explicit request: explain shared factory-compatible limitations publicly, rename the app Ham-Rx Baofeng Mini-5 and remove the Experimental designation.
-- Scope: title/header/Help/version/README/safety wording and public known-limitations document. Existing programming warning, one-checkbox confirmation and all radio safeguards remain. Cause attribution distinguishes shared VFO behavior from the separate stock-CPS display/write issue.
-- Tests/publication: pending full suite, package verification and UAT/LIVE browser checks. All protected radio modules must remain byte-identical to v20.22. No physical radio access.
-- UAT: separate badge stamp updated for the Version label; separate workflow preserved. Deployment pending.
-- LIVE/tag: pending v20.23 after UAT verification. Rollback: v20.22 / f7c749c7b2accf08198047fbdb29e6019954163d.
-- Remaining original audit findings: none; F01/F03 remain accepted factory-compatible limitations. Intermittent Bluetooth recovery is not claimed resolved. Phase 2 file-format features not started.
-- Approval needed: none; requests and established tested publication process are explicit. No autonomous physical writes.
+- Date: October 18, 2026. Explicit request: public factory-compatible limitations, final name Ham-Rx Baofeng Mini-5, removal of the Experimental and Unofficial branding. The naming instruction was refined before LIVE publication.
+- Work: title/header/Help/version/README/safety wording and public known-limitations document. Existing risk notice, one-checkbox confirmation, model checks and all radio safeguards remain. Help and VFO guidance distinguish shared VFO behavior, native DAT reconstruction and the separate stock-CPS display/write issue; exact firmware cause remains unconfirmed.
+- Tests: 146 Node tests pass, zero failures/TODOs. All 11 isolated browser checks pass on final UAT and LIVE. Title, badge, changelog, Help disclosures and VFO guidance verified. UAT dark/light layouts checked; system appearance restored. Package contains 44 files. UAT stamp/version and wrong-repository rejection pass. All 11 protected modules and programming handlers remain byte-identical to v20.22.
+- UAT: 20.23-UAT.39fdd36; commit 39fdd36101f01777d3cd57756ba378bf73bb231c; Pages run 39097249676 succeeded. Separate UAT stamp adapts to the new Version badge; separate workflow preserved.
+- LIVE: Version 20.23; commit acaff4e73cef1a30f433ce23199173f012477764; Pages run 39097354029 succeeded. All 13 shared release files match tested UAT. Existing site/repository URLs are unchanged.
+- Release: [v20.23](https://github.com/K4RJM/baofeng-mini5-bt-cps-unofficial/releases/tag/v20.23), verified tag target acaff4e73cef1a30f433ce23199173f012477764.
+- Files changed: app.mjs, docs/AUDIT-2026-10-14.md, docs/AUDIT-REMEDIATION.md, docs/CODEX-PROGRESS.md, docs/F13-COVERAGE.md, docs/KNOWN-LIMITATIONS.md, docs/SAFETY.md, docs/VERIFICATION.md, index.html, package.json, README.md, scripts/package.mjs, style.css. UAT-only: scripts/stamp-uat.mjs.
+- Rollback: v20.22 / f7c749c7b2accf08198047fbdb29e6019954163d; restore through a reviewed forward commit and normal testing/deployment, not a shared-branch force push.
+- Remaining original audit findings: none; F01/F03 remain accepted factory-compatible limitations. The removal of a designation does not extend hardware/firmware certification. Intermittent Bluetooth recovery is not claimed resolved. No physical radio was operated during this release; completed K4RJM hardware testing remains credited.
+- Next: future development remains isolated on UAT. Phase 2 compatible file formats have not started; do not bundle experiments with maintenance releases.
+- Approval needed: none for completed authorized publication. Future risky radio-writing changes still require explicit approval; no autonomous physical writes.
 
 ## Completed release — v20.22 / F13
 
