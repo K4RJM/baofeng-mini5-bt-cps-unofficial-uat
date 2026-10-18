@@ -101,3 +101,5 @@ dialog#warning{width:min(680px,94vw);padding:22px}
 #warning .programming-confirmation{align-items:flex-start;color:var(--text);font-size:12px;line-height:1.5}
 .programming-confirmation input{margin-top:2px}
 #warning .dialog-actions{margin-top:16px}
+
+.known-limitations table{white-space:normal;margin:12px 0}.known-limitations th{position:static}.known-limitations .limitations-source{margin:12px 0 0}.vfo-limit-note{font-size:12px;margin:0 0 18px}

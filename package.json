@@ -1,6 +1,6 @@
 {
-  "name": "baofeng-mini5-bt-cps-unofficial",
-  "version": "0.20.22",
+  "name": "ham-rx-mini-5",
+  "version": "0.20.23",
   "private": true,
   "type": "module",
   "scripts": {

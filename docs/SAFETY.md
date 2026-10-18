@@ -1,12 +1,12 @@
 # Programming scope and safety
 
-⚠ Experimental Software — Radio Damage Risk
+⚠ Programming risk — Radio damage
 
 Programming errors, software defects, or interrupted communication may render your radio inoperable. Always maintain a backup dat for use with official CPS and programming cable.
 
 ## Preserved implementation
 
-The radio transport, memory map and encoding logic retain the tested build 18 baseline. Later corrections add DAT parsing limits (v20.10), preserve supported settings codes (v20.11), and correct channel-frequency decoding with preflight format validation (v20.12). v20.14 adds channel-only factory-CPS range/grid checks for edits and write preflight. Unsupported imported/read values stay intact for inspection/export and are blocked from programming; no silent rounding is applied. VFO validation is unchanged. DAT export logic is unchanged. Current corrections and Open Audit Findings are tracked in [AUDIT-REMEDIATION.md](AUDIT-REMEDIATION.md). `protected-core.json` records SHA-256 hashes; automated tests fail if any byte changes without review. No new protocol, wider address range, automatic write retry or speculative session-reset command was added.
+The radio transport, memory map and encoding logic retain the tested build 18 baseline. Later corrections add DAT parsing limits (v20.10), preserve supported settings codes (v20.11), and correct channel-frequency decoding with preflight format validation (v20.12). v20.14 adds channel-only factory-CPS range/grid checks for edits and write preflight. Unsupported imported/read values stay intact for inspection/export and are blocked from programming; no silent rounding is applied. VFO validation is unchanged. DAT export logic is unchanged. Current corrections and audit dispositions are tracked in [AUDIT-REMEDIATION.md](AUDIT-REMEDIATION.md). `protected-core.json` records SHA-256 hashes; automated tests fail if any byte changes without review. No new protocol, wider address range, automatic write retry or speculative session-reset command was added.
 
 K4RJM physically tested programming, reads and reconnections, including a successful build 18 write and normal operation on Radio 100, firmware V0.05, hardware V1.7. Subsequent build-20.10 Bluetooth captures and factory DATs supply independent memory evidence for the F02 correction and other audit investigations. Recorded factory-CPS frequency tests are listed in [F07 evidence](F07-EVIDENCE-2026-10-15.md). The handshake verifies `5RMINI`, not firmware/hardware versions. This evidence does not certify other variants or close the remaining timing, mapping and recovery questions.
 
@@ -34,3 +34,7 @@ No firmware flashing, cable transport or bank/zone unlocks are implemented. Futu
 Feature detection determines Web Bluetooth availability. DAT editing remains available without Bluetooth. Radio operations require HTTPS or localhost and a supported browser/OS stack; universal iOS, Linux or Raspberry Pi support is not claimed. Ten-minute inactivity offers a 60-second disconnect countdown, suspended during active operations. No keepalive traffic is sent.
 
 Channel data, captures and logs stay in tab memory until downloaded. No backend, analytics, shared credentials or third-party scripts. Local storage holds only the theme preference.
+
+## Public compatibility notes
+
+Ham-Rx Mini-5 v20.23 removes the Experimental designation at K4RJM’s explicit request. This presentation change does not extend the tested firmware/hardware scope or change programming protections. The [known limitations](KNOWN-LIMITATIONS.md) explain shared VFO behavior, native DAT scope and the separate stock-CPS display caveat.

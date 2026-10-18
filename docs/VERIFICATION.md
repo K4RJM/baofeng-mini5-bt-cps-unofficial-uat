@@ -1,3 +1,9 @@
+# Verification — v20.23 / Ham-Rx Mini-5 public information
+
+Presentation/documentation release: new application name and normal version badge; programming-risk notices retained. Public Help and VFO guidance explain shared factory-compatible limitations, DAT backup scope and the separate factory-CPS display issue. No protected radio, codec, validation or connection module changes. The UAT-only stamp is adjusted for the new badge; repository isolation remains. Full-suite and browser gate results are recorded in [the publication checkpoint](CODEX-PROGRESS.md). No physical radio is operated by this release process.
+
+---
+
 # Verification — v20.22 / F13
 
 146 Node tests pass, zero failures or TODOs. Eleven new Node tests include four isolated mutation controls. All five private-evidence replay scripts pass: retained original-file fingerprints, complete 33,344-byte comparisons, exactly 322 intended F06 changes and 1,042 native frames / 66,688 bytes. The real-browser suite is a separate release gate; see [coverage and limitations](F13-COVERAGE.md) and [completed publication results](CODEX-PROGRESS.md). No physical-radio operation occurred. All protected production modules match v20.21 exactly; the manifest is unchanged.

@@ -2,6 +2,16 @@
 
 Updated October 18, 2026. Resume here, then read AUDIT-REMEDIATION.md; inspect actual branch heads, tags and deployed versions before making changes. One finding/feature per version; no autonomous physical writes. Never repeat completed hardware tests or reopen an accepted limitation without new evidence.
 
+## Current task — v20.23 / Ham-Rx Mini-5 public information
+
+- Date: October 18, 2026. Explicit request: explain shared factory-compatible limitations publicly, rename the app Ham-Rx Mini-5 and remove the Experimental designation.
+- Scope: title/header/Help/version/README/safety wording and public known-limitations document. Existing programming warning, one-checkbox confirmation and all radio safeguards remain. Cause attribution distinguishes shared VFO behavior from the separate stock-CPS display/write issue.
+- Tests/publication: pending full suite, package verification and UAT/LIVE browser checks. All protected radio modules must remain byte-identical to v20.22. No physical radio access.
+- UAT: separate badge stamp updated for the Version label; separate workflow preserved. Deployment pending.
+- LIVE/tag: pending v20.23 after UAT verification. Rollback: v20.22 / f7c749c7b2accf08198047fbdb29e6019954163d.
+- Remaining original audit findings: none; F01/F03 remain accepted factory-compatible limitations. Intermittent Bluetooth recovery is not claimed resolved. Phase 2 file-format features not started.
+- Approval needed: none; requests and established tested publication process are explicit. No autonomous physical writes.
+
 ## Completed release — v20.22 / F13
 
 - Developed October 17; release/tag completed October 18, 2026.

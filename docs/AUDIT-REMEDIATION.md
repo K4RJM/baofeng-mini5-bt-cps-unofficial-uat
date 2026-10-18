@@ -1,10 +1,12 @@
-# Audit remediation — v20.22
+# Audit remediation — v20.23
+
+The application is now **Ham-Rx Mini-5**. [Public compatibility notes](KNOWN-LIMITATIONS.md) explain the accepted limitations and distinguish confirmed behavior from unconfirmed causes. No audit disposition is reopened or recategorized.
 
 **F13: Remediated — Tested. All 15 original findings have final dispositions; zero remain open.** Thirteen are corrected, verified or remediated; F01 and F03 are explicitly accepted factory-compatible behavior/limitations.
 
 The independent byte tests, asynchronous event transport and real-browser suite address the original shared-oracle, synchronous-response and simplified-DOM gaps. Four isolated code mutations and two browser mutations demonstrate that the new checks detect the targeted regressions. All 146 Node tests pass with zero failures/TODOs. Real-browser release results and publication are recorded in [CODEX-PROGRESS.md](CODEX-PROGRESS.md); [F13-COVERAGE.md](F13-COVERAGE.md) maps each requirement and its limits.
 
-Radio programming, encoding, decoding, validation, memory map and connection recovery remain byte-identical to v20.21. Existing private evidence replays pass, including all 1,042 native frames and the original full physical captures. K4RJM's completed physical testing remains credited; no new physical-radio operation occurred. Experimental status is retained pending release qualification. Intermittent Windows/radio Bluetooth recovery remains a separate unresolved reliability question, not a claimed F13 fix.
+Radio programming, encoding, decoding, validation, memory map and connection recovery remain byte-identical to v20.21. Existing private evidence replays pass, including all 1,042 native frames and the original full physical captures. K4RJM's completed physical testing remains credited; no new physical-radio operation occurred. The Experimental designation was removed in v20.23 at K4RJM’s explicit request. This changes presentation, not the evidence or radio safeguards. Intermittent Windows/radio Bluetooth recovery remains a separate unresolved reliability question, not a claimed F13 fix.
 
 | Disposition | Findings |
 | --- | --- |

@@ -1,8 +1,18 @@
-# Baofeng Mini 5 BT CPS – Unofficial
+# Ham-Rx Mini-5
 
 Free, noncommercial browser software by K4RJM, hosted on GitHub Pages.
 
-**Current release: v20.22.** F13 is remediated with independent captured-byte checks, asynchronous GATT events, real-browser regression checks and deliberate mutation controls. All 15 original findings have final dispositions: 13 corrected/verified/remediated and two accepted factory-compatible limitations. Radio programming behavior is unchanged. Experimental status remains pending release qualification; intermittent PC/radio Bluetooth recovery is not claimed fixed. See [coverage and limits](docs/F13-COVERAGE.md), [audit status](docs/AUDIT-REMEDIATION.md) and [progress](docs/CODEX-PROGRESS.md).
+**Current release: v20.23.** Ham-Rx Mini-5 is the new name for Baofeng Mini 5 BT CPS – Unofficial. The Experimental designation is removed at K4RJM’s request; the programming-risk notice, verification and write protections remain. Existing URLs and native DAT files remain compatible. Radio programming behavior is unchanged.
+
+All 15 original audit findings have final dispositions: 13 corrected/verified/remediated and two accepted factory-compatible limitations. See [audit status](docs/AUDIT-REMEDIATION.md), [test coverage](docs/F13-COVERAGE.md) and [publication checkpoint](docs/CODEX-PROGRESS.md). Intermittent PC/radio Bluetooth recovery is not claimed fixed.
+
+## Known factory-compatible limitations
+
+- **VFO offset direction and DTMF group overlap:** factory wired CPS and Bluetooth captures reproduce the same limitation. On the tested VFO A, OFF/group 17 and PLUS/group 1 both read back as PLUS/group 17. Normal memory-channel records are unaffected by this overlap. Prefer saved channels with explicit receive/transmit frequencies for repeaters; review VFO readback.
+- **DAT backup scope:** native DAT files contain CPS configuration, not firmware or every raw memory byte. Factory-compatible writes reconstruct parts of the memory layout, including fixed values in unmapped areas.
+- **Separate stock-CPS caveat:** stock CPS displayed defaults for some stored PTT-ID/VFO values; a later factory write reset the delay. The Bluetooth decoder correction preserves the evidenced values. Recheck settings before a stock-CPS write.
+
+The VFO limitation likely involves radio firmware or the configuration format, but its precise cause is unconfirmed. Factory-compatible reconstruction is not itself a demonstrated firmware fault. [Read the practical effects, examples and evidence](docs/KNOWN-LIMITATIONS.md).
 
 **Retained v20.13 interface:** The build number appears in the top header on both LIVE and UAT, beside a compact “What’s new” changelog. The existing write-confirmation window now includes a preparation checklist and one acknowledgement covering readiness, the backup reminder and risk acceptance. The checklist’s timing statement comes from maintainer-reported physical testing. Radio programming behavior is unchanged.
 
@@ -42,7 +52,7 @@ Build 20.5 / 20.6 adds a compact Channels popup for built-in service presets and
 
 Build 20.7 opens the channel editor when a row is clicked or activated with Enter. Checkboxes, action buttons and dragging retain their own behavior. The channel table preserves vertical/horizontal scroll through edits, selection and deletion, and returns focus to a nearby row without jumping to channel 1. Radio programming behavior is unchanged.
 
-⚠ **Experimental Software — Radio Damage Risk**
+⚠ **Programming risk — Radio damage**
 
 Programming errors, software defects, or interrupted communication may render your radio inoperable. Always maintain a backup dat for use with official CPS and programming cable.
 
@@ -57,7 +67,7 @@ Programming errors, software defects, or interrupted communication may render yo
 
 ## Pending / limitations
 
-Physical testing already includes K4RJM’s successful programming, Bluetooth reads and reconnections, factory CPS comparisons and independent radio-memory captures. The identified baseline is Radio 100 / V0.05 / V1.7. See the [Open Audit Findings](docs/AUDIT-REMEDIATION.md) for the evidence already collected and the specific gaps. Remaining work includes unresolved field mappings, scoped hardware/VFO frequency checks, persistence/reconnection reliability, other hardware variants and reception of dialed DTMF sequences. Cable transport, firmware flashing, banks/zones and blank-template radio writing remain unsupported.
+Physical testing already includes K4RJM’s successful programming, Bluetooth reads and reconnections, factory CPS comparisons and independent radio-memory captures. The identified baseline is Radio 100 / V0.05 / V1.7. See the [Audit status](docs/AUDIT-REMEDIATION.md) for the evidence already collected and the specific gaps. Known limits include accepted VFO combinations, scoped hardware/VFO frequency checks, persistence/reconnection reliability, other hardware variants and reception of dialed DTMF sequences. Cable transport, firmware flashing, banks/zones and blank-template radio writing remain unsupported.
 
 RepeaterBook approval, CORS/identification, individual app-bound tokens, export/attribution permission and approved limits remain pending. See [integration review](docs/REPEATERBOOK.md).
 
@@ -82,7 +92,7 @@ Open `http://127.0.0.1:8726`. Serving is required for modules; double-clicking i
 
 Commit to `K4RJM/baofeng-mini5-bt-cps-unofficial`. In **Settings → Pages**, choose **GitHub Actions**. The workflow tests pull requests and deploys from main after passing tests and packaging. Only allowlisted public files are uploaded; tests, private DAT files and captures are excluded.
 
-Live site: [Baofeng Mini 5 BT CPS – Unofficial](https://k4rjm.github.io/baofeng-mini5-bt-cps-unofficial/). A particular release is deployed only after its GitHub Actions run succeeds. No paid server, secret or shared token required. All assets use relative paths for repository-subpath hosting. `npm run package` prepares dist/.
+Live site: [Ham-Rx Mini-5](https://k4rjm.github.io/baofeng-mini5-bt-cps-unofficial/). A particular release is deployed only after its GitHub Actions run succeeds. No paid server, secret or shared token required. All assets use relative paths for repository-subpath hosting. `npm run package` prepares dist/.
 
 ## Verification and provenance
 

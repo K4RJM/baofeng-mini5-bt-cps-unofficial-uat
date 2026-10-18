@@ -1,6 +1,6 @@
 # F13 — Independent evidence and browser coverage
 
-Date: October 17, 2026. Candidate v20.22; final release results are recorded in [CODEX-PROGRESS.md](CODEX-PROGRESS.md).
+Date: October 17, 2026. Released v20.22; final release results are recorded in [CODEX-PROGRESS.md](CODEX-PROGRESS.md).
 
 ## What this finding covers
 
@@ -47,4 +47,4 @@ node scripts/check-private-cps-fixtures.mjs <retained-native-project>
 
 Closing F13 means the demonstrated coverage defects have targeted regression checks with independent evidence and successful negative controls. It does not mean every setting, browser or radio variant has exhaustive independent coverage. Original physical results remain credited to K4RJM. No repeat hardware test is required for this test-only correction.
 
-The intermittent need to toggle PC/radio Bluetooth remains a separate investigation. The Experimental designation stays in place pending the previously agreed release-qualification criteria. No new radio commands, protocol timing, memory layout, disconnect/reset behavior or write permissions are introduced here.
+The intermittent need to toggle PC/radio Bluetooth remains a separate investigation. The Experimental designation was subsequently removed in v20.23 at K4RJM’s explicit request; this does not expand the evidence or claim that every variant is certified. No new radio commands, protocol timing, memory layout, disconnect/reset behavior or write permissions are introduced here.
