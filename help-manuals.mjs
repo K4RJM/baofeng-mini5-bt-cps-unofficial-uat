@@ -4,7 +4,7 @@ export function mountManuals(workspace,tutorial,references){
  const make=(tag,text,cls)=>{const e=document.createElement(tag);if(text)e.textContent=text;if(cls)e.className=cls;return e;};
  const controls=make('div',null,'manual-controls');
  const label=make('label','Manuals '),select=make('select');select.id='manualSelector';select.setAttribute('aria-label','Manuals');
- for(const [value,text,disabled]of [['','Choose a manual',false],['hamrx','Ham-Rx CPS User Guide · 20.27 (preparing)',true],['baofeng','Baofeng MINI-5 Radio Manual · pending permission',true]]){const option=make('option',text);option.value=value;option.disabled=disabled;select.append(option);}label.append(select);controls.append(label);
+ for(const [value,text,disabled]of [['','Choose a manual',false],['hamrx','Ham-Rx CPS User Guide · 20.27',false],['baofeng','Baofeng MINI-5 Radio Manual · pending permission',true]]){const option=make('option',text);option.value=value;option.disabled=disabled;select.append(option);}label.append(select);controls.append(label);
  const note=make('p','Baofeng PDF pending redistribution permission.','manual-permission');controls.append(note);
  const testing=make('a','Testing & Compatibility ↗');testing.href='docs/testing-compatibility.html';testing.target='_blank';testing.rel='noopener';controls.append(testing);references.prepend?references.prepend(controls):references.append(controls);
  const viewer=make('section',null,'manual-viewer');viewer.hidden=true;viewer.setAttribute('aria-label','Manual viewer');

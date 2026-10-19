@@ -1,3 +1,11 @@
+# Current checkpoint: UAT 20.27
+
+Only UAT is authorized for this release. LIVE stays at `e61addc981f8336d591687acfb4fd93089924946` (v20.26). Rollback UAT to the tree from `58dd683d8d11cce73134d7b63e7f516e5143526c` with a normal revert commit and let the UAT workflow redeploy; do not force-push or touch LIVE.
+
+Final deployment/browser verification pending at this checkpoint. Manufacturer PDF must remain unavailable pending permission. The original asset was located locally; no substitute used.
+
+---
+
 # Permanent project checkpoint
 
 Updated October 18, 2026. Resume here, then read AUDIT-REMEDIATION.md; inspect actual branch heads, tags and deployed versions before making changes. One finding/feature per version; no autonomous physical writes. Never repeat completed hardware tests or reopen an accepted limitation without new evidence.

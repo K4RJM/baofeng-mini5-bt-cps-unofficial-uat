@@ -1,3 +1,16 @@
+# UAT 20.27 interface and documentation verification
+
+2026-10-19. UAT only. Rollback: `58dd683d8d11cce73134d7b63e7f516e5143526c`.
+
+- 155 Node tests passed, including the complete prior regression suite and a viewer lifecycle test.
+- Staging commit `418bf0087bcfae52d51c490d19c3ab08e2605a73`: all 20 browser checks passed. Coverage includes all 13 editable channel fields retaining width/height/focus, factory order, desktop/mobile overflow, radio tutorial hotspots, Help layout, nav state and viewer restoration.
+- Eight-page Ham-Rx guide uses actual staging UI screenshots with synthetic channels. Every PDF page rendered and visually inspected. No original manufacturer PDF published; pending permission per K4RJM.
+- Exact file comparison confirms 16 core modules unchanged from v20.26, including Bluetooth transport, recovery, encoder/decoder, DAT, validation, schemas/options and channel-editing logic. The app's complete radio handler section is unchanged. Changes are confined to UI layout, Help, documentation, versioning, packaging and tests.
+- No physical-radio commands or write were performed. Simulated writes run only in the isolated test harness with physical Bluetooth denied.
+- Final published-asset/browser check follows in the deployment checkpoint. Embedded PDF position retention is browser-dependent; the iframe and its source are retained on resize/close/reopen.
+
+---
+
 # Verification — v20.26 UAT / inline channel workspace
 
 Tested deployment: 166ab2a764ad7033a0dc9783b2a943b32e12a63e, build 20.26-UAT.166ab2a. GitHub Pages run 39184369579 succeeded. LIVE stays v20.24 at ac9a36403d4f2cfa74d075fc6c6f734146f1129f.

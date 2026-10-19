@@ -4,6 +4,6 @@ files.push('docs/KNOWN-LIMITATIONS.md','docs/F13-COVERAGE.md','tests/async-radio
 files.push('channel-workspace.mjs','channel-inline-ui.mjs','assets/mini5-blue.png','assets/favicon.svg');await mkdir('dist/assets',{recursive:true});
 await mkdir('dist/read-test',{recursive:true});await mkdir('dist/docs',{recursive:true});await mkdir('dist/tests/browser',{recursive:true});
 files.push('help-layout.css','help-manuals.mjs','docs/testing-compatibility.html','docs/document.css','docs/AUDIT-2026-10-14.md');
-files.push('help-layout.css','help-manuals.mjs','docs/testing-compatibility.html','docs/document.css','docs/AUDIT-2026-10-14.md');
+await mkdir('dist/docs/manuals',{recursive:true});files.push('docs/manuals/ham-rx-cps-user-guide-v20.27.pdf','docs/manuals/README.md');
 for(const file of files)await copyFile(file,'dist/'+file);
 await writeFile('dist/.nojekyll','');console.log('GitHub Pages artifact prepared: dist/ ('+files.length+' files)');

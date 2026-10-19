@@ -1,3 +1,12 @@
+## Current UAT: 20.27
+
+Stable inline channel widths, compact 65/35 Radio & Help, expandable Known Firmware Limitations, a separate Testing & Compatibility page and a versioned local Ham-Rx PDF guide. Manufacturer PDF pending redistribution permission.
+
+- UAT: https://k4rjm.github.io/baofeng-mini5-bt-cps-unofficial-uat/
+- Rollback: `58dd683d8d11cce73134d7b63e7f516e5143526c` (verified 20.26 UAT source).
+- LIVE stays at v20.26, commit `e61addc981f8336d591687acfb4fd93089924946`. This task does not modify LIVE.
+- See [verification](docs/VERIFICATION.md) and [testing and compatibility](docs/testing-compatibility.html).
+
 # Ham-Rx Baofeng Mini-5
 
 Free, noncommercial browser software by K4RJM, hosted on GitHub Pages.

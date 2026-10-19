@@ -85,7 +85,7 @@ document.getElementById('start').onclick=async()=>{
    const lr=left.getBoundingClientRect(),rr=right.getBoundingClientRect();assert(Math.abs(lr.top-rr.top)<1,'Top aligned');assert(Math.abs(lr.width/(lr.width+rr.width)-.65)<.02,'65/35 split');
    assert(limits.querySelector('h3').textContent==='Known Firmware Limitations','Heading');assert(limits.querySelectorAll('details').length===3,'Explanations retained');
    assert(!h.d.getElementById('content').textContent.includes('What has been tested'),'Long history removed');
-   const select=id('manualSelector'),pdf=id('manualPDF');assert(select.querySelector('[value=baofeng]').disabled,'Manufacturer manual pending');
+   const select=id('manualSelector'),pdf=id('manualPDF');assert(!select.querySelector('[value=hamrx]').disabled,'Guide enabled');assert(select.querySelector('[value=baofeng]').disabled,'Manufacturer manual pending');
    select.value='hamrx';select.dispatchEvent(new h.w.Event('change'));const source=pdf.src;
    assert(source.endsWith('/docs/manuals/ham-rx-cps-user-guide-v20.27.pdf'),'Local versioned guide');assert(h.w.getComputedStyle(limits).display==='none','Right manual replaces limits');
    id('manualExpand').click();assert(left.hidden&&h.w.getComputedStyle(limits).display!=='none','Expanded left, limits accessible');
@@ -94,6 +94,11 @@ document.getElementById('start').onclick=async()=>{
    id('manualClose').click();assert(!left.hidden&&h.w.getComputedStyle(limits).display!=='none'&&h.d.activeElement===select,'Close restores content and focus');
    frame.style.width='390px';await new Promise(r=>h.w.requestAnimationFrame(r));assert(h.d.documentElement.scrollWidth<=h.w.innerWidth+1,'Mobile Help fits');
    frame.style.width='100%';[...h.d.querySelectorAll('#tabs button')].find(x=>x.textContent.includes('Channels')).click();
+  });
+  await check('Published guide is a local PDF and testing document retains evidence links',async()=>{
+   const response=await fetch(new URL('docs/manuals/ham-rx-cps-user-guide-v20.27.pdf',root),{cache:'no-store'});assert(response.ok,'PDF delivered');assert((response.headers.get('content-type')||'').includes('pdf'),'PDF MIME type');
+   const bytes=new Uint8Array(await response.arrayBuffer());assert(new TextDecoder().decode(bytes.slice(0,5))==='%PDF-','Actual PDF asset');
+   const html=await fetch(new URL('docs/testing-compatibility.html',root)).then(r=>r.text());for(const name of ['AUDIT-2026-10-14.md','AUDIT-REMEDIATION.md','KNOWN-LIMITATIONS.md','F13-COVERAGE.md'])assert(html.includes(name),'Evidence reference '+name);
   });
   // Reload the native file to discard edited/selected state before transport checks.
   await load(h);
