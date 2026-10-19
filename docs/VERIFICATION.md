@@ -1,3 +1,20 @@
+# Verification — v20.26 UAT / inline channel workspace
+
+Tested deployment: 166ab2a764ad7033a0dc9783b2a943b32e12a63e, build 20.26-UAT.166ab2a. GitHub Pages run 39184369579 succeeded. LIVE stays v20.24 at ac9a36403d4f2cfa74d075fc6c6f734146f1129f.
+
+- 154 Node tests passed, zero failures/skips/TODOs; local full suite and GitHub Actions passed.
+- All 18 isolated browser checks passed. Coverage includes all field controls and tone groups, Tab/Shift+Tab/Enter/Escape, inline/popup consistency, approved boundaries and invalid restoration, channel 999, Add/Insert, occupied bulk destinations, insufficient space, whole-move Undo, table scrolling and pinned pagination, light/dark stripes, narrow layout, image loading and all 23 Help controls. Existing simulated write/recovery, wrong-identity, uncertain-ACK and mutation-detection checks remain passing.
+- Additional real UI input on a synthetic 120-channel DAT confirmed selection across pages, channels 3 and 51 landing at 100 and 101, Undo restoring channel 101, and an actual Tab key committing 174→173.99875 while focusing RX tone without scrolling back to row 1.
+- 48 packaged files. The 11 protected modules plus connection recovery, existing channel operations and field definitions are byte-identical to v20.25. No protocol, memory map, encoder/decoder, disconnect/reset or write-safety changes.
+- Browser tests replace Bluetooth with an immutable simulated peripheral and deny physical Bluetooth in the iframe. The separate visual review used only a synthetic DAT. No physical Connect/Read/Write was performed. Existing K4RJM hardware evidence remains credited.
+- Original supplied blue photo had transparent magenta RGB and visible edge contamination. Image-generation cleanup retained a realistic blue radio; CSS crops the transparent canvas. The favicon is a native SVG simplification with a 32-unit viewbox for small-size display.
+
+Known scope limits: small windows retain normal page scrolling; narrow tables scroll horizontally. Native select menus vary by browser. The inline upper-boundary correction intentionally does not change popup/final-write validation. This release does not claim to fix intermittent Bluetooth reconnection.
+
+Rollback: restore the changed release files from UAT commit a17c2cc1a957c2d1e0d1cbab882dceca55d14745 in a forward commit, remove only newly introduced v20.26 assets/modules/tests, and run the UAT test/deploy workflow. Preserve any later independent work. Do not change LIVE or force-push.
+
+---
+
 # Verification — v20.24 / Bluetooth connection-status icon
 
 Display-only change: the existing connection-state class now colors a decorative Bluetooth SVG beside the status text. The connection logic is unchanged. The browser suite gains an isolated simulated connect/disconnect check for icon state, visible color change and zero programming commands. Its runner cache URL is updated. Full-suite, UAT/LIVE browser and publication results are recorded in [the checkpoint](CODEX-PROGRESS.md). No physical radio is accessed.

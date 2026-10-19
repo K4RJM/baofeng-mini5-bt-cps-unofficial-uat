@@ -2,7 +2,17 @@
 
 Free, noncommercial browser software by K4RJM, hosted on GitHub Pages.
 
-**Current release: v20.24.** A Bluetooth symbol beside Connect is muted when disconnected and blue when connected, with the existing text label retained. It follows the current link state; no connection or programming behavior changes.
+**UAT preview: v20.26. LIVE remains v20.24.** This repository is the separate development environment. [Open UAT](https://k4rjm.github.io/baofeng-mini5-bt-cps-unofficial-uat/). Publication to LIVE requires K4RJM's approval.
+
+Click a channel cell to edit in place. Tab / Shift+Tab saves and moves between cells; Enter saves; Escape cancels an unsaved entry. Checkboxes and dropdowns save immediately. The explicit **Edit** button opens the full editor with Previous / Next navigation. **+ Add channel** starts at the first empty slot; **Ins Ch** inserts above the row.
+
+**Move selected (X)** gathers selected occupied channels, including selections on other pages, into a contiguous block. Enter its first destination channel, review all affected channel numbers, then apply. Displaced records retain their order. The complete move is one Undo action; no operation writes automatically to a radio.
+
+New inline entries of 174 MHz and 520 MHz change to 173.99875 and 519.99875 MHz, with a notification. Other invalid or off-grid entries restore the previous value. Imported/read frequencies remain intact. The popup and final write checks retain their existing validation.
+
+Compact rows, alternating shading and factory CPS column order are retained. Desktop Channels keeps pagination visible and scrolls the table body. Narrow/short windows use a responsive fallback, with horizontal table scrolling. The header and interactive Help use the blue MINI-5 photograph supplied by K4RJM; the favicon is a simplified blue radio.
+
+Verified: 154 automated tests and 18 isolated browser checks. [Evidence and rollback](docs/CODEX-PROGRESS.md). No physical radio was accessed for this UI release.
 
 **Retained v20.23 update:** Ham-Rx Baofeng Mini-5 is the new name for Baofeng Mini 5 BT CPS – Unofficial. The Experimental designation is removed at K4RJM’s request; the programming-risk notice, verification and write protections remain. Existing URLs and native DAT files remain compatible. Radio programming behavior is unchanged.
 
