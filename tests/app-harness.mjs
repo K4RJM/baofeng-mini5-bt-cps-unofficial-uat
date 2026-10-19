@@ -1,3 +1,5 @@
+import {inlineChannelEdit,planChannelMove,channelKeys} from '../channel-workspace.mjs';
+import {mountChannelCell} from '../channel-inline-ui.mjs';
 // Real application handlers with an isolated DOM/transport double. No hardware access.
 import fs from 'node:fs';
 import vm from 'node:vm';
@@ -19,6 +21,8 @@ export async function appHarness(){
   constructor(tag){this.tag=tag;this.children=[];this.dataset={};this.listeners={};this.value='';this.checked=false;this.classList={toggle(){},add(){},remove(){}};this.style={};this.scrollTop=0;this.scrollLeft=0;this.scrollHeight=2200;}
   set id(value){this._id=value;nodes.set(value,this);}get id(){return this._id;}
   closest(selector){return selector.split(',').includes(this.tag)?this:null;}
+  select(){}
+  querySelector(s){return this.querySelectorAll(s)[0]||null;}
   focus(options){this.focusOptions=options;}
   append(...xs){this.children.push(...xs);}replaceChildren(...xs){this.children=xs;}setAttribute(k,v){this[k]=v;}
   get lastChild(){return this.children.at(-1);}
@@ -38,7 +42,7 @@ export async function appHarness(){
   async connect(){connections.push(simulatedRadio(this,faults.transport));}
  }
  const previousDocument=globalThis.document;globalThis.document=document;
- const context=vm.createContext({document,window,navigator:{bluetooth:{},userAgent:'test-double'},localStorage:{getItem(){},setItem(){}},structuredClone,Blob,Uint8Array,console,Date,URL:{createObjectURL(blob){downloads.push(blob);return 'mock';},revokeObjectURL(){}},setTimeout(){},setInterval(){},confirm:()=>true,fetch:async path=>({json:async()=>JSON.parse(fs.readFileSync(new URL('../'+path,import.meta.url)))}),...dat,...decoder,...channels,...fields,validateEdits,Writer:TestWriter,makePlan,verificationMessage,renderRadioTutorial,openChannelAppend,releaseAfterAcknowledgedWrite,decodeRadio:raw=>{if(faults.decode)throw Error('Injected decode failure');return decoder.decodeRadio(raw);}});
+ const context=vm.createContext({inlineChannelEdit,planChannelMove,channelKeys,mountChannelCell,document,window,navigator:{bluetooth:{},userAgent:'test-double'},localStorage:{getItem(){},setItem(){}},structuredClone,Blob,Uint8Array,console,Date,URL:{createObjectURL(blob){downloads.push(blob);return 'mock';},revokeObjectURL(){}},setTimeout(){},setInterval(){},confirm:()=>true,fetch:async path=>({json:async()=>JSON.parse(fs.readFileSync(new URL('../'+path,import.meta.url)))}),...dat,...decoder,...channels,...fields,validateEdits,Writer:TestWriter,makePlan,verificationMessage,renderRadioTutorial,openChannelAppend,releaseAfterAcknowledgedWrite,decodeRadio:raw=>{if(faults.decode)throw Error('Injected decode failure');return decoder.decodeRadio(raw);}});
  try{const source=fs.readFileSync(new URL('../app.mjs',import.meta.url),'utf8').replace(/^import .*$/gm,'');await vm.runInContext('(async()=>{'+source+'})()',context);}
  catch(error){globalThis.document=previousDocument;throw error;}
  return {

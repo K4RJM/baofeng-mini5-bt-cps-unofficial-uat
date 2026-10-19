@@ -58,13 +58,13 @@ test('F07 channel policy: unchanged imported frequencies survive other edits and
 
 test('F07 channel policy: apply and next reject off-grid edits; short valid frequency entry still pads zeros',async()=>{
  const h=await appHarness();try{
-  await h.open();const before=await h.exported();h.row(0).onclick({target:h.row(0),defaultPrevented:false});
+  await h.open();const before=await h.exported();h.row(0).querySelectorAll('button').find(b=>b.textContent==='Edit').click();
   h.enter('rxFreq','146.52001');h.get('apply').click();
   assert.equal(h.get('editor').open,true);assert.match(h.get('editErrors').textContent,/1\.25 kHz/);
   assert.equal(h.field('rxFreq','fields').value,'146.52001');
   h.get('editNext').click();assert.equal(h.get('editorTitle').textContent,'Edit channel 1');
   h.get('cancel').click();assert.deepEqual(await h.exported(),before);
-  h.row(0).onclick({target:h.row(0),defaultPrevented:false});h.enter('rxFreq','146.55');h.get('apply').click();
+  h.row(0).querySelectorAll('button').find(b=>b.textContent==='Edit').click();h.enter('rxFreq','146.55');h.get('apply').click();
   assert.equal(h.get('editor').open,false);assert.equal((await h.exported()).channelList[0][0].rxFreq,'146.55000');
   assert.equal(h.connections.length,0);
  }finally{h.close();}

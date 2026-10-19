@@ -29,18 +29,18 @@ const tutorials={
 };
 
 const keys=[
- ['volume','⏻ / VOL',205,48,40,36],['ptta','PTT A',35,148,36,56],['pttb','PTT B',35,211,36,56],['sk1','SK1',35,275,36,34],
- ['menu','MENU',88,242,45,27],['vm','V/M',141,242,45,27],['lamp','☀',194,242,45,27],
- ['ab','A/B',88,278,41,48],['up','▲',139,277,48,23],['down','▼',139,305,48,23],['exit','EXIT',198,278,41,48],
- ['1','1',88,337,34,28],['2','2 ABC',127,337,34,28],['3','3 DEF',166,337,34,28],['star','* 🔒',205,337,34,28],
- ['4','4 GHI',88,372,34,28],['5','5 JKL',127,372,34,28],['6','6 MNO',166,372,34,28],['0','0 WX',205,372,34,28],
- ['7','7 PQRS',88,407,34,28],['8','8 TUV',127,407,34,28],['9','9 WXYZ',166,407,34,28],['hash','# ↑',205,407,34,28]
+ ['volume','⏻ / VOL',207,23,47,55],['ptta','PTT A',20,145,45,36],['pttb','PTT B',20,216,45,36],['sk1','SK1',20,282,45,30],
+ ['menu','MENU',112,259,39,20],['vm','V/M',156,259,39,20],['lamp','☀',201,259,39,20],
+ ['ab','A/B',107,288,33,42],['up','▲',148,286,55,22],['down','▼',148,310,55,22],['exit','EXIT',211,288,33,42],
+ ['1','1',111,340,29,22],['2','2 ABC',145,340,29,22],['3','3 DEF',179,340,29,22],['star','* 🔒',213,340,29,22],
+ ['4','4 GHI',111,372,29,22],['5','5 JKL',145,372,29,22],['6','6 MNO',179,372,29,22],['0','0 WX',213,372,29,22],
+ ['7','7 PQRS',111,405,29,22],['8','8 TUV',145,405,29,22],['9','9 WXYZ',179,405,29,22],['hash','# ↑',213,405,29,22]
 ];
 const element=(tag,text,cls)=>{const e=document.createElement(tag);if(text)e.textContent=text;if(cls)e.className=cls;return e;};
 export function renderRadioTutorial(target,settings={},options=[]){
  const card=element('section',null,'card radio-tutorial-card');card.append(element('h3','Radio button tutorials'),element('p','Hover over a key, use Tab to focus it, or tap it on your phone. The diagram explains the radio; it does not operate it.','muted'));
- const layout=element('div',null,'radio-tutorial-layout'),drawing=element('div',null,'radio-drawing');drawing.setAttribute('role','group');drawing.setAttribute('aria-label','Mini 5 radio button diagram — simplified front and side view');
- const outline=element('div',null,'radio-outline');outline.innerHTML='<svg viewBox="0 0 300 460" aria-hidden="true" focusable="false"><rect x="89" y="8" width="15" height="86" rx="7" fill="#303a46"/><rect x="82" y="77" width="29" height="24" rx="5" fill="#647488"/><rect x="65" y="91" width="190" height="362" rx="29" fill="#203043" stroke="#708398" stroke-width="3"/><rect x="76" y="103" width="168" height="341" rx="18" fill="#12202e" stroke="#41546a" stroke-width="2"/><text x="160" y="120" text-anchor="middle" fill="#aebfd1" font-size="11" font-family="system-ui">MINI 5</text><rect x="88" y="132" width="151" height="96" rx="7" fill="#090f17" stroke="#52687d"/><text x="100" y="149" fill="#7c9cbd" font-size="8" font-family="system-ui">UPPER · A</text><text x="225" y="169" text-anchor="end" fill="#dfefff" font-size="18" font-family="monospace">146.52000</text><path d="M99 177H228" stroke="#304e68"/><text x="100" y="191" fill="#7c9cbd" font-size="8" font-family="system-ui">LOWER · B</text><text x="225" y="211" text-anchor="end" fill="#dfefff" font-size="18" font-family="monospace">446.00000</text></svg>';drawing.append(outline);
+ const layout=element('div',null,'radio-tutorial-layout'),drawing=element('div',null,'radio-drawing');drawing.setAttribute('role','group');drawing.setAttribute('aria-label','Blue MINI-5 radio photo with button tutorials and labeled side controls');
+ const outline=element('div',null,'radio-outline');outline.innerHTML='<img src="assets/mini5-blue.png" width="1254" height="1254" alt="Blue Baofeng MINI-5, photograph supplied by K4RJM">';drawing.append(outline);
  const panel=element('section',null,'radio-tutorial-panel');panel.id='radioTutorialPanel';panel.setAttribute('role','status');panel.setAttribute('aria-live','polite');panel.setAttribute('aria-atomic','true');
  const buttons=[];let selected=null;
  const show=key=>{
@@ -63,5 +63,5 @@ export function renderRadioTutorial(target,settings={},options=[]){
  for(const [key,label,x,y,w,h]of keys){const b=element('button',label,'radio-key'+(['ptta','pttb','sk1'].includes(key)?' radio-side-key':''));b.type='button';b.dataset.radioKey=key;b.style.cssText=`left:${x/3}%;top:${y/4.6}%;width:${w/3}%;height:${h/4.6}%;`;b.setAttribute('aria-label','Key: '+(tutorials[key]?.keyName||key));b.setAttribute('aria-controls','radioTutorialPanel');b.onmouseenter=()=>show(key);b.onfocus=()=>show(key);b.onclick=()=>show(key);buttons.push(b);drawing.append(b);}
  panel.append(element('span','Interactive guide','tag'),element('h3','Choose a radio button'),element('p','Short Press and Long Press instructions will appear here. Only documented hold shortcuts are included.'),element('p','Use the radio’s displayed mode and icons to check the result. Key behavior may differ between firmware versions.','muted'));
  layout.append(drawing,panel);card.append(layout);
- const sources=element('p',null,'muted radio-tutorial-source');sources.append('Simplified diagram. DTMF observations were reported by K4RJM; other references: ');for(const [label,url]of [['Baofeng Mini 5 manual',manual],['product controls',product]]){const a=element('a',label);a.href=url;a.target='_blank';a.rel='noopener noreferrer';sources.append(a,' · ');}card.append(sources);target.append(card);
+ const sources=element('p',null,'muted radio-tutorial-source');sources.append('MINI-5 photo and DTMF observations supplied by K4RJM. Side controls are labeled beside the photo. Other references: ');for(const [label,url]of [['Baofeng Mini 5 manual',manual],['product controls',product]]){const a=element('a',label);a.href=url;a.target='_blank';a.rel='noopener noreferrer';sources.append(a,' · ');}card.append(sources);target.append(card);
 }

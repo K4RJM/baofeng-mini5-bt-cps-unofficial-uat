@@ -13,7 +13,7 @@ test('F05 source policy: starter reimport loads file data without hardware verif
 test('F09: channel Undo preserves later optional, VFO and DTMF edits and reserved record',async()=>{
  const h=await appHarness();try{
   const original=fixture();original.channelList[0][999].name='RESERVED';await h.open(original);
-  h.row(0).onclick({target:h.row(0)});h.enter('name','CHANGED');h.get('apply').click();
+  h.row(0).querySelectorAll('button').find(b=>b.textContent==='Edit').click();h.enter('name','CHANGED');h.get('apply').click();
   h.tab('Optional settings');h.enter('sql','4','content');
   h.tab('VFO A / B');h.enter('vfoAFreq','146.55000','content');
   h.tab('DTMF');h.enter('localID','321','content');const before=await h.exported();
@@ -26,7 +26,7 @@ test('F09: channel Undo preserves later optional, VFO and DTMF edits and reserve
 });
 test('F12: staged changes protect against tab closure even before field blur',async()=>{
  const h=await appHarness();try{
-  await h.open();h.row(0).onclick({target:h.row(0)});assert.equal(h.unloadBlocked(),false);
+  await h.open();h.row(0).querySelectorAll('button').find(b=>b.textContent==='Edit').click();assert.equal(h.unloadBlocked(),false);
   const name=h.field('name','fields'),original=name.value;name.value='UNAPPLIED';
   assert.equal(h.unloadBlocked(),true);name.value=original;assert.equal(h.unloadBlocked(),false);
   h.enter('name','APPLIED');h.get('apply').click();assert.equal(h.unloadBlocked(),true);

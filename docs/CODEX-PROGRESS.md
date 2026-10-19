@@ -2,12 +2,23 @@
 
 Updated October 18, 2026. Resume here, then read AUDIT-REMEDIATION.md; inspect actual branch heads, tags and deployed versions before making changes. One finding/feature per version; no autonomous physical writes. Never repeat completed hardware tests or reopen an accepted limitation without new evidence.
 
-## Current UAT preview — v20.25 / compact channel workspace
+## Current UAT candidate — v20.26 / inline channel workspace
+
+- Scope: UAT ONLY; LIVE must stay v20.24 at ac9a36403d4f2cfa74d075fc6c6f734146f1129f. K4RJM explicitly approved uploading after automated checks, followed by browser verification on UAT because the browser cannot reach localhost.
+- Starting/rollback commit: a17c2cc1a957c2d1e0d1cbab882dceca55d14745 (v20.25). Restore changed files in a forward commit and run the normal UAT workflow; do not force-push or touch LIVE.
+- Changes: 13 factory-order inline fields; keyboard commit/cancel/navigation; immediate checkbox/dropdown commits; grouped tones; unchanged unknown values retained; explicit Edit popup; inline Add/Ins; stable bulk move with displacement preview and one Undo; desktop table-only scrolling and bottom pagination; supplied blue radio photo and 23 repositioned Help hotspots; simplified blue favicon.
+- Frequency correction applies only to newly edited inline values 174→173.99875 and 520→519.99875. Existing popup and final writer validation are retained. Imported/read values are never normalized automatically.
+- Automated verification: 154 tests passed, zero failures/skips/TODOs. All 11 protected core files plus connection recovery, channel operations and field definitions are byte-identical to v20.25. Browser/visual verification pending after UAT deployment; do not mark release reviewed until it passes.
+- Image: supplied baofeng_blue_086EB6_transparent.png by K4RJM, cleaned with image generation for visible magenta edge contamination; CSS crop retains realistic blue radio. Favicon is a simplified code-native blue radio based on that image. No new third-party image source.
+- No physical-radio access or writes. Existing physical testing by K4RJM remains credited; intermittent Bluetooth recovery is not claimed fixed. Original audit dispositions unchanged.
+- Next: verify isolated browser suite, dark/light layout, touch widths and Help photo/hotspots. K4RJM reviews UAT before any LIVE publication.
+
+## Completed UAT baseline — v20.25 / compact channel workspace
 
 - Explicit scope: UAT ONLY. LIVE remains v20.24. No LIVE publication is authorized for this layout.
 - Changes: compact header/sidebar/channel toolbar, approximately 29px desktop rows, alternating shading and grid separators, all factory CPS fields in factory order, Ins Ch / Insert new channel above. Smaller screens scroll horizontally and retain touch targets.
 - Display columns use existing saved channel fields and option labels; no decoder, encoder, transport, write-safety or connection change.
-- Verification: full regression suite and UAT browser/visual checks required before marking verified. Physical-radio operations prohibited.
+- Verification: 147 Node tests and all 13 isolated browser checks passed at a17c2cc1a957c2d1e0d1cbab882dceca55d14745. Physical-radio operations were not performed.
 - Rollback: UAT commit 955e58c8c2e346d1cd3147e25464ee195e50d702 (v20.24); restore changed files in a forward commit. LIVE checkpoint ac9a36403d4f2cfa74d075fc6c6f734146f1129f must stay unchanged.
 - Next: K4RJM reviews spacing, column order and remaining markups in UAT; do not promote to LIVE without explicit approval.
 

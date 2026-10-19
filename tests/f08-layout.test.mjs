@@ -67,7 +67,7 @@ test('F08: simulated full write/readback retains 999 with unchanged 262-frame tr
 });
 test('F08: real UI handlers retain 999 through ordinary editing and explicit confirmation',async()=>{
  const h=await appHarness();try{
- await h.open(with999());h.row(0).onclick({target:h.row(0),defaultPrevented:false});h.enter('name','EDITED');h.get('apply').click();
+ await h.open(with999());h.row(0).querySelectorAll('button').find(b=>b.textContent==='Edit').click();h.enter('name','EDITED');h.get('apply').click();
  assert.equal((await h.exported()).channelList[0][998].name,'F08TEST');h.get('writeRadio').click();assert.equal(h.get('warning').open,true);assert.equal(h.connections.length,0);
  h.get('hasBackup').checked=true;h.get('hasBackup').onchange();await h.get('confirmWrite').click();assert.equal(h.connections[0].writes().length,262);assert.equal(h.radio.report.stage,'written-unverified');
  }finally{h.radio.disconnect();h.close();}

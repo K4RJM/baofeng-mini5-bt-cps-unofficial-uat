@@ -135,3 +135,36 @@ main{padding:8px 16px 10px}.workspace-head{gap:12px;min-height:26px}.workspace-h
 footer{margin-top:10px;padding:6px 0}
 @media(max-width:750px){.topbar{padding:10px 12px}.topbar h1{font-size:17px}.app-layout{grid-template-columns:minmax(0,1fr)}aside{padding:6px 8px;gap:6px}nav button,.side-section button{padding:9px 10px;min-height:40px}.side-section{padding:0;gap:5px}main{padding:8px}.workspace-head{grid-template-columns:max-content minmax(0,1fr);gap:8px}.workspace-head .tag{display:none}.channel-card{padding:8px}.channel-card .toolbar input[type=search]{width:100%;min-width:0}.channel-card .toolbar button{min-height:36px}.channel-card .toolbar-controls{gap:6px}.channel-card .feature-guide summary{padding:8px}#channelTableWrap{max-height:60dvh}#channelTableWrap td{height:40px}#channelTableWrap td button{min-height:34px;padding:5px 8px}.risk-banner{padding:7px 12px}}
 @media(pointer:coarse){#channelTableWrap td{height:40px}#channelTableWrap td button{min-height:34px;padding:5px 8px}}
+
+/* Spreadsheet cells: same compact row height, with visible focus and native controls. */
+#channelTableWrap td.editable-cell{position:relative;cursor:text;outline-offset:-2px}
+#channelTableWrap td.editable-cell:focus-within{outline:2px solid var(--blue);outline-offset:-2px;background:var(--selected)}
+#channelTableWrap .inline-control{display:block;width:100%;min-width:0;height:24px;line-height:20px;padding:1px 3px;font-size:12px;border-radius:2px;box-sizing:border-box}
+#channelTableWrap td.numeric{min-width:94px}#channelTableWrap td.channel-name{min-width:120px}
+#channelTableWrap td input[type=checkbox]{margin:auto}
+#bulkMovePreview{max-height:240px;overflow:auto;font-size:12px;padding-left:24px}#bulkMoveSummary{margin-top:12px}
+@media(min-width:751px) and (min-height:650px){
+ html[data-screen=channels],html[data-screen=channels] body{height:100%;overflow:hidden}
+ html[data-screen=channels] body{height:100dvh;display:flex;flex-direction:column}
+ html[data-screen=channels] body>.topbar,html[data-screen=channels] body>.risk-banner,html[data-screen=channels] body>div[role=note]{flex:none}
+ html[data-screen=channels] .risk-banner{position:static}
+ html[data-screen=channels] .app-layout{flex:1;min-height:0;overflow:hidden}
+ html[data-screen=channels] aside{position:static;max-height:none;min-height:0;overflow:auto}
+ html[data-screen=channels] main{min-height:0;display:flex;flex-direction:column}
+ html[data-screen=channels] .workspace-head,html[data-screen=channels] .session-bar{flex:none}
+ html[data-screen=channels] .session-bar{position:static}
+ html[data-screen=channels] #content{flex:1;min-height:0;display:flex;flex-direction:column}
+ html[data-screen=channels] .channel-card{flex:1;min-height:0;display:flex;flex-direction:column;margin:0}
+ html[data-screen=channels] .channel-card>.feature-guide,html[data-screen=channels] .toolbar,html[data-screen=channels] .table-bottom,html[data-screen=channels] .channel-card>.muted{flex:none}
+ html[data-screen=channels] .channel-card>.feature-guide[open]{max-height:25dvh;overflow:auto}
+ html[data-screen=channels] #channelTableWrap{flex:1;min-height:0;max-height:none}
+ html[data-screen=channels] footer{display:none}
+}
+@media(max-width:750px),(pointer:coarse){#channelTableWrap .inline-control{height:34px;font-size:14px}#channelTableWrap input[type=checkbox]{width:20px;height:20px}}
+/* Supplied MINI-5 photo, with a tight CSS crop; source alpha retained. */
+.radio-brand-crop{display:block;position:relative;width:25px;height:54px;overflow:hidden;flex:none}
+.radio-brand-crop img{position:absolute;width:222%;height:auto;max-width:none;left:-61.24%;top:0}
+.radio-drawing .radio-outline{overflow:hidden}.radio-drawing .radio-outline img{position:absolute;width:157%;height:auto;max-width:none;left:-20%;top:0}
+.radio-key:not(.radio-side-key){background:transparent;border-color:transparent;color:transparent;box-shadow:none}
+.radio-key:not(.radio-side-key):hover,.radio-key:not(.radio-side-key):focus-visible,.radio-key:not(.radio-side-key).tutorial-active{background:#388dff25;border-color:#75b7ff;color:transparent;outline:2px solid #75b7ff}
+.radio-key.radio-side-key{writing-mode:horizontal-tb;font-size:10px}
