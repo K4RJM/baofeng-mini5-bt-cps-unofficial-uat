@@ -1,0 +1,47 @@
+/* Stable cell geometry regardless of native editor contents. */
+#channelTableWrap table{table-layout:fixed;width:100%;min-width:1270px}
+#channelTableWrap td,#channelTableWrap th{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;box-sizing:border-box}
+#channelTableWrap td.numeric,#channelTableWrap td.channel-name{min-width:0}
+#channelTableWrap .inline-control{max-width:100%;margin:0}
+@media(max-width:750px),(pointer:coarse){#channelTableWrap table{min-width:1340px}#channelTableWrap col:last-child{width:274px!important}}
+.help-workspace{display:grid;grid-template-columns:minmax(0,65fr) minmax(0,35fr);column-gap:20px;row-gap:8px;align-items:start}
+.help-tutorial-host{grid-column:1;grid-row:1 / span 2;min-width:0}
+.help-reference{grid-column:2;grid-row:1;min-width:0}
+.help-workspace h3{font-size:16px;margin:0 0 8px}
+.help-workspace p{font-size:12px;line-height:1.5;margin:7px 0}
+.help-workspace .radio-tutorial-card{border:0;background:none;padding:0;margin:0;box-shadow:none}
+.help-workspace .radio-tutorial-layout{grid-template-columns:minmax(150px,34%) minmax(0,1fr);gap:10px}
+.help-workspace .radio-drawing{width:100%;max-width:270px;margin:0 auto}
+.help-workspace .radio-tutorial-panel{height:440px;padding:0 4px 0 8px;border:0;border-radius:0;background:none;scrollbar-gutter:stable}
+.help-workspace .radio-tutorial-panel h3{font-size:16px;margin:0 0 10px}
+.help-workspace .radio-tutorial-panel h4{font-size:14px;margin:12px 0 6px}
+.help-workspace .radio-tutorial-panel li{font-size:12px;line-height:1.5;margin:6px 0}
+.help-workspace .radio-tutorial-panel ol,.help-workspace .radio-tutorial-panel ul{padding-left:19px;margin:6px 0}
+.help-workspace .radio-tutorial-source{font-size:10px;line-height:1.4;margin-top:8px}
+.help-workspace .known-limitations .feature-guide{border:0;border-bottom:1px solid var(--border);border-radius:0;background:none;margin:0}
+.help-workspace .feature-guide summary{padding:9px 0;font-size:12px;background:none}
+.help-workspace .guide-body{padding:0 0 8px}
+.help-workspace .known-limitations table{font-size:11px;margin:8px 0;white-space:normal}
+.help-workspace .known-limitations td,.help-workspace .known-limitations th{padding:5px;white-space:normal}
+.manual-controls{margin-bottom:16px}
+.manual-controls label{font-size:12px;font-weight:600;display:block}
+.manual-controls select{width:100%;padding:6px 7px;margin-top:5px;font-size:12px}
+.manual-controls a{font-size:12px}.manual-permission{color:var(--muted);font-size:11px!important}
+.manual-viewer{grid-column:2;grid-row:2;min-width:0}
+.manual-toolbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:6px;font-size:11px}
+.manual-toolbar strong{width:100%;font-size:13px}.manual-toolbar button{font-size:11px;padding:5px 7px}
+.manual-viewer iframe{display:block;width:100%;height:580px;border:1px solid var(--border);border-radius:3px;background:var(--panel);box-sizing:border-box}
+.manual-fallback{font-size:11px!important;color:var(--muted)}
+.help-workspace.manual-open:not(.manual-expanded) .known-limitations{display:none}
+.help-workspace.manual-expanded .manual-viewer{grid-column:1;grid-row:1 / span 2}
+.help-workspace.manual-expanded .manual-viewer iframe{height:680px}
+.help-quick-guide,.help-support{border:0;border-top:1px solid var(--border);padding:12px 0 0;margin-top:20px}
+.help-quick-guide h3,.help-support h3{font-size:16px;margin:10px 0 6px}
+.help-quick-guide p,.help-support p,.help-support li{font-size:12px;line-height:1.5}
+.help-quick-guide .feature-guide{border:0;border-bottom:1px solid var(--border);border-radius:0;margin:0;background:none}
+.help-quick-guide .feature-guide summary{padding:8px 0;font-size:12px;background:none}
+.help-quick-guide .guide-body{padding:0 0 10px}.help-support .pending{padding:10px;margin:12px 0}
+#tabs button:not(.active){background:transparent;border-color:transparent;color:var(--muted)}
+#tabs button:not(.active):hover{background:var(--raised);color:var(--text)}
+@media(max-width:1000px){.help-workspace{grid-template-columns:minmax(0,1fr)}.help-tutorial-host{grid-column:1;grid-row:1}.help-reference{grid-column:1;grid-row:2}.manual-viewer,.help-workspace.manual-expanded .manual-viewer{grid-column:1;grid-row:3}.help-workspace .radio-tutorial-layout{grid-template-columns:240px minmax(0,1fr)}.help-workspace.manual-expanded .help-tutorial-host{display:none}.manual-controls{max-width:440px}}
+@media(max-width:550px){.help-workspace .radio-tutorial-layout{grid-template-columns:minmax(0,1fr)}.help-workspace .radio-drawing{width:270px;max-width:100%}.help-workspace .radio-tutorial-panel{height:320px;padding:8px 0}.manual-viewer iframe,.help-workspace.manual-expanded .manual-viewer iframe{height:65dvh}.manual-toolbar button{min-height:36px}.help-workspace .radio-tutorial-panel li{font-size:13px}}

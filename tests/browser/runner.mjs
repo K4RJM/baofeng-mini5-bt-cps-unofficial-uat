@@ -34,6 +34,21 @@ document.getElementById('start').onclick=async()=>{
    assert(h.d.documentElement.scrollWidth<=h.d.documentElement.clientWidth+1,'Phone has no whole-page horizontal overflow');
    frame.style.width='100%';delete h.d.documentElement.dataset.theme;
   });
+  await check('Every inline column keeps its geometry, compact height and focus',async()=>{
+   frame.style.width='1600px';await new Promise(r=>h.w.requestAnimationFrame(r));
+   for(const field of ['rxFreq','strRxCtsDcs','txFreq','strTxCtsDcs','txPower','bandwide','scanAdd','sqMode','pttid','signalGroup','busyLock','fhss','name']){
+    const cell=id('cell-0-'+field),row=cell.parentElement,wrap=id('channelTableWrap');
+    const sizes=()=>[...row.cells].map(x=>x.getBoundingClientRect().width);
+    const before=sizes(),height=row.getBoundingClientRect().height;
+    cell.click();const control=cell.querySelector('input,select');assert(control,'Editor exists '+field);
+    assert(sizes().every((x,i)=>Math.abs(x-before[i])<.1),'Column stable while editing '+field);
+    assert(Math.abs(row.getBoundingClientRect().height-height)<.1,'Row height stable '+field);
+    assert(control.getBoundingClientRect().width<=cell.getBoundingClientRect().width,'Editor fits '+field);
+    if(control.type!=='checkbox'){assert(h.d.activeElement===control,'Editor focused '+field);control.dispatchEvent(new h.w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));}
+    assert(sizes().every((x,i)=>Math.abs(x-before[i])<.1),'Column stable after edit '+field);
+   }
+   frame.style.width='100%';
+  });
   await check('Checkbox clicks bubble without opening editor; cells edit inline and Edit opens the popup',async()=>{const row=h.d.querySelector('[data-channel-index="0"]');row.querySelector('input').click();assert(!id('editor').open,'Checkbox must not edit');row.querySelector('[data-field=rxFreq]').click();assert(!id('editor').open&&row.querySelector('[data-field=rxFreq] input'),'Cell edits inline');row.querySelector('[data-field=rxFreq] input').dispatchEvent(new h.w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));[...row.querySelectorAll('button')].find(x=>x.textContent==='Edit').click();assert(id('editor').matches(':modal'),'Edit opens real modal dialog');id('cancel').click();});
   await check('Invalid frequencies block navigation; valid short entries are padded',async()=>{[...h.d.querySelectorAll('[data-channel-index="0"] button')].find(x=>x.textContent==='Edit').click();const input=h.d.querySelector('#fields [data-key="rxFreq"]');input.value='146.52001';input.dispatchEvent(new h.w.Event('input',{bubbles:true}));id('editNext').click();assert(id('editorTitle').textContent==='Edit channel 1'&&id('editErrors').textContent,'Invalid edit must stay in channel 1');input.value='146.52';id('editNext').click();assert(id('editorTitle').textContent==='Edit channel 3','Valid edit advances to next occupied channel');id('cancel').click();});
 
@@ -62,6 +77,23 @@ document.getElementById('start').onclick=async()=>{
   });
   await check('Approved radio photo and all 23 interactive Help controls',async()=>{
    id('help').click();const image=h.d.querySelector('.radio-outline img');await until(()=>image?.complete,'Radio image');assert(image.naturalWidth>0,'Photo loaded');const keys=[...h.d.querySelectorAll('[data-radio-key]')];assert(keys.length===23,'23 hotspots');for(const key of keys){key.click();assert(id('radioTutorialPanel').textContent.length>30,'Tutorial '+key.dataset.radioKey);}assert(h.d.querySelector('link[rel=icon]').href.endsWith('assets/favicon.svg'),'Blue favicon');[...h.d.querySelectorAll('#tabs button')].find(x=>x.textContent.includes('Channels')).click();assert(h.state.fake.sent.length===0,'Help never programs');
+  });
+  await check('Help layout, single active navigation, manuals and responsive restoration',async()=>{
+   frame.style.width='1600px';id('help').click();await new Promise(r=>h.w.requestAnimationFrame(r));
+   assert(h.d.querySelectorAll('#tabs button.active').length===1,'One active navigation item');
+   const left=h.d.querySelector('.help-tutorial-host'),right=h.d.querySelector('.help-reference'),limits=h.d.querySelector('.known-limitations');
+   const lr=left.getBoundingClientRect(),rr=right.getBoundingClientRect();assert(Math.abs(lr.top-rr.top)<1,'Top aligned');assert(Math.abs(lr.width/(lr.width+rr.width)-.65)<.02,'65/35 split');
+   assert(limits.querySelector('h3').textContent==='Known Firmware Limitations','Heading');assert(limits.querySelectorAll('details').length===3,'Explanations retained');
+   assert(!h.d.getElementById('content').textContent.includes('What has been tested'),'Long history removed');
+   const select=id('manualSelector'),pdf=id('manualPDF');assert(select.querySelector('[value=baofeng]').disabled,'Manufacturer manual pending');
+   select.value='hamrx';select.dispatchEvent(new h.w.Event('change'));const source=pdf.src;
+   assert(source.endsWith('/docs/manuals/ham-rx-cps-user-guide-v20.27.pdf'),'Local versioned guide');assert(h.w.getComputedStyle(limits).display==='none','Right manual replaces limits');
+   id('manualExpand').click();assert(left.hidden&&h.w.getComputedStyle(limits).display!=='none','Expanded left, limits accessible');
+   id('manualExpand').click();assert(!left.hidden&&pdf===id('manualPDF')&&pdf.src===source,'Same iframe and source retained');
+   assert(id('manualOpen').target==='_blank'&&id('manualOpen').href===source,'Separate-tab control');
+   id('manualClose').click();assert(!left.hidden&&h.w.getComputedStyle(limits).display!=='none'&&h.d.activeElement===select,'Close restores content and focus');
+   frame.style.width='390px';await new Promise(r=>h.w.requestAnimationFrame(r));assert(h.d.documentElement.scrollWidth<=h.w.innerWidth+1,'Mobile Help fits');
+   frame.style.width='100%';[...h.d.querySelectorAll('#tabs button')].find(x=>x.textContent.includes('Channels')).click();
   });
   // Reload the native file to discard edited/selected state before transport checks.
   await load(h);
