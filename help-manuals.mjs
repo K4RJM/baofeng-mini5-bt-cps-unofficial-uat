@@ -1,5 +1,5 @@
 // Display-only document viewer. It never accesses radio or workspace data.
-export const guideURL='docs/manuals/ham-rx-cps-user-guide-v20.27.pdf';
+export const guideURL='docs/manuals/viewer.html';
 export function mountManuals(workspace,tutorial,references){
  const make=(tag,text,cls)=>{const e=document.createElement(tag);if(text)e.textContent=text;if(cls)e.className=cls;return e;};
  const controls=make('div',null,'manual-controls');
@@ -13,7 +13,7 @@ export function mountManuals(workspace,tutorial,references){
  expand.type=close.type='button';expand.id='manualExpand';expand.setAttribute('aria-expanded','false');close.id='manualClose';open.id='manualOpen';open.href=guideURL;open.target='_blank';open.rel='noopener';
  toolbar.append(title,expand,open,close);viewer.append(toolbar);
  const pdf=make('iframe');pdf.id='manualPDF';pdf.title='Ham-Rx CPS User Guide PDF, version 20.27';viewer.append(pdf);
- viewer.append(make('p','If the PDF is not displayed by this browser, use Open PDF in new tab.','manual-fallback'));workspace.append(viewer);
+ viewer.append(make('p','Use page and zoom controls inside the viewer, or open the PDF in a new tab.','manual-fallback'));workspace.append(viewer);
  let expanded=false,loaded=false;
  const layout=()=>{workspace.classList.toggle('manual-expanded',expanded);workspace.classList.toggle('manual-open',!viewer.hidden);tutorial.hidden=expanded&&!viewer.hidden;expand.textContent=expanded?'Return right':'Expand left';expand.setAttribute('aria-expanded',String(expanded));};
  select.onchange=()=>{if(select.value!=='hamrx')return;viewer.hidden=false;if(!loaded){pdf.src=guideURL;loaded=true;}layout();expand.focus();};

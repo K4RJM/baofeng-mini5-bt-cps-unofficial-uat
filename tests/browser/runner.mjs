@@ -87,9 +87,12 @@ document.getElementById('start').onclick=async()=>{
    assert(!h.d.getElementById('content').textContent.includes('What has been tested'),'Long history removed');
    const select=id('manualSelector'),pdf=id('manualPDF');assert(!select.querySelector('[value=hamrx]').disabled,'Guide enabled');assert(select.querySelector('[value=baofeng]').disabled,'Manufacturer manual pending');
    select.value='hamrx';select.dispatchEvent(new h.w.Event('change'));const source=pdf.src;
-   assert(source.endsWith('/docs/manuals/ham-rx-cps-user-guide-v20.27.pdf'),'Local versioned guide');assert(h.w.getComputedStyle(limits).display==='none','Right manual replaces limits');
+   assert(source.endsWith('/docs/manuals/viewer.html'),'Local versioned guide');assert(h.w.getComputedStyle(limits).display==='none','Right manual replaces limits');
+   await until(()=>pdf.contentDocument?.getElementById('status')?.textContent.startsWith('Page 1 of 8'),'PDF rendered');
+   pdf.contentDocument.getElementById('next').click();await until(()=>pdf.contentDocument.getElementById('status').textContent.startsWith('Page 2 of 8'),'Second PDF page');
    id('manualExpand').click();assert(left.hidden&&h.w.getComputedStyle(limits).display!=='none','Expanded left, limits accessible');
    id('manualExpand').click();assert(!left.hidden&&pdf===id('manualPDF')&&pdf.src===source,'Same iframe and source retained');
+   assert(pdf.contentDocument.getElementById('page').value==='2','Reading page retained after resize');
    assert(id('manualOpen').target==='_blank'&&id('manualOpen').href===source,'Separate-tab control');
    id('manualClose').click();assert(!left.hidden&&h.w.getComputedStyle(limits).display!=='none'&&h.d.activeElement===select,'Close restores content and focus');
    frame.style.width='390px';await new Promise(r=>h.w.requestAnimationFrame(r));assert(h.d.documentElement.scrollWidth<=h.w.innerWidth+1,'Mobile Help fits');

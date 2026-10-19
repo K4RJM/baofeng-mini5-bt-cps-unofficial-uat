@@ -5,5 +5,6 @@ files.push('channel-workspace.mjs','channel-inline-ui.mjs','assets/mini5-blue.pn
 await mkdir('dist/read-test',{recursive:true});await mkdir('dist/docs',{recursive:true});await mkdir('dist/tests/browser',{recursive:true});
 files.push('help-layout.css','help-manuals.mjs','docs/testing-compatibility.html','docs/document.css','docs/AUDIT-2026-10-14.md');
 await mkdir('dist/docs/manuals',{recursive:true});files.push('docs/manuals/ham-rx-cps-user-guide-v20.27.pdf','docs/manuals/README.md');
+await mkdir('dist/vendor/pdfjs',{recursive:true});files.push('docs/manuals/viewer.html','docs/manuals/viewer.css','docs/manuals/viewer.mjs','vendor/pdfjs/pdf.min.mjs','vendor/pdfjs/pdf.worker.min.mjs','vendor/pdfjs/LICENSE','vendor/pdfjs/README.md');
 for(const file of files)await copyFile(file,'dist/'+file);
 await writeFile('dist/.nojekyll','');console.log('GitHub Pages artifact prepared: dist/ ('+files.length+' files)');
