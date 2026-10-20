@@ -7,7 +7,7 @@ import {validateEdits} from './validation.mjs?v=20.14';
 import {Writer,makePlan,verificationMessage} from './writer.mjs?v=20.21';
 import {decodeRadio,radioDat} from './radio-decoder.mjs?v=20.12';
 import {openChannelAppend} from './channel-import-ui.mjs?v=20.12';
-import {renderRadioTutorial} from './radio-help.mjs?v=20.27-final';
+import {renderRadioTutorial} from './radio-help.mjs?v=20.27-manual';
 import {blankData,emptyChannel,removeChannels,insertChannel,moveChannel} from './channels.mjs';
 import {configureFields,form,optionalForm,vfoForm,visibleName,visibleTone,editedName,isFrequencyField,padFrequency} from './fields.mjs?v=19.1';
 const $=id=>document.getElementById(id),radio=new Writer();
