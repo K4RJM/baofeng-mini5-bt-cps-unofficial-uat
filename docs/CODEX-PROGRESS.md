@@ -1,8 +1,13 @@
-# Current checkpoint: UAT 20.27
+# Current release checkpoint: 20.27 final cleanup
 
-Only UAT is authorized for this release. LIVE stays at `e61addc981f8336d591687acfb4fd93089924946` (v20.26). Rollback UAT to the tree from `58dd683d8d11cce73134d7b63e7f516e5143526c` with a normal revert commit and let the UAT workflow redeploy; do not force-push or touch LIVE.
+Updated October 19, 2026. K4RJM explicitly authorizes LIVE promotion after final UAT verification. This supersedes historical UAT-only restrictions below for this release only.
 
-Final deployment/browser verification pending at this checkpoint. Manufacturer PDF must remain unavailable pending permission. The original asset was located locally; no substitute used.
+- UAT rollback: `5abab1dd3da77b74fd031866caae49b4b7acf59a`; LIVE rollback: `e61addc981f8336d591687acfb4fd93089924946` (20.26).
+- Completed: stable channel columns; compact 65/35 Help; all 23 blue-radio hotspots; concise PTT and other tutorials; meaningful DTMF/operating precautions retained; structured Testing & Compatibility; eight-page local Ham-Rx guide and PDF.js viewer with navigation, zoom, expansion, separate-tab link and download.
+- Manufacturer PDF remains unavailable pending redistribution permission. Existing physical testing is credited; no physical radio is accessed during this release.
+- 155 Node tests pass. The preceding UAT deployment passed all 21 isolated browser checks. Final candidate deployment checks and publication commits will be recorded below after verification.
+- Sixteen protected modules and the app radio-handler section are unchanged from 20.26. Bluetooth reconnection and accepted F01/F03 limitations remain unchanged.
+- Rollback by restoring the appropriate repository's recorded source tree in a new commit, then run its normal tests/deployment. Do not force-push or copy the UAT workflow to LIVE.
 
 ---
 

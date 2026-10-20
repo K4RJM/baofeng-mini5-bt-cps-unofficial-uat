@@ -1,13 +1,13 @@
-# UAT 20.27 interface and documentation verification
+# Version 20.27 interface and documentation verification
 
-2026-10-19. UAT only. Rollback: `58dd683d8d11cce73134d7b63e7f516e5143526c`.
+2026-10-19. K4RJM authorizes LIVE publication after final UAT verification. Pre-cleanup UAT rollback: `5abab1dd3da77b74fd031866caae49b4b7acf59a`. LIVE rollback: `e61addc981f8336d591687acfb4fd93089924946` (20.26).
 
 - 155 Node tests passed, including the complete prior regression suite and a viewer lifecycle test.
 - Staging commit `418bf0087bcfae52d51c490d19c3ab08e2605a73`: all 20 browser checks passed. Coverage includes all 13 editable channel fields retaining width/height/focus, factory order, desktop/mobile overflow, radio tutorial hotspots, Help layout, nav state and viewer restoration.
 - Eight-page Ham-Rx guide uses actual staging UI screenshots with synthetic channels. Every PDF page rendered and visually inspected. No original manufacturer PDF published; pending permission per K4RJM.
 - Exact file comparison confirms 16 core modules unchanged from v20.26, including Bluetooth transport, recovery, encoder/decoder, DAT, validation, schemas/options and channel-editing logic. The app's complete radio handler section is unchanged. Changes are confined to UI layout, Help, documentation, versioning, packaging and tests.
 - No physical-radio commands or write were performed. Simulated writes run only in the isolated test harness with physical Bluetooth denied.
-- Final published-asset/browser check follows in the deployment checkpoint. Embedded PDF position retention is browser-dependent; the iframe and its source are retained on resize/close/reopen.
+- Local PDF.js rendering at UAT `5abab1d` passed all 21 browser checks. Final tutorial/documentation cleanup passes all 155 Node tests. Final deployed checks are recorded in the deployment checkpoint. Embedded PDF position retention is browser-dependent; the iframe and its source are retained on resize/close/reopen.
 
 ---
 

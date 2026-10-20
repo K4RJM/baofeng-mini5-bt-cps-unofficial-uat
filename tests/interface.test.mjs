@@ -116,7 +116,7 @@ test('radio guide separates all six hold actions and retains DTMF transmission i
    star:['Key: *','Short Press – Reverse / Talkaround','Long Press – Keypad Lock',/Normal → Reverse \(R\) → Talkaround \(T\) → Normal/],
    '8':['Key: 8','Short Press – Numeric Entry','Long Press – Transmit Power',/Keeping 8 held does not continuously cycle power levels/],
    hash:['Key: #','Short Press – DTMF Dial','Long Press – Channel Scan',/Scan resume behavior/],
-   lamp:['Key: Flashlight / Search','Short Press – Flashlight','Long Press – Frequency Search (Nearby Signal Detection)',/not a spectrum analyzer or a conventional channel scanner/],
+   lamp:['Key: Flashlight / Search','Short Press – Flashlight','Long Press – Frequency Search (Nearby Signal Detection)',/Search detects nearby transmitting signals/],
    '0':['Key: 0','Short Press – Numeric Entry','Long Press – Weather',/weather-channel scanning/],
    menu:['Key: MENU','Short Press – Menu / Confirm','Long Press – Stopwatch',/Press MENU to start timing/]
   };
@@ -124,6 +124,8 @@ test('radio guide separates all six hold actions and retains DTMF transmission i
    select(key);assert.deepEqual(panel.querySelectorAll('h3').map(x=>x.textContent),[title]);assert.deepEqual(headings(),[short,long]);assert.match(textOf(panel),description);
    assert.ok(panel.querySelectorAll('h4').every(h=>h.className==='tutorial-action-title'));
   }
+  for(const [key,label,line]of [['ptta','PTT-A','upper (A)'],['pttb','PTT-B','lower (B)']]){select(key);assert.deepEqual(headings(),['Press and Hold — Transmit on '+label.at(-1)]);assert.deepEqual(panel.querySelectorAll('li').map(x=>x.textContent),[`Press and hold ${label} to transmit on the ${line} channel. Release the button to receive.`]);assert.equal(panel.querySelectorAll('p').length,0);}
+  assert.doesNotMatch(textOf(root),/The diagram explains the radio; it does not operate it/);
   select('hash');const dtmf=textOf(panel);
   assert.match(dtmf,/PTT exits the screen even if no digits were entered/);assert.match(dtmf,/EXIT does not cancel the screen/);assert.match(dtmf,/No method of exiting without transmitting has been confirmed/);
   assert.equal(panel.querySelectorAll('p').length,0);assert.doesNotMatch(dtmf,/FM.*station search/i);
