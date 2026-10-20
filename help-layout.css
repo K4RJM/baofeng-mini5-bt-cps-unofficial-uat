@@ -45,3 +45,5 @@
 #tabs button:not(.active):hover{background:var(--raised);color:var(--text)}
 @media(max-width:1000px){.help-workspace{grid-template-columns:minmax(0,1fr)}.help-tutorial-host{grid-column:1;grid-row:1}.help-reference{grid-column:1;grid-row:2}.manual-viewer,.help-workspace.manual-expanded .manual-viewer{grid-column:1;grid-row:3}.help-workspace .radio-tutorial-layout{grid-template-columns:240px minmax(0,1fr)}.help-workspace.manual-expanded .help-tutorial-host{display:none}.manual-controls{max-width:440px}}
 @media(max-width:550px){.help-workspace .radio-tutorial-layout{grid-template-columns:minmax(0,1fr)}.help-workspace .radio-drawing{width:270px;max-width:100%}.help-workspace .radio-tutorial-panel{height:320px;padding:8px 0}.manual-viewer iframe,.help-workspace.manual-expanded .manual-viewer iframe{height:65dvh}.manual-toolbar button{min-height:36px}.help-workspace .radio-tutorial-panel li{font-size:13px}}
+
+.manual-controls>a{display:block;width:fit-content;margin-top:5px}
