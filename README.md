@@ -2,7 +2,7 @@
 
 Free, noncommercial browser software by K4RJM, hosted on GitHub Pages.
 
-**Version 20.27.** Compact channel editing and Radio & Help, all 23 button tutorials, expandable Known Firmware Limitations, and a locally hosted Ham-Rx PDF guide. The manufacturer PDF remains pending redistribution permission.
+**Version 20.27.** Compact channel editing and Radio & Help, all 23 button tutorials, expandable Known Firmware Limitations, and a locally hosted Ham-Rx PDF guide. The radio manual opens Baofeng’s official PDF in a new tab.
 
 This is the permanent UAT repository. K4RJM has authorized promotion of this release after successful UAT verification.
 

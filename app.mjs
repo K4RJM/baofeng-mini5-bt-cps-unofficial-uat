@@ -1,4 +1,4 @@
-import {mountManuals} from './help-manuals.mjs?v=20.27';
+import {mountManuals} from './help-manuals.mjs?v=20.27-manual';
 import {inlineChannelEdit,planChannelMove,channelKeys} from './channel-workspace.mjs?v=20.27';
 import {mountChannelCell} from './channel-inline-ui.mjs?v=20.27';
 import {releaseAfterAcknowledgedWrite} from './connection-recovery.mjs?v=20.12';

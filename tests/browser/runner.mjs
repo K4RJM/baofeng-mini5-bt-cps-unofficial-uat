@@ -85,7 +85,7 @@ document.getElementById('start').onclick=async()=>{
    const lr=left.getBoundingClientRect(),rr=right.getBoundingClientRect();assert(Math.abs(lr.top-rr.top)<1,'Top aligned');assert(Math.abs(lr.width/(lr.width+rr.width)-.65)<.02,'65/35 split');
    assert(limits.querySelector('h3').textContent==='Known Firmware Limitations','Heading');assert(limits.querySelectorAll('details').length===3,'Explanations retained');
    assert(!h.d.getElementById('content').textContent.includes('What has been tested'),'Long history removed');
-   const select=id('manualSelector'),pdf=id('manualPDF');assert(!select.querySelector('[value=hamrx]').disabled,'Guide enabled');assert(select.querySelector('[value=baofeng]').disabled,'Manufacturer manual pending');
+   const select=id('manualSelector'),pdf=id('manualPDF');assert(!select.querySelector('[value=hamrx]').disabled,'Guide enabled');assert(id('baofengManual').href==='https://baofeng.s3.amazonaws.com/Baofeng_MINI-5_User_Manual_EN_V1.0_20260920.pdf'&&id('baofengManual').target==='_blank','Official manufacturer manual link');
    select.value='hamrx';select.dispatchEvent(new h.w.Event('change'));const source=pdf.src;
    assert(source.endsWith('/docs/manuals/viewer.html'),'Local versioned guide');assert(h.w.getComputedStyle(limits).display==='none','Right manual replaces limits');
    await until(()=>pdf.contentDocument?.getElementById('status')?.textContent.startsWith('Page 1 of 8'),'PDF rendered');
