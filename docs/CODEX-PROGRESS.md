@@ -1,3 +1,22 @@
+# Published release — v20.27
+
+Verified October 20, 2026. K4RJM authorized LIVE publication after UAT verification.
+
+| Environment | Deployed commit | Pages workflow | Browser gate |
+| --- | --- | --- | --- |
+| UAT | `31e2f03d5e940a55d4d95cb097c65aef691d24f9` | [39367333045](https://github.com/K4RJM/baofeng-mini5-bt-cps-unofficial-uat/actions/runs/39367333045), success | 21/21 passed |
+| LIVE | `e93dce79b32c691dbb42cc32eebfb999d05e33b7` | [39386008708](https://github.com/K4RJM/baofeng-mini5-bt-cps-unofficial/actions/runs/39386008708), success | 21/21 passed |
+
+[Release tag v20.27](https://github.com/K4RJM/baofeng-mini5-bt-cps-unofficial/releases/tag/v20.27) points to the deployed LIVE commit. Both deployments passed all 155 automated tests with zero failures, skips or TODOs. The separate real-browser checks cover all inline columns, focus/keyboard behavior, Undo, bulk movement, scroll/pagination, 999-channel protections, 23 hotspots, responsive layouts, manual rendering and simulated radio safeguards. Additional visual checks covered light/dark Help and the exact PTT-A/B text; PDF navigation, zoom, expansion/return and download were exercised. The downloaded guide matched the source PDF. The final eight-page guide uses actual UAT screenshots and was rendered for visual inspection.
+
+Completed: stable inline column widths, compact 65/35 Help, concise tutorials with DTMF/operating precautions retained, expandable Known Firmware Limitations, structured Testing & Compatibility, local Ham-Rx guide and PDF.js viewer. The manufacturer manual opens Baofeng's official PDF in a new tab, verified against the official download page. The manufacturer PDF is not redistributed.
+
+Sixteen protected modules and the complete app radio-handler section remain byte-identical to v20.26. LIVE retains its own workflow; UAT retains its separate deployment overlay. No physical radio was connected, read or written in this release. Earlier physical-radio evidence from K4RJM remains credited. Intermittent Bluetooth reconnection, accepted F01/F03 limitations, and browser-specific external PDF behavior remain documented. No new hardware compatibility claim is made.
+
+Rollback LIVE to `e61addc981f8336d591687acfb4fd93089924946` (v20.26); rollback final UAT cleanup to `5abab1dd3da77b74fd031866caae49b4b7acf59a`. Restore the appropriate source tree through a new commit and run its normal test/deploy workflow; do not force-push or interchange workflows. This post-publication documentation checkpoint uses [skip ci] and does not change the deployed application or tag.
+
+---
+
 # Current release checkpoint: 20.27 final cleanup
 
 Updated October 19, 2026. K4RJM explicitly authorizes LIVE promotion after final UAT verification. This supersedes historical UAT-only restrictions below for this release only.
