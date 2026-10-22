@@ -31,6 +31,10 @@ document.getElementById('start').onclick=async()=>{
     }
     assert(h.w.getComputedStyle(id('connect')).backgroundColor!==expected,'Button surface contrasts with text');
    }
+   id('help').click();
+   const hotspot=h.d.querySelector('.radio-key:not(.radio-side-key)');
+   assert(h.w.getComputedStyle(hotspot).color==='rgba(0, 0, 0, 0)'&&h.w.getComputedStyle(hotspot).backgroundColor==='rgba(0, 0, 0, 0)','Photo hotspots remain transparent');
+   h.d.querySelector('#tabs button').click();
    frame.style.width='390px';await new Promise(r=>h.w.requestAnimationFrame(r));
    assert(h.d.documentElement.scrollWidth<=h.d.documentElement.clientWidth+1,'Contrast control fits phone');frame.style.width='100%';
    h=await fresh();assert(id('highContrast').getAttribute('aria-pressed')==='true','Preference survives reload');
