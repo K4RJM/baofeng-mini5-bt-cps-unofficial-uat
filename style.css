@@ -168,3 +168,16 @@ footer{margin-top:10px;padding:6px 0}
 .radio-key:not(.radio-side-key){background:transparent;border-color:transparent;color:transparent;box-shadow:none}
 .radio-key:not(.radio-side-key):hover,.radio-key:not(.radio-side-key):focus-visible,.radio-key:not(.radio-side-key).tutorial-active{background:#388dff25;border-color:#75b7ff;color:transparent;outline:2px solid #75b7ff}
 .radio-key.radio-side-key{writing-mode:horizontal-tb;font-size:10px}
+
+/* Optional text contrast. Follow the existing explicit/System theme rules. */
+:root[data-high-contrast=true]{--contrast-text:#000;--text:#000;--muted:#000;--warning-text:#000}
+@media(prefers-color-scheme:dark){:root[data-high-contrast=true]:not([data-theme=light]){--contrast-text:#fff;--text:#fff;--muted:#fff;--warning-text:#fff}}
+:root[data-high-contrast=true][data-theme=dark]{--contrast-text:#fff;--text:#fff;--muted:#fff;--warning-text:#fff}
+:root[data-high-contrast=true] body,:root[data-high-contrast=true] body *{color:var(--contrast-text)!important}
+:root[data-high-contrast=true] :is(button.primary,.primary,button.danger,.radio-key),:root[data-high-contrast=true] body>div[role=note]{background:var(--raised)!important}
+:root[data-high-contrast=true] :is(button,input,select,fieldset):disabled{opacity:1;border-style:dashed;cursor:not-allowed}
+:root[data-high-contrast=true] input::placeholder{color:var(--contrast-text);opacity:1}
+:root[data-high-contrast=true] a{text-decoration:underline}
+#highContrast[aria-pressed=true]{background:var(--selected);border:2px solid currentColor;padding:5px 9px}
+.top-actions{flex-wrap:wrap}
+@media(max-width:750px){.top-actions{justify-content:flex-start}.top-actions>button,.theme-control select{min-height:36px}}

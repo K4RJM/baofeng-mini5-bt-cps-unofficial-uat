@@ -19,6 +19,25 @@ document.getElementById('start').onclick=async()=>{
  const check=async(name,fn)=>{try{await fn();record(name,true);}catch(e){failed++;record(name,false,e.message);}};
  try{
   let h=await fresh();assert(h.state.ready&&!h.state.errors.length,'Unmodified application must load');const id=n=>h.d.getElementById(n);
+  await check('High contrast text follows theme, persists, and fits a phone',async()=>{
+   const button=id('highContrast'),theme=id('theme');
+   if(button.getAttribute('aria-pressed')==='true')button.click();
+   button.focus();button.click();assert(h.d.activeElement===button,'Toggle retains keyboard focus');
+   for(const mode of ['light','dark','system']){
+    theme.value=mode;theme.dispatchEvent(new h.w.Event('change'));
+    const dark=mode==='dark'||(mode==='system'&&h.w.matchMedia('(prefers-color-scheme:dark)').matches),expected=dark?'rgb(255, 255, 255)':'rgb(0, 0, 0)';
+    for(const selector of ['h1','.risk-banner','.session-bar','#connect','#tabs button','.table-bottom','#highContrast']){
+     assert(h.w.getComputedStyle(h.d.querySelector(selector)).color===expected,selector+' uses pure text in '+mode);
+    }
+    assert(h.w.getComputedStyle(id('connect')).backgroundColor!==expected,'Button surface contrasts with text');
+   }
+   frame.style.width='390px';await new Promise(r=>h.w.requestAnimationFrame(r));
+   assert(h.d.documentElement.scrollWidth<=h.d.documentElement.clientWidth+1,'Contrast control fits phone');frame.style.width='100%';
+   h=await fresh();assert(id('highContrast').getAttribute('aria-pressed')==='true','Preference survives reload');
+   id('highContrast').click();assert(id('highContrast').getAttribute('aria-pressed')==='false','Toggle restores ordinary appearance');
+   id('theme').value='system';id('theme').dispatchEvent(new h.w.Event('change'));
+   assert(h.state.fake.events.length===0,'Appearance never connects to a radio');
+  });
   await check('Native DAT import uses actual File / input events and never connects',async()=>{await load(h);assert(h.state.fake.sent.length===0&&h.state.fake.events.length===0,'File import must not contact radio');assert(h.d.querySelector('[data-channel-index="998"]'),'Channel 999 is displayed');});
   await check('Factory column order, compact rows, striping and responsive overflow',async()=>{
    frame.style.width='1600px';await new Promise(resolve=>h.w.requestAnimationFrame(resolve));
