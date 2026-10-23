@@ -1,6 +1,6 @@
-# MINI-5 image files — v20.29 UAT
+# MINI-5 image files — v20.30 UAT
 
-Use **Open .dat / .img** for a native CPS DAT, a CHIRP **Baofeng UV-5R Mini** image, or a legacy Mini 5 Studio image. Use **Save CHIRP .img** to download the current workspace for CHIRP. Use **Save .dat copy** for stock Baofeng CPS. Append remains a native DAT operation.
+Use **Open .dat / .img** for a native CPS DAT, a CHIRP **Baofeng UV-5R Mini** image, or a legacy Mini 5 Studio image. Use **Save CHIRP .img** to download the current workspace for CHIRP. Use **Save .dat copy** for stock Baofeng CPS. Use **Append .dat / .img** on Channels to add populated channels without replacing the workspace. Choose the next available consecutive space or an entirely empty numbered block, review the placement preview, then add. Matching channels are skipped by default. Existing channels, optional settings, VFOs, DTMF and the extra 1,000th record remain unchanged. Additions support Undo.
 
 The filename extension alone does not establish compatibility. Other radio models (including UV-5R and UV-5G Mini), generic binary files, CSV, truncated files, malformed metadata, and ambiguous legacy encodings are rejected without replacing the workspace. Importing or exporting never connects to a radio. Existing programming validation, identity checks, confirmation, and 999-channel safeguards still apply.
 
@@ -40,10 +40,18 @@ Existing [audit dispositions](AUDIT-REMEDIATION.md), [factory-compatible reconst
 
 UAT only. Baseline UAT `62d92f3cb583acd1c426d07bb81f19e971f6ccf5` (application v20.28). LIVE remains v20.28 at `4f5e789e29333f659665ea94ba1a5900b914220c`, with documentation head `f425c0ca92db4b4131a02795b70f3c778f2e4b0e`. Roll back the UAT file-interchange patch through a normal tested commit; do not force-push or copy UAT deployment configuration to LIVE.
 
-## Verified UAT release — October 23, 2026
+## Verified v20.29 UAT release — October 23, 2026
 
 Application commit: `36eaea5a7cfe1025024cccd51ee2f3b2594a7ce7`. [Deployment 39906603120](https://github.com/K4RJM/baofeng-mini5-bt-cps-unofficial-uat/actions/runs/39906603120) succeeded. All **163 automated tests** and **23 actual-browser checks** passed. The browser checks cover both image imports, a CHIRP download, invalid-import retention, original DAT workflows, high contrast, all editable channel fields, and existing safety protections.
 
 The actual CHIRP loader passed six independent offline cases: all five supplied captures and an edited 43-channel image with channel 999 populated. Frequencies, names, power, bandwidth and scan inclusion matched. CHIRP saved each image, and Ham-Rx reimported every memory byte unchanged. All 16 protected modules and connection/read/write/reset handlers remain unchanged. No private capture content is published.
 
 LIVE head was rechecked and remains `f425c0ca92db4b4131a02795b70f3c778f2e4b0e`. UAT is ready for review; LIVE promotion is not part of this deployment.
+
+## v20.30 append candidate — October 23, 2026
+
+Append now accepts the same native DAT, CHIRP UV-5R Mini and legacy Mini 5 Studio files as Open. Only populated channels 1–999 are considered. The source image's settings and reserved record are never copied. Placement is rechecked at Apply; occupied numbered blocks, insufficient space and invalid files cannot overwrite existing channels. A cancelled or superseded file read cannot apply later. One Undo reverses the addition.
+
+The regression additions exercise actual application handlers for all three representations, complete settings/channel preservation, the reserved record, malformed and oversized images, cancellation, and Undo. The browser gate exercises real file-input events, duplicate skipping, block selection, channel 999 and Undo. The same 17 protected modules (including the append placement algorithm) and connection/read/write/reset handlers remain unchanged.
+
+UAT rollback: restore the application changes against prior head `5ff9f53d181ba910979e28c8bc8ebc027a36b9e1`, whose deployed v20.29 app commit is `36eaea5a7cfe1025024cccd51ee2f3b2594a7ce7`, through a normal tested commit. LIVE remains v20.28. Record the deployed candidate and final browser results after the deployment gate.

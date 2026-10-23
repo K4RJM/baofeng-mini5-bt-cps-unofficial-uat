@@ -1,4 +1,4 @@
-import {readImage} from '../../image-files.mjs?v=20.29';
+import {readImage} from '../../image-files.mjs?v=20.30';
 const root=new URL('../../',import.meta.url),results=document.getElementById('results'),status=document.getElementById('status');let frame;const builds=new Set();
 const assert=(value,message)=>{if(!value)throw Error(message);};
 const until=async(fn,label)=>{const end=Date.now()+15000;while(!fn()){if(Date.now()>end)throw Error('Timed out: '+label);await new Promise(r=>setTimeout(r,20));}};
@@ -7,7 +7,7 @@ async function fresh(mode='normal'){
  frame?.contentWindow.f13?.fake.close();frame?.remove();
  let html=await fetch(new URL('index.html',root),{cache:'no-store'}).then(r=>r.text());
  const match=html.match(/<script type="module" src="(app\.mjs[^\"]*)"><\/script>/);assert(match,'Actual application module exists');
- const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.29-img',root).href}"><\/script>`;
+ const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.30-img',root).href}"><\/script>`;
  html=html.replace('<head>','<head><base href="'+root.href+'">').replace(match[0],script);
  frame=document.createElement('iframe');frame.title='Isolated CPS test application';frame.setAttribute('allow',"bluetooth 'none'");frame.srcdoc=html;document.getElementById('workspace').append(frame);
  await until(()=>frame.contentWindow.f13?.ready||frame.contentWindow.f13?.failed,'application bootstrap');
@@ -56,6 +56,24 @@ document.getElementById('start').onclick=async()=>{
    assert(h.state.fake.events.length===0,'File operations never connect');
   });
   await check('Native DAT import uses actual File / input events and never connects',async()=>{await load(h);assert(h.state.fake.sent.length===0&&h.state.fake.events.length===0,'File import must not contact radio');assert(h.d.querySelector('[data-channel-index="998"]'),'Channel 999 is displayed');});
+  await check('DAT and both IMG formats append with preview, duplicate skipping, protected blocks and Undo',async()=>{
+   const append=()=>[...h.d.querySelectorAll('#content button')].find(b=>b.textContent==='Append .dat / .img').click();
+   const choose=async(bytes,name)=>{const t=new h.w.DataTransfer();t.items.add(new h.w.File([bytes],name));id('appendDat').files=t.files;id('appendDat').dispatchEvent(new h.w.Event('change',{bubbles:true}));await until(()=>id('appendRange').textContent!=='Reading channel file…','append preview');};
+   assert(id('appendDat').accept==='.dat,.img','Append picker accepts both extensions');
+   for(const [bytes,name] of [[h.state.chirpImage,'test.img'],[h.state.studioImage,'legacy.IMG'],[h.state.bytes,'test.dat']]){
+    append();assert(id('appendDialog').matches(':modal'),'Append opens existing dialog');await choose(bytes,name);
+    assert(id('appendApply').disabled&&id('appendCounts').textContent.includes('3 matching channels skipped'),'Duplicates skipped by default');
+    id('appendSkip').click();id('appendPlacement').value='101';id('appendPlacement').dispatchEvent(new h.w.Event('change'));
+    assert(id('appendRange').textContent==='3 channels → 101–103','Preview has three destination slots');
+    assert(id('appendPlacement').querySelector('option[value="901"]').disabled,'Occupied final block unavailable');
+    assert(!id('cell-100-rxFreq'),'Preview does not change workspace');
+    id('appendApply').click();assert(!id('appendDialog').open&&id('cell-100-rxFreq').textContent==='146.52000','Append adds channels');
+    assert(id('cell-998-rxFreq').textContent==='146.52000'&&id('cell-0-rxFreq').textContent==='146.52000','Original first and last channels preserved');
+    id('undoChannels').click();assert(!id('cell-100-rxFreq'),'Undo removes entire append');
+   }
+   append();await choose(new Uint8Array(4),'broken.img');assert(id('appendApply').disabled&&!id('appendErrors').hidden,'Invalid image cannot append');id('appendCancel').click();
+   assert(h.state.fake.events.length===0,'Append never connects to a radio');
+  });
   await check('Factory column order, compact rows, striping and responsive overflow',async()=>{
    frame.style.width='1600px';await new Promise(resolve=>h.w.requestAnimationFrame(resolve));
    const headers=[...h.d.querySelectorAll('#channelTableWrap th')].map(x=>x.textContent);

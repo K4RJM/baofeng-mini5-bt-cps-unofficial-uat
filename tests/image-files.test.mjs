@@ -55,3 +55,48 @@ test('ambiguous legacy encoding is rejected instead of guessed',()=>{
  const b=new Uint8Array(SIZE).fill(255);b[0x7d80]=12;
  assert.throws(()=>readImage(imageFile(b)),/Ambiguous legacy/);
 });
+
+test('actual append handles CHIRP, Studio and DAT channels without replacing settings; Undo restores all slots',async()=>{
+ const source=fixture();source.funCfgs.sql=2;source.vfos.vfoAFreq='147.00000';
+ source.channelList[0][0].name='SOURCE A';source.channelList[0][2].name='SOURCE B';
+ source.channelList[0][0].rxFreq=source.channelList[0][0].txFreq='145.50000';
+ source.channelList[0][998]={...source.channelList[0][2],name:'LAST'};
+ const memory=makePlan(source,options).target;memory.set(memory.subarray(0,32),999*32);
+ const decoded=decodeRadio(memory),formats=[
+  ['studio.IMG',imageFile(memory),decoded],
+  ['chirp.img',metadataImage(crypt(memory)),decoded],
+  ['native.dat',writeDat(source,schemas),source]
+ ];
+ for(const [name,bytes,expectedSource] of formats){
+  const h=await appHarness();try{
+   await h.open();const before=await h.exported();
+   h.button('Append .dat / .img').click();h.get('appendSkip').checked=false;
+   h.get('appendPlacement').value='101';
+   h.get('appendDat').files=[{name,size:bytes.length,arrayBuffer:async()=>bytes}];await h.get('appendDat').onchange();
+   assert.equal(h.get('appendApply').disabled,false,name);assert.equal(h.get('appendRange').textContent,'3 channels → 101–103');
+   assert.deepEqual(await h.exported(),before,'Preview does not mutate');
+   h.get('appendApply').click();const after=await h.exported();
+   const expected=structuredClone(before);
+   expected.channelList[0].splice(100,3,...expectedSource.channelList[0].slice(0,999).filter(c=>c.rxFreq));
+   assert.deepEqual(after,expected,name+': only the three destination channels change');
+   assert.equal(h.connections.length,0);h.get('undoChannels').click();assert.deepEqual(await h.exported(),before);
+  }finally{h.close();}
+ }
+});
+
+test('image append rejects invalid input, occupied blocks and stale results without changes',async()=>{
+ const h=await appHarness();try{
+  const current=fixture();current.channelList[0][150]={...current.channelList[0][0],name:'OCCUPIED'};
+  await h.open(current);const before=await h.exported(),bytes=imageFile(raw());
+  h.button('Append .dat / .img').click();h.get('appendSkip').checked=false;
+  h.get('appendPlacement').value='101';h.get('appendDat').files=[{name:'test.img',size:bytes.length,arrayBuffer:async()=>bytes}];
+  await h.get('appendDat').onchange();assert.equal(h.get('appendApply').disabled,true);assert.match(h.get('appendErrors').textContent,/occupied/);
+  h.get('appendPlacement').value='201';h.get('appendPlacement').onchange();assert.equal(h.get('appendApply').disabled,false);
+  h.get('appendDat').files=[{name:'broken.img',size:4,arrayBuffer:async()=>new Uint8Array(4)}];await h.get('appendDat').onchange();
+  assert.equal(h.get('appendApply').disabled,true);assert.match(h.get('appendErrors').textContent,/File not loaded/);
+  h.get('appendApply').click();assert.deepEqual(await h.exported(),before);
+  let finish;h.get('appendDat').files=[{name:'late.img',size:bytes.length,arrayBuffer:()=>new Promise(r=>finish=r)}];
+  const pending=h.get('appendDat').onchange();h.get('appendCancel').click();finish(bytes);await pending;h.get('appendApply').click();
+  assert.deepEqual(await h.exported(),before);assert.equal(h.connections.length,0);
+ }finally{h.close();}
+});

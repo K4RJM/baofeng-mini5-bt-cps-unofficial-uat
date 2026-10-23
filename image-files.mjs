@@ -62,6 +62,6 @@ export function exportChirpImage(data,options,{raw=null,baseline=null}={}){
   const encoded=new Uint8Array(SIZE);for(const f of offlineFrames(data))encoded.set(f.subarray(4),offset((f[1]<<8)|f[2]));
   memory=crypt(encoded);
  }
- const metadata=utf8.encode(btoa(JSON.stringify({vendor:'Baofeng',model:TRAILER,variant:'',rclass:'UV5RMini',hamrx_version:'20.29'})));
+ const metadata=utf8.encode(btoa(JSON.stringify({vendor:'Baofeng',model:TRAILER,variant:'',rclass:'UV5RMini',hamrx_version:'20.30'})));
  const result=new Uint8Array(SIZE+CHIRP_MAGIC.length+metadata.length);result.set(memory);result.set(CHIRP_MAGIC,SIZE);result.set(metadata,SIZE+CHIRP_MAGIC.length);return result;
 }

@@ -5,7 +5,7 @@ let generation=0;
 export function openChannelAppend({mode='preset',getData,readFile,onApply}){
  const dialog=$('appendDialog');generation++;let imported=null,loading=false,fileError='',closed=false;
  const isDat=mode==='dat';
- $('appendTitle').textContent=isDat?'Append channels from .dat':'Add channel preset';
+ $('appendTitle').textContent=isDat?'Append channels from a file':'Add channel preset';
  $('appendIntro').textContent=isDat?'Add a saved channel set to this workspace.':'Choose a channel set and an empty destination.';
  $('appendPresetField').hidden=isDat;$('appendDatField').hidden=!isDat;$('appendTransmitRow').hidden=isDat;$('appendRepeaterField').hidden=isDat;
  $('appendPreset').replaceChildren(...PRESETS.map(p=>option(p.key,p.label)));$('appendPreset').value='shared';
@@ -23,7 +23,7 @@ export function openChannelAppend({mode='preset',getData,readFile,onApply}){
   $('appendNoticeText').textContent=isDat?'Only populated channels are copied. Current optional settings, VFOs, DTMF and the extra file record stay unchanged. Imported transmit frequencies and power settings are preserved.':preset.notice+(preset.key==='shared'&&$('appendRepeaters').checked?' Set repeater access tones.':'');
   $('appendPowerNote').hidden=isDat;$('appendPowerNote').textContent='Before transmitting, check local regulations, licensing and equipment approval. High / Low settings do not guarantee these power limits.';
   $('appendRules').hidden=isDat;$('appendRules').href=preset.rules;
-  $('appendRange').textContent=loading?'Reading native CPS file…':isDat&&!imported?'Choose a .dat file to preview placement':plan.error?'No channels will be added':`${plan.channels.length} channel${plan.channels.length===1?'':'s'} → ${plan.start===plan.end?plan.start:plan.start+'–'+plan.end}`;
+  $('appendRange').textContent=loading?'Reading channel file…':isDat&&!imported?'Choose a .dat or .img file to preview placement':plan.error?'No channels will be added':`${plan.channels.length} channel${plan.channels.length===1?'':'s'} → ${plan.start===plan.end?plan.start:plan.start+'–'+plan.end}`;
   $('appendCounts').textContent=loading||isDat&&!imported?'Existing channels stay in place.':`${plan.duplicates} matching channels skipped · existing channels preserved`;
   $('appendErrors').textContent=fileError||(!loading&&(!isDat||imported)?plan.error:'');$('appendErrors').hidden=!$('appendErrors').textContent;
   $('appendApply').disabled=loading||!!fileError||!!plan.error||isDat&&!imported;
@@ -31,7 +31,7 @@ export function openChannelAppend({mode='preset',getData,readFile,onApply}){
  for(const id of ['appendPreset','appendPlacement','appendSkip','appendPower','appendRepeaters'])$(id).onchange=update;
  $('appendDat').onchange=async()=>{
   const file=$('appendDat').files?.[0];if(!file)return;const request=++generation;imported=null;fileError='';loading=true;update();
-  try{if(!/\.dat$/i.test(file.name))throw Error('Only native CPS .dat files are supported.');const next=await readFile(file);if(closed||request!==generation)return;imported=datChannels(next);}
+  try{if(!/\.(dat|img)$/i.test(file.name))throw Error('Choose a native CPS .dat or MINI-5 .img file.');const next=await readFile(file);if(closed||request!==generation)return;imported=datChannels(next);}
   catch(e){if(closed||request!==generation)return;fileError='File not loaded. '+e.message;}
   finally{if(!closed&&request===generation){loading=false;update();}}
  };

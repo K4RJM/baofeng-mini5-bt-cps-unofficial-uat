@@ -2,7 +2,7 @@
 
 Free, noncommercial browser software by K4RJM, hosted on GitHub Pages.
 
-**Version 20.29 UAT.** Open native DAT, CHIRP UV-5R Mini and legacy Mini 5 Studio images; export genuine CHIRP images. [Image compatibility, preservation limits and evidence](docs/IMG-COMPATIBILITY.md). High-contrast text from v20.28 is retained. Compact channel editing and Radio & Help, all 23 button tutorials, expandable Known Firmware Limitations, and a locally hosted Ham-Rx PDF guide. The radio manual opens Baofeng’s official PDF in a new tab.
+**Version 20.30 UAT.** Open native DAT, CHIRP UV-5R Mini and legacy Mini 5 Studio images; export genuine CHIRP images. **Append .dat / .img** adds channels from either format with empty-slot previews, duplicate skipping and Undo, preserving the current radio settings. [Image compatibility, preservation limits and evidence](docs/IMG-COMPATIBILITY.md). High-contrast text from v20.28 is retained. Compact channel editing and Radio & Help, all 23 button tutorials, expandable Known Firmware Limitations, and a locally hosted Ham-Rx PDF guide. The radio manual opens Baofeng’s official PDF in a new tab.
 
 This is the permanent UAT repository. This file-interchange update is deployed to UAT for review; LIVE remains v20.28.
 
@@ -14,7 +14,7 @@ New inline entries of 174 MHz and 520 MHz change to 173.99875 and 519.99875 MHz,
 
 Compact rows, alternating shading and factory CPS column order are retained. Desktop Channels keeps pagination visible and scrolls the table body. Narrow/short windows use a responsive fallback, with horizontal table scrolling. The header and interactive Help use the blue MINI-5 photograph supplied by K4RJM; the favicon is a simplified blue radio.
 
-Verification: all 163 automated tests and all 23 deployed browser checks passed, plus six offline interoperability cases using CHIRP’s actual loader. [v20.29 evidence and rollback](docs/IMG-COMPATIBILITY.md). [Evidence and rollback](docs/CODEX-PROGRESS.md). No physical radio was accessed for this UI release.
+The v20.29 image foundation passed 163 automated tests, 23 deployed browser checks and six offline interoperability cases using CHIRP’s actual loader. The v20.30 append release adds preservation, cancellation and oversize checks plus an actual-browser append/Undo check. [Current verification and rollback](docs/IMG-COMPATIBILITY.md). No physical radio was accessed for this file-handling release.
 
 **Retained v20.23 update:** Ham-Rx Baofeng Mini-5 is the new name for Baofeng Mini 5 BT CPS – Unofficial. The Experimental designation is removed at K4RJM’s request; the programming-risk notice, verification and write protections remain. Existing URLs and native DAT files remain compatible. Radio programming behavior is unchanged.
 

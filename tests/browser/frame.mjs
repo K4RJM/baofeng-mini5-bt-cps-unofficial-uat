@@ -1,4 +1,4 @@
-import {exportChirpImage} from '../../image-files.mjs?v=20.29';
+import {exportChirpImage} from '../../image-files.mjs?v=20.30';
 import {imageFile} from '../../read-test/memory.mjs';
 import {asyncRadio} from '../async-radio.mjs?v=20.22';
 import {blankData,emptyChannel} from '../../channels.mjs';import {writeDat} from '../../dat.mjs';import {makePlan} from '../../writer.mjs';
