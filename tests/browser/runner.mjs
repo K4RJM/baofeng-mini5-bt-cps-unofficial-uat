@@ -104,6 +104,8 @@ document.getElementById('start').onclick=async()=>{
    id('csvTableBody').querySelector('input').click();assert(id('appendCounts').textContent.startsWith('26 selected'),'Selection includes other pages');id('csvPrevious').click();assert(id('csvTableBody').rows.length===25,'Previous CSV page');
    const text=csvFixture('kenwood'),bytes=new Uint8Array(2+text.length*2);bytes.set([255,254]);for(let i=0;i<text.length;i++){bytes[2+i*2]=text.charCodeAt(i)&255;bytes[3+i*2]=text.charCodeAt(i)>>8;}
    await choose(bytes,'kenwood.tsv');assert(id('csvSummary').textContent.includes('Kenwood DR repeater TSV · 1 valid'),'UTF-16 TSV');
+   await choose('Channel Name;RX MHz;TX MHz;Mode;TX Tone;RX Tone\nCOMMON;145.5;144.9;FM;110.9;110.9','common.csv');assert(id('csvSummary').textContent.includes('Common channel columns · 1 valid'),'Generic columns supported');
+   await choose(csvFixture('anytone',{Reverse:'On'}),'reverse.csv');assert(id('csvSummary').textContent.includes('0 valid · 1 excluded')&&id('appendApply').disabled&&id('csvTableBody').textContent.includes('Active AnyTone reverse'),'Active reverse cannot be silently lost');
    await choose('not,a,channel,file\n1,2,3,4','broken.csv');assert(id('appendApply').disabled&&!id('appendErrors').hidden,'Broken replacement blocks import');id('appendCancel').click();assert(!id('cell-100-rxFreq'),'No workspace mutation');
   });
   await check('Factory column order, compact rows, striping and responsive overflow',async()=>{
