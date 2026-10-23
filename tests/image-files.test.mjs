@@ -70,7 +70,7 @@ test('actual append handles CHIRP, Studio and DAT channels without replacing set
  for(const [name,bytes,expectedSource] of formats){
   const h=await appHarness();try{
    await h.open();const before=await h.exported();
-   h.button('Append .dat / .img').click();h.get('appendSkip').checked=false;
+   h.button('Import / append').click();h.get('appendSkip').checked=false;
    h.get('appendPlacement').value='101';
    h.get('appendDat').files=[{name,size:bytes.length,arrayBuffer:async()=>bytes}];await h.get('appendDat').onchange();
    assert.equal(h.get('appendApply').disabled,false,name);assert.equal(h.get('appendRange').textContent,'3 channels → 101–103');
@@ -88,7 +88,7 @@ test('image append rejects invalid input, occupied blocks and stale results with
  const h=await appHarness();try{
   const current=fixture();current.channelList[0][150]={...current.channelList[0][0],name:'OCCUPIED'};
   await h.open(current);const before=await h.exported(),bytes=imageFile(raw());
-  h.button('Append .dat / .img').click();h.get('appendSkip').checked=false;
+  h.button('Import / append').click();h.get('appendSkip').checked=false;
   h.get('appendPlacement').value='101';h.get('appendDat').files=[{name:'test.img',size:bytes.length,arrayBuffer:async()=>bytes}];
   await h.get('appendDat').onchange();assert.equal(h.get('appendApply').disabled,true);assert.match(h.get('appendErrors').textContent,/occupied/);
   h.get('appendPlacement').value='201';h.get('appendPlacement').onchange();assert.equal(h.get('appendApply').disabled,false);

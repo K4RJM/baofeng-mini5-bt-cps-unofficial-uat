@@ -47,7 +47,7 @@ test('apply rechecks changed destinations and never mutates the workspace on fai
 });
 
 function dialogHarness(){
- const nodes=new Map();class El{constructor(){this.children=[];this.value='';this.checked=false;this.textContent='';}replaceChildren(...items){this.children=items;}showModal(){this.open=true;}close(){this.open=false;}}
+ const nodes=new Map();class El{constructor(){this.children=[];this.value='';this.checked=false;this.textContent='';this.classList={remove(){},toggle(){}};}replaceChildren(...items){this.children=items;}showModal(){this.open=true;}close(){this.open=false;}}
  const get=id=>{if(!nodes.has(id))nodes.set(id,new El());return nodes.get(id);};
  return {get,document:{getElementById:get,createElement:()=>new El()}};
 }

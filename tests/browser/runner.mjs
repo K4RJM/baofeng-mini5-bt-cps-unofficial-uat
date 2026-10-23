@@ -1,4 +1,5 @@
-import {readImage} from '../../image-files.mjs?v=20.30';
+import {readImage} from '../../image-files.mjs?v=20.31';
+import {csvFixture,csvHeads} from '../csv-fixtures.mjs?v=20.31';
 const root=new URL('../../',import.meta.url),results=document.getElementById('results'),status=document.getElementById('status');let frame;const builds=new Set();
 const assert=(value,message)=>{if(!value)throw Error(message);};
 const until=async(fn,label)=>{const end=Date.now()+15000;while(!fn()){if(Date.now()>end)throw Error('Timed out: '+label);await new Promise(r=>setTimeout(r,20));}};
@@ -7,7 +8,7 @@ async function fresh(mode='normal'){
  frame?.contentWindow.f13?.fake.close();frame?.remove();
  let html=await fetch(new URL('index.html',root),{cache:'no-store'}).then(r=>r.text());
  const match=html.match(/<script type="module" src="(app\.mjs[^\"]*)"><\/script>/);assert(match,'Actual application module exists');
- const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.30-img',root).href}"><\/script>`;
+ const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.31-img',root).href}"><\/script>`;
  html=html.replace('<head>','<head><base href="'+root.href+'">').replace(match[0],script);
  frame=document.createElement('iframe');frame.title='Isolated CPS test application';frame.setAttribute('allow',"bluetooth 'none'");frame.srcdoc=html;document.getElementById('workspace').append(frame);
  await until(()=>frame.contentWindow.f13?.ready||frame.contentWindow.f13?.failed,'application bootstrap');
@@ -57,9 +58,9 @@ document.getElementById('start').onclick=async()=>{
   });
   await check('Native DAT import uses actual File / input events and never connects',async()=>{await load(h);assert(h.state.fake.sent.length===0&&h.state.fake.events.length===0,'File import must not contact radio');assert(h.d.querySelector('[data-channel-index="998"]'),'Channel 999 is displayed');});
   await check('DAT and both IMG formats append with preview, duplicate skipping, protected blocks and Undo',async()=>{
-   const append=()=>[...h.d.querySelectorAll('#content button')].find(b=>b.textContent==='Append .dat / .img').click();
+   const append=()=>[...h.d.querySelectorAll('#content button')].find(b=>b.textContent==='Import / append').click();
    const choose=async(bytes,name)=>{const t=new h.w.DataTransfer();t.items.add(new h.w.File([bytes],name));id('appendDat').files=t.files;id('appendDat').dispatchEvent(new h.w.Event('change',{bubbles:true}));await until(()=>id('appendRange').textContent!=='Reading channel file…','append preview');};
-   assert(id('appendDat').accept==='.dat,.img','Append picker accepts both extensions');
+   assert(id('appendDat').accept==='.dat,.img,.csv,.tsv,.hmk','Append picker accepts both extensions');
    for(const [bytes,name] of [[h.state.chirpImage,'test.img'],[h.state.studioImage,'legacy.IMG'],[h.state.bytes,'test.dat']]){
     append();assert(id('appendDialog').matches(':modal'),'Append opens existing dialog');await choose(bytes,name);
     assert(id('appendApply').disabled&&id('appendCounts').textContent.includes('3 matching channels skipped'),'Duplicates skipped by default');
@@ -73,6 +74,37 @@ document.getElementById('start').onclick=async()=>{
    }
    append();await choose(new Uint8Array(4),'broken.img');assert(id('appendApply').disabled&&!id('appendErrors').hidden,'Invalid image cannot append');id('appendCancel').click();
    assert(h.state.fake.events.length===0,'Append never connects to a radio');
+  });
+  await check('All ten channel-list layouts preview, append and undo through actual file controls',async()=>{
+   const button=()=>[...h.d.querySelectorAll('#content button')].find(b=>b.textContent==='Import / append');
+   const choose=async(text,name)=>{const t=new h.w.DataTransfer();t.items.add(new h.w.File([text],name));id('appendDat').files=t.files;id('appendDat').dispatchEvent(new h.w.Event('change',{bubbles:true}));await until(()=>id('appendRange').textContent!=='Reading channel file…','channel list preview');};
+   for(const format of Object.keys(csvHeads)){
+    button().click();await choose(csvFixture(format),'synthetic.'+(format==='hmk'?'hmk':format==='kenwood'?'tsv':'csv'));
+    assert(!id('csvReview').hidden&&id('csvSummary').textContent.includes('1 valid · 0 excluded'),format+' detected');
+    const cells=id('csvTableBody').querySelector('tr').cells;assert(cells[3].textContent==='145.50000'&&cells[5].textContent==='144.90000',format+' RX/TX exact');
+    assert(cells[4].textContent==='110.9'&&cells[6].textContent==='110.9',format+' tones exact');
+    id('appendPlacement').value='101';id('appendPlacement').dispatchEvent(new h.w.Event('change'));id('appendApply').click();assert(id('cell-100-rxFreq').textContent==='145.50000',format+' applied');
+    id('undoChannels').click();assert(!id('cell-100-rxFreq'),format+' Undo');
+   }
+   button().click();await choose(csvFixture('chirp',{Name:'<b>SAFE</b>'},[{Location:'2',Mode:'DV'}]),'review.csv');
+   assert(!id('csvTableBody').querySelector('b'),'File text never becomes HTML');assert(id('appendApply').disabled&&!id('csvPartialRow').hidden,'Excluded rows require acknowledgement');
+   id('csvPartial').click();assert(!id('appendApply').disabled,'Acknowledgement enables valid rows');
+   const check=id('csvTableBody').querySelector('input');check.click();assert(id('appendApply').disabled,'Deselect all disables import');check.click();
+   id('csvPower').value='0';id('csvPower').dispatchEvent(new h.w.Event('change'));await until(()=>!id('appendApply').disabled,'power change');assert(id('csvTableBody').querySelector('tr').cells[7].textContent==='High','Fallback power preview updates');
+   for(const theme of ['light','dark']){id('theme').value=theme;id('theme').dispatchEvent(new h.w.Event('change'));assert(h.w.getComputedStyle(id('csvReview')).display!=='none','Review visible in '+theme);}
+   frame.style.width='390px';await new Promise(r=>h.w.requestAnimationFrame(r));assert(h.d.documentElement.scrollWidth<=h.d.documentElement.clientWidth+1,'CSV dialog fits phone');
+   assert(id('appendDialog').getBoundingClientRect().width<=390,'Phone dialog width');frame.style.width='100%';id('appendCancel').click();
+   id('theme').value='system';id('theme').dispatchEvent(new h.w.Event('change'));assert(h.state.fake.events.length===0,'Channel lists never connect to radio');
+  });
+  await check('CSV row paging and UTF-16 Kenwood imports retain selection and reject broken input',async()=>{
+   const open=()=>[...h.d.querySelectorAll('#content button')].find(b=>b.textContent==='Import / append').click();
+   const choose=async(bytes,name)=>{const t=new h.w.DataTransfer();t.items.add(new h.w.File([bytes],name));id('appendDat').files=t.files;id('appendDat').dispatchEvent(new h.w.Event('change',{bubbles:true}));await until(()=>id('appendRange').textContent!=='Reading channel file…','paged preview');};
+   open();await choose(csvFixture('chirp',{},Array.from({length:26},(_,i)=>({Location:String(i+2)}))),'many.csv');
+   assert(id('csvTableBody').rows.length===25,'Preview bounded to 25 rows');id('csvNext').click();assert(id('csvTableBody').rows.length===2&&id('csvPage').textContent==='Rows 26–27 of 27','Next CSV page');
+   id('csvTableBody').querySelector('input').click();assert(id('appendCounts').textContent.startsWith('26 selected'),'Selection includes other pages');id('csvPrevious').click();assert(id('csvTableBody').rows.length===25,'Previous CSV page');
+   const text=csvFixture('kenwood'),bytes=new Uint8Array(2+text.length*2);bytes.set([255,254]);for(let i=0;i<text.length;i++){bytes[2+i*2]=text.charCodeAt(i)&255;bytes[3+i*2]=text.charCodeAt(i)>>8;}
+   await choose(bytes,'kenwood.tsv');assert(id('csvSummary').textContent.includes('Kenwood DR repeater TSV · 1 valid'),'UTF-16 TSV');
+   await choose('not,a,channel,file\n1,2,3,4','broken.csv');assert(id('appendApply').disabled&&!id('appendErrors').hidden,'Broken replacement blocks import');id('appendCancel').click();assert(!id('cell-100-rxFreq'),'No workspace mutation');
   });
   await check('Factory column order, compact rows, striping and responsive overflow',async()=>{
    frame.style.width='1600px';await new Promise(resolve=>h.w.requestAnimationFrame(resolve));

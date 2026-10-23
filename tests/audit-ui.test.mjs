@@ -40,7 +40,7 @@ test('F04: oversized Open and Append files are rejected before reading their con
   const oversized={name:'large.dat',size:2000000,arrayBuffer:async()=>{reads++;throw Error('must not read');}};
   h.get('file').files=[oversized];await h.get('file').onchange();assert.equal(reads,0);
   assert.match(h.get('status').textContent,/smaller than 2 MB/);assert.deepEqual(await h.exported(),before);
-  h.button('Append .dat / .img').click();h.get('appendDat').files=[oversized];await h.get('appendDat').onchange();
+  h.button('Import / append').click();h.get('appendDat').files=[oversized];await h.get('appendDat').onchange();
   assert.equal(reads,0);assert.equal(h.get('appendApply').disabled,true);assert.match(h.get('appendErrors').textContent,/smaller than 2 MB/);
   h.get('appendDat').files=[{...oversized,name:'large.img'}];await h.get('appendDat').onchange();
   assert.equal(reads,0);assert.equal(h.get('appendApply').disabled,true);assert.deepEqual(await h.exported(),before);

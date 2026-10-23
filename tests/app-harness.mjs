@@ -1,3 +1,4 @@
+import {readCsvFile} from '../csv-import.mjs';
 import {readImageFile,exportChirpImage} from '../image-files.mjs';
 import {mountManuals} from '../help-manuals.mjs';
 import {inlineChannelEdit,planChannelMove,channelKeys} from '../channel-workspace.mjs';
@@ -44,7 +45,7 @@ export async function appHarness({storage={getItem(){},setItem(){}}}={}){
   async connect(){connections.push(simulatedRadio(this,faults.transport));}
  }
  const previousDocument=globalThis.document;globalThis.document=document;
- const context=vm.createContext({readImageFile,exportChirpImage,inlineChannelEdit,planChannelMove,channelKeys,mountChannelCell,document,window,navigator:{bluetooth:{},userAgent:'test-double'},localStorage:storage,structuredClone,Blob,Uint8Array,console,Date,URL:{createObjectURL(blob){downloads.push(blob);return 'mock';},revokeObjectURL(){}},setTimeout(){},setInterval(){},confirm:()=>true,fetch:async path=>({json:async()=>JSON.parse(fs.readFileSync(new URL('../'+path,import.meta.url)))}),...dat,...decoder,...channels,...fields,validateEdits,Writer:TestWriter,makePlan,verificationMessage,renderRadioTutorial,mountManuals,openChannelAppend,releaseAfterAcknowledgedWrite,decodeRadio:raw=>{if(faults.decode)throw Error('Injected decode failure');return decoder.decodeRadio(raw);}});
+ const context=vm.createContext({readCsvFile,readImageFile,exportChirpImage,inlineChannelEdit,planChannelMove,channelKeys,mountChannelCell,document,window,navigator:{bluetooth:{},userAgent:'test-double'},localStorage:storage,structuredClone,Blob,Uint8Array,console,Date,URL:{createObjectURL(blob){downloads.push(blob);return 'mock';},revokeObjectURL(){}},setTimeout(){},setInterval(){},confirm:()=>true,fetch:async path=>({json:async()=>JSON.parse(fs.readFileSync(new URL('../'+path,import.meta.url)))}),...dat,...decoder,...channels,...fields,validateEdits,Writer:TestWriter,makePlan,verificationMessage,renderRadioTutorial,mountManuals,openChannelAppend,releaseAfterAcknowledgedWrite,decodeRadio:raw=>{if(faults.decode)throw Error('Injected decode failure');return decoder.decodeRadio(raw);}});
  try{const source=fs.readFileSync(new URL('../app.mjs',import.meta.url),'utf8').replace(/^import .*$/gm,'');await vm.runInContext('(async()=>{'+source+'})()',context);}
  catch(error){globalThis.document=previousDocument;throw error;}
  return {

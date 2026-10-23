@@ -183,3 +183,13 @@ footer{margin-top:10px;padding:6px 0}
 @media(max-width:750px){.top-actions{justify-content:flex-start}.top-actions>button,.theme-control select{min-height:36px}}
 
 :root[data-high-contrast=true] .radio-key:not(.radio-side-key){color:transparent!important}
+
+/* CSV review stays inside the existing import dialog. */
+dialog#appendDialog.csv-import-dialog{width:min(1160px,96vw);padding:18px}
+.csv-review-heading,.csv-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:10px 0}
+.csv-review-heading{font-size:13px}.csv-review-heading label{display:flex;align-items:center;gap:8px;font-size:12px}.csv-review-heading select{padding:5px 8px}
+.csv-notes{font-size:12px;color:var(--muted);margin:8px 0}.csv-table-wrap{max-height:270px;overflow:auto;border:1px solid var(--border);border-radius:5px}
+.csv-table-wrap table{width:100%;min-width:850px;table-layout:auto;font-size:12px}.csv-table-wrap th,.csv-table-wrap td{padding:5px 7px;white-space:nowrap;height:auto}.csv-table-wrap th{position:sticky;top:0;background:var(--raised);z-index:1}
+.csv-table-wrap td:last-child{white-space:normal;min-width:200px;max-width:300px}.csv-table-wrap tr:nth-child(even){background:var(--raised)}.csv-rejected{color:var(--danger,var(--text))}.csv-table-wrap input[type=checkbox]{width:16px;height:16px;margin:0}
+.csv-pagination{font-size:12px;justify-content:flex-end}.csv-pagination span{margin-right:auto}.csv-pagination button{font-size:12px;padding:5px 9px}#csvPartialRow{font-size:12px;margin:8px 0}
+@media(max-width:600px){dialog#appendDialog.csv-import-dialog{padding:12px}.csv-review-heading{align-items:flex-start;flex-direction:column}.csv-table-wrap{max-height:230px}.csv-pagination{gap:6px}}
