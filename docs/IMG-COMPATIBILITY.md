@@ -55,3 +55,9 @@ Append now accepts the same native DAT, CHIRP UV-5R Mini and legacy Mini 5 Studi
 The regression additions exercise actual application handlers for all three representations, complete settings/channel preservation, the reserved record, malformed and oversized images, cancellation, and Undo. The browser gate exercises real file-input events, duplicate skipping, block selection, channel 999 and Undo. The same 17 protected modules (including the append placement algorithm) and connection/read/write/reset handlers remain unchanged.
 
 UAT rollback: restore the application changes against prior head `5ff9f53d181ba910979e28c8bc8ebc027a36b9e1`, whose deployed v20.29 app commit is `36eaea5a7cfe1025024cccd51ee2f3b2594a7ce7`, through a normal tested commit. LIVE remains v20.28. Record the deployed candidate and final browser results after the deployment gate.
+
+## Verified v20.30 UAT release
+
+Application commit: `f372dd2dff150524427cf13f85acfbe112e5146b`. [Deployment 39950836510](https://github.com/K4RJM/baofeng-mini5-bt-cps-unofficial-uat/actions/runs/39950836510) succeeded. All **165 automated tests** and **24 deployed-browser checks** passed. The new browser check covers DAT, CHIRP and Studio channel append, duplicate skipping, placement preview, occupied-block protection, channel 999 and Undo. Existing import/export, layout and safety checks also passed. No physical radio connection or write was performed.
+
+LIVE was rechecked at `f425c0ca92db4b4131a02795b70f3c778f2e4b0e` (v20.28) and remains unchanged. UAT is ready for review. The v20.30 rollback point is the v20.29 head `5ff9f53d181ba910979e28c8bc8ebc027a36b9e1`.
