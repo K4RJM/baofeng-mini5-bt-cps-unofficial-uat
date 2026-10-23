@@ -64,7 +64,7 @@ test('offset, split and receive-only fields keep explicit transmit semantics',()
  assert.equal(load('adms',{'2':'146.10000'}).channels.length,0);
 });
 test('digital-only, AM, active reverse, unknown tones and off-grid channels are excluded without rounding',()=>{
- for(const [id,change] of [['rb',{Modes:'DMR'}],['chirp',{Mode:'AM'}],['opengd',{'Channel Type':'Digital'}],['anytone',{'Channel Type':'D-Digital'}],['kenwood',{Mode:'DV'}],['hmk',{'Rev.':'On'}],['rt',{Comment:'Modes: DMR'}],['btech',{'mute(0=OFF/1=ON)':'1'}]])assert.equal(load(id,change).channels.length,0,id);
+ for(const [id,change] of [['rb',{Modes:'DMR'}],['chirp',{Mode:'AM'}],['opengd',{'Channel Type':'Digital'}],['anytone',{'Channel Type':'D-Digital'}],['anytone',{Reverse:'On'}],['kenwood',{Mode:'DV'}],['hmk',{'Rev.':'On'}],['rt',{Comment:'Modes: DMR'}],['btech',{'mute(0=OFF/1=ON)':'1'}]])assert.equal(load(id,change).channels.length,0,id);
  assert.equal(load('rb',{Modes:'FM P-25'}).channels.length,1);
  for(const f of ['145.50001','145.500001','174.000000','520','1e8','=1+1'])assert.equal(load('chirp',{Frequency:f}).channels.length,0,f);
  assert.equal(load('rb',{'Uplink Tone':'not a tone'}).channels.length,0);

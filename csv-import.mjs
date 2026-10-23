@@ -166,6 +166,7 @@ function convert(profile,cells,options,charset,defaultPower){
   if(a&&(!off(g('PTT ID'))||!off(g('Optional Signal'))))fail('Active AnyTone optional/PTT signaling cannot be converted.');
   if(a&&!off(g('Busy Lock/TX Permit')))fail('AnyTone transmit permission needs manual configuration.');
   if(a&&enabled(g('Talk Around(Simplex)'),'talk around'))fail('Active talk-around needs manual configuration.');
+  if(a&&enabled(g('Reverse'),'reverse'))fail('Active AnyTone reverse needs manual configuration.');
  }else if(id==='generic'){
   const m=profile.mapping,v=k=>m[k]===undefined?'':cells[m[k]].trim();
   const hz=k=>m[k]!==undefined&&/hz$/.test(profile.heads[m[k]])&&!/mhz$/.test(profile.heads[m[k]]);
