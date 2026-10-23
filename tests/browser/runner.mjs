@@ -8,14 +8,14 @@ async function fresh(mode='normal'){
  frame?.contentWindow.f13?.fake.close();frame?.remove();
  let html=await fetch(new URL('index.html',root),{cache:'no-store'}).then(r=>r.text());
  const match=html.match(/<script type="module" src="(app\.mjs[^\"]*)"><\/script>/);assert(match,'Actual application module exists');
- const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.31-img',root).href}"><\/script>`;
+ const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.32',root).href}"><\/script>`;
  html=html.replace('<head>','<head><base href="'+root.href+'">').replace(match[0],script);
  frame=document.createElement('iframe');frame.title='Isolated CPS test application';frame.setAttribute('allow',"bluetooth 'none'");frame.srcdoc=html;document.getElementById('workspace').append(frame);
  await until(()=>frame.contentWindow.f13?.ready||frame.contentWindow.f13?.failed,'application bootstrap');
  const badge=frame.contentDocument.querySelector('.build-badge')?.textContent;builds.add(badge||'Version unavailable');document.getElementById('build').textContent='Tested: '+[...builds].join(' / ');return {w:frame.contentWindow,d:frame.contentDocument,state:frame.contentWindow.f13};
 }
 async function load(h){const transfer=new h.w.DataTransfer();transfer.items.add(new h.w.File([h.state.bytes],'browser-test.dat'));h.d.getElementById('file').files=transfer.files;h.d.getElementById('file').dispatchEvent(new h.w.Event('change',{bubbles:true}));await until(()=>h.d.getElementById('file').value===''&&!h.d.getElementById('open').disabled&&h.d.getElementById('sourceTag').textContent==='CPS file loaded','native DAT load finished');}
-async function busyCheck(h){h.state.fake.faults.holdRead=true;h.d.getElementById('readRadio').click();await until(()=>h.state.fake.reads===1,'held read');const row=h.d.querySelector('[data-channel-index="0"]');h.d.getElementById('help').focus();row.querySelector('[data-field]').focus();assert(h.d.getElementById('content').inert&&h.d.getElementById('tabs').inert,'Busy workspace must be inert');assert(!row.contains(h.d.activeElement),'Inert row must refuse focus');assert(h.d.getElementById('open').disabled&&h.d.getElementById('save').disabled&&h.d.getElementById('saveImg').disabled,'File controls must be disabled during the read');}
+async function busyCheck(h){h.state.fake.faults.holdRead=true;h.d.getElementById('readRadio').click();await until(()=>h.state.fake.reads===1,'held read');const row=h.d.querySelector('[data-channel-index="0"]');h.d.getElementById('help').focus();row.querySelector('[data-field]').focus();assert(h.d.getElementById('content').inert&&h.d.getElementById('tabs').inert,'Busy workspace must be inert');assert(!row.contains(h.d.activeElement),'Inert row must refuse focus');assert(h.d.getElementById('appendChannels').disabled&&h.d.getElementById('open').disabled&&h.d.getElementById('save').disabled&&h.d.getElementById('saveImg').disabled,'File controls must be disabled during the read');}
 document.getElementById('start').onclick=async()=>{
  const start=document.getElementById('start');start.disabled=true;results.replaceChildren();status.textContent='Running';let failed=0;
  const check=async(name,fn)=>{try{await fn();record(name,true);}catch(e){failed++;record(name,false,e.message);}};
@@ -58,7 +58,7 @@ document.getElementById('start').onclick=async()=>{
   });
   await check('Native DAT import uses actual File / input events and never connects',async()=>{await load(h);assert(h.state.fake.sent.length===0&&h.state.fake.events.length===0,'File import must not contact radio');assert(h.d.querySelector('[data-channel-index="998"]'),'Channel 999 is displayed');});
   await check('DAT and both IMG formats append with preview, duplicate skipping, protected blocks and Undo',async()=>{
-   const append=()=>[...h.d.querySelectorAll('#content button')].find(b=>b.textContent==='Import / append').click();
+   const append=()=>id('appendChannels').click();
    const choose=async(bytes,name)=>{const t=new h.w.DataTransfer();t.items.add(new h.w.File([bytes],name));id('appendDat').files=t.files;id('appendDat').dispatchEvent(new h.w.Event('change',{bubbles:true}));await until(()=>id('appendRange').textContent!=='Reading channel file…','append preview');};
    assert(id('appendDat').accept==='.dat,.img,.csv,.tsv,.hmk','Append picker accepts both extensions');
    for(const [bytes,name] of [[h.state.chirpImage,'test.img'],[h.state.studioImage,'legacy.IMG'],[h.state.bytes,'test.dat']]){
@@ -76,7 +76,7 @@ document.getElementById('start').onclick=async()=>{
    assert(h.state.fake.events.length===0,'Append never connects to a radio');
   });
   await check('All ten channel-list layouts preview, append and undo through actual file controls',async()=>{
-   const button=()=>[...h.d.querySelectorAll('#content button')].find(b=>b.textContent==='Import / append');
+   const button=()=>id('appendChannels');
    const choose=async(text,name)=>{const t=new h.w.DataTransfer();t.items.add(new h.w.File([text],name));id('appendDat').files=t.files;id('appendDat').dispatchEvent(new h.w.Event('change',{bubbles:true}));await until(()=>id('appendRange').textContent!=='Reading channel file…','channel list preview');};
    for(const format of Object.keys(csvHeads)){
     button().click();await choose(csvFixture(format),'synthetic.'+(format==='hmk'?'hmk':format==='kenwood'?'tsv':'csv'));
@@ -97,7 +97,7 @@ document.getElementById('start').onclick=async()=>{
    id('theme').value='system';id('theme').dispatchEvent(new h.w.Event('change'));assert(h.state.fake.events.length===0,'Channel lists never connect to radio');
   });
   await check('CSV row paging and UTF-16 Kenwood imports retain selection and reject broken input',async()=>{
-   const open=()=>[...h.d.querySelectorAll('#content button')].find(b=>b.textContent==='Import / append').click();
+   const open=()=>id('appendChannels').click();
    const choose=async(bytes,name)=>{const t=new h.w.DataTransfer();t.items.add(new h.w.File([bytes],name));id('appendDat').files=t.files;id('appendDat').dispatchEvent(new h.w.Event('change',{bubbles:true}));await until(()=>id('appendRange').textContent!=='Reading channel file…','paged preview');};
    open();await choose(csvFixture('chirp',{},Array.from({length:26},(_,i)=>({Location:String(i+2)}))),'many.csv');
    assert(id('csvTableBody').rows.length===25,'Preview bounded to 25 rows');id('csvNext').click();assert(id('csvTableBody').rows.length===2&&id('csvPage').textContent==='Rows 26–27 of 27','Next CSV page');
@@ -107,6 +107,24 @@ document.getElementById('start').onclick=async()=>{
    await choose('Channel Name;RX MHz;TX MHz;Mode;TX Tone;RX Tone\nCOMMON;145.5;144.9;FM;110.9;110.9','common.csv');assert(id('csvSummary').textContent.includes('Common channel columns · 1 valid'),'Generic columns supported');
    await choose(csvFixture('anytone',{Reverse:'On'}),'reverse.csv');assert(id('csvSummary').textContent.includes('0 valid · 1 excluded')&&id('appendApply').disabled&&id('csvTableBody').textContent.includes('Active AnyTone reverse'),'Active reverse cannot be silently lost');
    await choose('not,a,channel,file\n1,2,3,4','broken.csv');assert(id('appendApply').disabled&&!id('appendErrors').hidden,'Broken replacement blocks import');id('appendCancel').click();assert(!id('cell-100-rxFreq'),'No workspace mutation');
+  });
+  await check('Separate sidebar Import/Append controls replace CSV, TSV and HMK with consent and Undo',async()=>{
+   assert(h.d.querySelector('.side-section').contains(id('open'))&&h.d.querySelector('.side-section').contains(id('appendChannels')),'Both controls in left toolbar');
+   assert(id('open').textContent.includes('Import file')&&id('appendChannels').textContent.includes('Append channels'),'Distinct labels');
+   assert(id('file').accept==='.dat,.img,.csv,.tsv,.hmk','Import supports all formats');
+   assert(![...h.d.querySelectorAll('#content button')].some(b=>b.textContent.includes('Append')||b.textContent==='Import / append'),'No duplicate Channels toolbar control');
+   const exportBytes=async()=>{id('save').click();return new Uint8Array(await h.state.downloads.at(-1).arrayBuffer());};
+   const choose=async(format,ext)=>{const transfer=new h.w.DataTransfer();transfer.items.add(new h.w.File([csvFixture(format)],'import.'+ext));id('file').files=transfer.files;id('file').dispatchEvent(new h.w.Event('change',{bubbles:true}));await until(()=>id('appendDialog').open&&!id('csvReview').hidden&&id('appendRange').textContent!=='Reading channel file…','replacement preview');};
+   for(const [format,ext] of [['chirp','csv'],['kenwood','tsv'],['hmk','hmk']]){
+    const before=await exportBytes();[...h.d.querySelectorAll('#tabs button')].find(b=>b.textContent.includes('Optional settings')).click();
+    await choose(format,ext);assert(id('appendTitle').textContent==='Import channels'&&id('appendApply').disabled,'Replacement needs consent');
+    assert(id('appendPlacementField').hidden&&id('appendSkipRow').hidden,'Append options hidden during replacement');
+    id('replaceConfirm').click();id('appendApply').click();assert(!id('appendDialog').open&&id('pageTitle').textContent==='Channels','Import returns to Channels');
+    assert(id('cell-0-rxFreq').textContent==='145.50000'&&!id('cell-2-rxFreq')&&!id('cell-998-rxFreq'),'Only imported channels remain');
+    id('undoChannels').click();const after=await exportBytes();assert(before.length===after.length&&before.every((v,i)=>v===after[i]),'Undo restores exact configuration');
+   }
+   [...h.d.querySelectorAll('#tabs button')].find(b=>b.textContent.includes('VFO A / B')).click();id('appendChannels').click();assert(id('appendDialog').open&&id('appendTitle').textContent==='Append channels','Append available on VFO screen');id('appendCancel').click();
+   [...h.d.querySelectorAll('#tabs button')].find(b=>b.textContent.includes('Channels')).click();assert(h.state.fake.events.length===0,'File operations never connect');
   });
   await check('Factory column order, compact rows, striping and responsive overflow',async()=>{
    frame.style.width='1600px';await new Promise(resolve=>h.w.requestAnimationFrame(resolve));

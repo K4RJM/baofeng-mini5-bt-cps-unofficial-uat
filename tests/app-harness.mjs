@@ -19,7 +19,7 @@ import {simulatedRadio} from './simulate.mjs';
 import {schemas,fixture} from './fixtures.mjs';
 
 export async function appHarness({storage={getItem(){},setItem(){}}}={}){
- const nodes=new Map(),events=new Map(),connections=[],downloads=[],faults={};let radio;
+ const nodes=new Map(),events=new Map(),connections=[],downloads=[],confirmations=[],faults={};let radio;
  class Element{
   constructor(tag){this.tag=tag;this.children=[];this.dataset={};this.listeners={};this.value='';this.checked=false;this.classList={toggle(){},add(){},remove(){}};this.style={};this.scrollTop=0;this.scrollLeft=0;this.scrollHeight=2200;}
   set id(value){this._id=value;nodes.set(value,this);}get id(){return this._id;}
@@ -45,11 +45,11 @@ export async function appHarness({storage={getItem(){},setItem(){}}}={}){
   async connect(){connections.push(simulatedRadio(this,faults.transport));}
  }
  const previousDocument=globalThis.document;globalThis.document=document;
- const context=vm.createContext({readCsvFile,readImageFile,exportChirpImage,inlineChannelEdit,planChannelMove,channelKeys,mountChannelCell,document,window,navigator:{bluetooth:{},userAgent:'test-double'},localStorage:storage,structuredClone,Blob,Uint8Array,console,Date,URL:{createObjectURL(blob){downloads.push(blob);return 'mock';},revokeObjectURL(){}},setTimeout(){},setInterval(){},confirm:()=>true,fetch:async path=>({json:async()=>JSON.parse(fs.readFileSync(new URL('../'+path,import.meta.url)))}),...dat,...decoder,...channels,...fields,validateEdits,Writer:TestWriter,makePlan,verificationMessage,renderRadioTutorial,mountManuals,openChannelAppend,releaseAfterAcknowledgedWrite,decodeRadio:raw=>{if(faults.decode)throw Error('Injected decode failure');return decoder.decodeRadio(raw);}});
+ const context=vm.createContext({readCsvFile,readImageFile,exportChirpImage,inlineChannelEdit,planChannelMove,channelKeys,mountChannelCell,document,window,navigator:{bluetooth:{},userAgent:'test-double'},localStorage:storage,structuredClone,Blob,Uint8Array,console,Date,URL:{createObjectURL(blob){downloads.push(blob);return 'mock';},revokeObjectURL(){}},setTimeout(){},setInterval(){},confirm:message=>{confirmations.push(message);return faults.confirm!==false;},fetch:async path=>({json:async()=>JSON.parse(fs.readFileSync(new URL('../'+path,import.meta.url)))}),...dat,...decoder,...channels,...fields,validateEdits,Writer:TestWriter,makePlan,verificationMessage,renderRadioTutorial,mountManuals,openChannelAppend,releaseAfterAcknowledgedWrite,decodeRadio:raw=>{if(faults.decode)throw Error('Injected decode failure');return decoder.decodeRadio(raw);}});
  try{const source=fs.readFileSync(new URL('../app.mjs',import.meta.url),'utf8').replace(/^import .*$/gm,'');await vm.runInContext('(async()=>{'+source+'})()',context);}
  catch(error){globalThis.document=previousDocument;throw error;}
  return {
-  get,radio,connections,downloads,faults,document,
+  get,radio,connections,downloads,confirmations,faults,document,
   async open(data=fixture()){const bytes=dat.writeDat(data,schemas);get('file').files=[{name:'test.dat',size:bytes.length,arrayBuffer:async()=>bytes}];await get('file').onchange();},
   tab(name){get('tabs').querySelectorAll('button').find(button=>button.textContent.includes(name)).click();},
   row(index){return get('content').querySelectorAll('tr').find(row=>row.dataset.channelIndex===String(index));},

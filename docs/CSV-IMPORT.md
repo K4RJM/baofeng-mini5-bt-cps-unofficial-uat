@@ -1,8 +1,11 @@
-# Channel-list import — v20.31 UAT
+# Channel-list import — v20.32 UAT
 
-Choose **Channels → Import / append**, select a CSV, TSV or HMK file, review the channel rows and destination, then apply. This adds selected channels to empty slots, preserves existing channels and settings, and supports Undo. It never programs the radio automatically.
+Use the two file buttons in the left toolbar from any screen. Both accept DAT, IMG, CSV, TSV and HMK.
 
-Read the radio first to retain its current configuration. CSV lists can also be added to a blank workspace, but this does not satisfy the existing radio-read and identity requirements for programming. DAT/IMG appends still require a loaded configuration. The main Open command still opens DAT/IMG configurations.
+- **Import file:** DAT/IMG opens the complete configuration, replacing channels and radio settings after confirmation when work is already loaded. CSV/TSV/HMK opens a preview, replaces channels 1 onward with the selected records and clears the remaining editable slots. Existing radio settings and the reserved record stay intact. Confirm replacement when channels already exist; one Undo restores the previous channel list.
+- **Append channels:** Review selected channels and choose an empty destination. Existing channels and settings stay intact. Duplicate skipping, numbered blocks and Undo are retained.
+
+Read the radio first to retain its current configuration. Channel lists can also be imported or appended to a blank workspace, but do not grant radio-write permission. DAT/IMG append requires a loaded configuration. Neither button programs the radio automatically.
 
 ## Supported layouts
 
@@ -25,7 +28,7 @@ Comma, semicolon and tab separators, quoted fields, UTF-8, BOM-marked UTF-16 and
 ## Review before adding
 
 - Preview pages contain up to 25 rows. Select individual valid rows across pages; excluded rows show the reason. Importing the valid part of a file with errors requires acknowledgement.
-- Source channel numbers do not determine destination slots. Choose the next free consecutive slots or an available empty block. Existing placement and 999-channel safeguards remain in force.
+- Source channel numbers do not determine destination slots. For Append, choose the next free consecutive slots or an available empty block. Import replaces the channel list from channel 1 and retains duplicate rows as selected. Existing placement and 999-channel safeguards remain in force.
 - High/Low power is retained where unambiguous. Missing, inherited, numeric-watt or intermediate power uses the selected fallback, initially Low, with a note. High/Low does not establish a particular wattage or service eligibility.
 - FM/NFM channels are supported. Digital-only, AM, active reverse/talk-around, unsupported signaling and malformed tones are excluded. An FM-capable mixed-mode listing is imported as FM with a note.
 - Frequencies must pass the existing band and 1.25 kHz grid checks. Values are not rounded. Explicit transmit frequencies must agree with supplied offset information where the format requires both.
@@ -64,3 +67,8 @@ Checks cover all ten named layouts, common-column import, UTF-16 Kenwood TSV, ro
 Seventeen protected modules match the pre-change UAT source byte for byte; connection/read/write/reset handlers also match. No Bluetooth connection or physical-radio write was performed. The historical physical-radio evidence and unresolved firmware/reconnection limitations are unchanged. No new hardware compatibility claim is made by these file-import checks.
 
 LIVE was rechecked at `f425c0ca92db4b4131a02795b70f3c778f2e4b0e` (v20.28) and remains unchanged. UAT is ready for review. Restore the application state at `33b8b874d2f39f6482b60eb37a5ec23ec5583796` through a normal tested commit to roll back; do not force-push. This post-verification record follows the repository's documentation-only publication procedure and does not change the deployed application commit.
+
+
+## v20.32 toolbar update
+
+The toolbar relocation and channel-list replacement are limited to UAT. The pre-change rollback point is `c0c34528ee047f57adceb9548896137544120700` (v20.31 application `9b40e0815fc931c5c7090fea006beea52774ba35`). The existing converters, protected radio code and programming sequence are unchanged. Native-file replacement confirmation occurs after successful parsing, so an invalid file does not discard the workspace. Cancellation and late reads cannot apply a channel-list replacement.

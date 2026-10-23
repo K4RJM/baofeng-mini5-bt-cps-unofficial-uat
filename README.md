@@ -2,7 +2,7 @@
 
 Free, noncommercial browser software by K4RJM, hosted on GitHub Pages.
 
-**Version 20.31 UAT.** Open native DAT, CHIRP UV-5R Mini and legacy Mini 5 Studio images; export genuine CHIRP images. **Import / append** adds channels from DAT/IMG plus CSV, TSV and HMK lists with empty-slot previews, duplicate skipping and Undo, preserving the current radio settings. [Image compatibility, preservation limits and evidence](docs/IMG-COMPATIBILITY.md). [Channel-list formats, conversion rules and verification](docs/CSV-IMPORT.md). High-contrast text from v20.28 is retained. Compact channel editing and Radio & Help, all 23 button tutorials, expandable Known Firmware Limitations, and a locally hosted Ham-Rx PDF guide. The radio manual opens Baofeng’s official PDF in a new tab.
+**Version 20.32 UAT.** Open native DAT, CHIRP UV-5R Mini and legacy Mini 5 Studio images; export genuine CHIRP images. **Import file** and **Append channels** are separate left-toolbar buttons for DAT, IMG, CSV, TSV and HMK. Import opens DAT/IMG configurations or previews channel-list replacement; Append adds channels with empty-slot previews, duplicate skipping and Undo, preserving the current radio settings. [Image compatibility, preservation limits and evidence](docs/IMG-COMPATIBILITY.md). [Channel-list formats, conversion rules and verification](docs/CSV-IMPORT.md). High-contrast text from v20.28 is retained. Compact channel editing and Radio & Help, all 23 button tutorials, expandable Known Firmware Limitations, and a locally hosted Ham-Rx PDF guide. The radio manual opens Baofeng’s official PDF in a new tab.
 
 This is the permanent UAT repository. This file-interchange update is deployed to UAT for review; LIVE remains v20.28.
 

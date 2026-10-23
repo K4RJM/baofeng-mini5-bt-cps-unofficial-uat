@@ -86,7 +86,7 @@ test('bounded file reads support UTF-16 Kenwood and Windows-1252, and reject ove
 });
 test('actual import preview requires acknowledgement for rejected rows, preserves settings and supports selection/Undo',async()=>{
  const h=await appHarness();try{
-  await h.open();const before=await h.exported();h.button('Import / append').click();
+  await h.open();const before=await h.exported();h.get('appendChannels').click();
   h.get('appendDat').files=[file(csvFixture('chirp',{},[{Location:'2',Mode:'DV'}]))];await h.get('appendDat').onchange();
   assert.equal(h.get('csvReview').hidden,false);assert.equal(h.get('appendApply').disabled,true);assert.match(h.get('csvSummary').textContent,/1 valid · 1 excluded/);assert.deepEqual(await h.exported(),before);
   h.get('csvPartial').checked=true;h.get('csvPartial').onchange();h.get('appendPlacement').value='101';h.get('appendPlacement').onchange();assert.equal(h.get('appendApply').disabled,false);
@@ -98,9 +98,9 @@ test('actual import preview requires acknowledgement for rejected rows, preserve
 });
 test('blank-workspace CSV import does not grant radio-write permission; cancellation and malformed replacement retain workspace',async()=>{
  const h=await appHarness();try{
-  h.button('Import / append').click();h.get('appendDat').files=[file(csvFixture('kenwood'),'channels.tsv')];await h.get('appendDat').onchange();h.get('appendApply').click();
+  h.get('appendChannels').click();h.get('appendDat').files=[file(csvFixture('kenwood'),'channels.tsv')];await h.get('appendDat').onchange();h.get('appendApply').click();
   assert.equal((await h.exported()).channelList[0][0].rxFreq,'145.50000');assert.equal(h.get('writeRadio').disabled,true);const before=await h.exported();
-  h.button('Import / append').click();let finish;const f=file(csvFixture('hmk'),'channels.hmk');f.arrayBuffer=()=>new Promise(r=>finish=r);h.get('appendDat').files=[f];const pending=h.get('appendDat').onchange();h.get('appendCancel').click();finish(new TextEncoder().encode(csvFixture('hmk')));await pending;h.get('appendApply').click();assert.deepEqual(await h.exported(),before);
-  h.button('Import / append').click();h.get('appendDat').files=[file('wrong,columns\n1,2')];await h.get('appendDat').onchange();assert.equal(h.get('appendApply').disabled,true);assert.deepEqual(await h.exported(),before);assert.equal(h.connections.length,0);
+  h.get('appendChannels').click();let finish;const f=file(csvFixture('hmk'),'channels.hmk');f.arrayBuffer=()=>new Promise(r=>finish=r);h.get('appendDat').files=[f];const pending=h.get('appendDat').onchange();h.get('appendCancel').click();finish(new TextEncoder().encode(csvFixture('hmk')));await pending;h.get('appendApply').click();assert.deepEqual(await h.exported(),before);
+  h.get('appendChannels').click();h.get('appendDat').files=[file('wrong,columns\n1,2')];await h.get('appendDat').onchange();assert.equal(h.get('appendApply').disabled,true);assert.deepEqual(await h.exported(),before);assert.equal(h.connections.length,0);
  }finally{h.close();}
 });

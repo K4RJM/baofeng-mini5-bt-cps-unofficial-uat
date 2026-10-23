@@ -10,6 +10,7 @@ const fake=asyncRadio(makePlan(data,{'KDH.Function':f,...e}).target);
 Object.defineProperty(navigator,'bluetooth',{configurable:false,writable:false,value:fake.bluetooth});
 if(navigator.bluetooth!==fake.bluetooth)throw Error('Could not isolate Bluetooth');
 const state=window.f13={fake,bytes:writeDat(data,schemas),studioImage:imageFile(makePlan(data,{'KDH.Function':f,...e}).target),chirpImage:exportChirpImage(data,{'KDH.Function':f,...e}),downloads:[],ready:false,errors:[],mode:window.f13Mode};
+state.confirmations=[];state.confirmResult=true;window.confirm=message=>{state.confirmations.push(message);return state.confirmResult;};
 const originalCreate=URL.createObjectURL.bind(URL);URL.createObjectURL=blob=>{if(blob.type!=='text/javascript')state.downloads.push(blob);return originalCreate(blob);};
 document.addEventListener('click',event=>{if(event.target.closest('a[download]'))event.preventDefault();});
 window.addEventListener('error',event=>state.errors.push(event.message));window.addEventListener('unhandledrejection',event=>state.errors.push(String(event.reason)));
