@@ -42,7 +42,7 @@ File import makes no RepeaterBook or other live API calls and embeds no shared c
 
 All eleven supplied files were checked locally against expected receive/transmit frequencies and tones: 71 populated records. The ID-31 sample has one record; the other ten have seven each. The ADMS-7 sample also contains 493 empty numbered records. Original files and their channel data are not published. Public regression fixtures use invented records and the observed column layouts.
 
-Software checks cover conversion, malformed inputs, mixed valid/invalid files, encoding, selection, placement, settings preservation, cancellation, Undo and existing write guards. All 185 automated tests and 26 deployed-browser checks passed on the final candidate. No physical-radio write is performed for this release. K4RJM's earlier physical-radio evidence remains credited in [Testing & Compatibility](testing-compatibility.html); [audit dispositions](AUDIT-REMEDIATION.md) and F01/F03 limitations are unchanged.
+Software checks cover conversion, malformed inputs, mixed valid/invalid files, encoding, selection, placement, settings preservation, cancellation, Undo and existing write guards. The v20.31 release passed 185 automated tests and 26 deployed-browser checks. The v20.32 verification is recorded below. No physical-radio write is performed for this release. K4RJM's earlier physical-radio evidence remains credited in [Testing & Compatibility](testing-compatibility.html); [audit dispositions](AUDIT-REMEDIATION.md) and F01/F03 limitations are unchanged.
 
 ## Format references
 
@@ -72,3 +72,12 @@ LIVE was rechecked at `f425c0ca92db4b4131a02795b70f3c778f2e4b0e` (v20.28) and re
 ## v20.32 toolbar update
 
 The toolbar relocation and channel-list replacement are limited to UAT. The pre-change rollback point is `c0c34528ee047f57adceb9548896137544120700` (v20.31 application `9b40e0815fc931c5c7090fea006beea52774ba35`). The existing converters, protected radio code and programming sequence are unchanged. Native-file replacement confirmation occurs after successful parsing, so an invalid file does not discard the workspace. Cancellation and late reads cannot apply a channel-list replacement.
+
+
+## Verified v20.32 UAT release — October 23, 2026
+
+Deployed commit: `9e778f8f11dadd0a29ce69f7ac2bb1ad8aea88b1`. [Deployment 40009380914](https://github.com/K4RJM/baofeng-mini5-bt-cps-unofficial-uat/actions/runs/40009380914) succeeded. All **190 automated tests** and **27 deployed-browser checks** passed against `20.32-UAT.9e778f8`.
+
+The additional checks cover separate sidebar buttons, all five file extensions, import/append from other screens, CSV/TSV/HMK replacement, confirmation, exact Undo restoration, duplicate retention during replacement, 999-channel overflow rejection, reserved-record/settings preservation, native replacement cancellation, invalid-file retention, late-read cancellation and the blank-workspace write guard. Browser tests retain native DAT/CHIRP/Studio import/export, append placement and all existing safety checks. Manual desktop/phone review confirmed both buttons remain accessible, and the real file picker opens the channel-list replacement preview.
+
+Nineteen existing radio, placement and file-conversion modules are unchanged, along with connection/read/write/reset handlers. No physical-radio connection or write was performed. LIVE was rechecked at `f425c0ca92db4b4131a02795b70f3c778f2e4b0e` (v20.28) and remains unchanged. UAT rollback is `c0c34528ee047f57adceb9548896137544120700` (v20.31); restore it through a normal tested commit. This verification-only record follows the established post-publication documentation procedure and does not change the deployed application.
