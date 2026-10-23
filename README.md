@@ -2,9 +2,9 @@
 
 Free, noncommercial browser software by K4RJM, hosted on GitHub Pages.
 
-**Version 20.27.** Compact channel editing and Radio & Help, all 23 button tutorials, expandable Known Firmware Limitations, and a locally hosted Ham-Rx PDF guide. The radio manual opens Baofeng’s official PDF in a new tab.
+**Version 20.29 UAT.** Open native DAT, CHIRP UV-5R Mini and legacy Mini 5 Studio images; export genuine CHIRP images. [Image compatibility, preservation limits and evidence](docs/IMG-COMPATIBILITY.md). High-contrast text from v20.28 is retained. Compact channel editing and Radio & Help, all 23 button tutorials, expandable Known Firmware Limitations, and a locally hosted Ham-Rx PDF guide. The radio manual opens Baofeng’s official PDF in a new tab.
 
-This is the permanent UAT repository. K4RJM has authorized promotion of this release after successful UAT verification.
+This is the permanent UAT repository. This file-interchange update is deployed to UAT for review; LIVE remains v20.28.
 
 Click a channel cell to edit in place. Tab / Shift+Tab saves and moves between cells; Enter saves; Escape cancels an unsaved entry. Checkboxes and dropdowns save immediately. The explicit **Edit** button opens the full editor with Previous / Next navigation. **+ Add channel** starts at the first empty slot; **Ins Ch** inserts above the row.
 
@@ -14,7 +14,7 @@ New inline entries of 174 MHz and 520 MHz change to 173.99875 and 519.99875 MHz,
 
 Compact rows, alternating shading and factory CPS column order are retained. Desktop Channels keeps pagination visible and scrolls the table body. Narrow/short windows use a responsive fallback, with horizontal table scrolling. The header and interactive Help use the blue MINI-5 photograph supplied by K4RJM; the favicon is a simplified blue radio.
 
-Verification: 155 automated tests pass. The isolated browser suite contains 21 checks; deployed results are recorded in the release checkpoint. [Evidence and rollback](docs/CODEX-PROGRESS.md). No physical radio was accessed for this UI release.
+Verification for v20.29 is recorded in the image-compatibility release record, including offline CHIRP interoperability. The full regression and deployed-browser gates remain required. [Evidence and rollback](docs/CODEX-PROGRESS.md). No physical radio was accessed for this UI release.
 
 **Retained v20.23 update:** Ham-Rx Baofeng Mini-5 is the new name for Baofeng Mini 5 BT CPS – Unofficial. The Experimental designation is removed at K4RJM’s request; the programming-risk notice, verification and write protections remain. Existing URLs and native DAT files remain compatible. Radio programming behavior is unchanged.
 

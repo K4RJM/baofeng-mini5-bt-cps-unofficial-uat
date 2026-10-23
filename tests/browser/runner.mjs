@@ -1,3 +1,4 @@
+import {readImage} from '../../image-files.mjs?v=20.29';
 const root=new URL('../../',import.meta.url),results=document.getElementById('results'),status=document.getElementById('status');let frame;const builds=new Set();
 const assert=(value,message)=>{if(!value)throw Error(message);};
 const until=async(fn,label)=>{const end=Date.now()+15000;while(!fn()){if(Date.now()>end)throw Error('Timed out: '+label);await new Promise(r=>setTimeout(r,20));}};
@@ -6,14 +7,14 @@ async function fresh(mode='normal'){
  frame?.contentWindow.f13?.fake.close();frame?.remove();
  let html=await fetch(new URL('index.html',root),{cache:'no-store'}).then(r=>r.text());
  const match=html.match(/<script type="module" src="(app\.mjs[^\"]*)"><\/script>/);assert(match,'Actual application module exists');
- const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.22',root).href}"><\/script>`;
+ const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.29-img',root).href}"><\/script>`;
  html=html.replace('<head>','<head><base href="'+root.href+'">').replace(match[0],script);
  frame=document.createElement('iframe');frame.title='Isolated CPS test application';frame.setAttribute('allow',"bluetooth 'none'");frame.srcdoc=html;document.getElementById('workspace').append(frame);
  await until(()=>frame.contentWindow.f13?.ready||frame.contentWindow.f13?.failed,'application bootstrap');
  const badge=frame.contentDocument.querySelector('.build-badge')?.textContent;builds.add(badge||'Version unavailable');document.getElementById('build').textContent='Tested: '+[...builds].join(' / ');return {w:frame.contentWindow,d:frame.contentDocument,state:frame.contentWindow.f13};
 }
 async function load(h){const transfer=new h.w.DataTransfer();transfer.items.add(new h.w.File([h.state.bytes],'browser-test.dat'));h.d.getElementById('file').files=transfer.files;h.d.getElementById('file').dispatchEvent(new h.w.Event('change',{bubbles:true}));await until(()=>h.d.getElementById('file').value===''&&!h.d.getElementById('open').disabled&&h.d.getElementById('sourceTag').textContent==='CPS file loaded','native DAT load finished');}
-async function busyCheck(h){h.state.fake.faults.holdRead=true;h.d.getElementById('readRadio').click();await until(()=>h.state.fake.reads===1,'held read');const row=h.d.querySelector('[data-channel-index="0"]');h.d.getElementById('help').focus();row.querySelector('[data-field]').focus();assert(h.d.getElementById('content').inert&&h.d.getElementById('tabs').inert,'Busy workspace must be inert');assert(!row.contains(h.d.activeElement),'Inert row must refuse focus');assert(h.d.getElementById('open').disabled&&h.d.getElementById('save').disabled,'File controls must be disabled during the read');}
+async function busyCheck(h){h.state.fake.faults.holdRead=true;h.d.getElementById('readRadio').click();await until(()=>h.state.fake.reads===1,'held read');const row=h.d.querySelector('[data-channel-index="0"]');h.d.getElementById('help').focus();row.querySelector('[data-field]').focus();assert(h.d.getElementById('content').inert&&h.d.getElementById('tabs').inert,'Busy workspace must be inert');assert(!row.contains(h.d.activeElement),'Inert row must refuse focus');assert(h.d.getElementById('open').disabled&&h.d.getElementById('save').disabled&&h.d.getElementById('saveImg').disabled,'File controls must be disabled during the read');}
 document.getElementById('start').onclick=async()=>{
  const start=document.getElementById('start');start.disabled=true;results.replaceChildren();status.textContent='Running';let failed=0;
  const check=async(name,fn)=>{try{await fn();record(name,true);}catch(e){failed++;record(name,false,e.message);}};
@@ -41,6 +42,18 @@ document.getElementById('start').onclick=async()=>{
    id('highContrast').click();assert(id('highContrast').getAttribute('aria-pressed')==='false','Toggle restores ordinary appearance');
    id('theme').value='system';id('theme').dispatchEvent(new h.w.Event('change'));
    assert(h.state.fake.events.length===0,'Appearance never connects to a radio');
+  });
+  await check('CHIRP and Studio imports, CHIRP download and failed-import retention',async()=>{
+   assert(id('file').accept==='.dat,.img'&&id('saveImg'),'Image controls exist in the actual HTML');
+   const open=async(bytes,name)=>{const t=new h.w.DataTransfer();t.items.add(new h.w.File([bytes],name));id('file').files=t.files;id('file').dispatchEvent(new h.w.Event('change',{bubbles:true}));await until(()=>!id('open').disabled&&id('file').value==='','image load');};
+   for(const [bytes,label] of [[h.state.studioImage,'Mini 5 Studio'],[h.state.chirpImage,'CHIRP']]){
+    await open(bytes,'browser.img');assert(id('sourceTag').textContent===label+' image loaded','Image recognized: '+label);
+    assert(id('cell-998-rxFreq').textContent==='146.52000','Channel 999 imported');
+    id('saveImg').click();assert(h.state.downloads.length,'Image download requested');
+    const saved=readImage(new Uint8Array(await h.state.downloads.at(-1).arrayBuffer()));assert(saved.data.channelList[0][998].name==='BROWSER 999','Export retains last channel');
+   }
+   await open(new Uint8Array(4),'broken.img');assert(id('sourceTag').textContent==='CHIRP image loaded','Failed import retains prior workspace');
+   assert(h.state.fake.events.length===0,'File operations never connect');
   });
   await check('Native DAT import uses actual File / input events and never connects',async()=>{await load(h);assert(h.state.fake.sent.length===0&&h.state.fake.events.length===0,'File import must not contact radio');assert(h.d.querySelector('[data-channel-index="998"]'),'Channel 999 is displayed');});
   await check('Factory column order, compact rows, striping and responsive overflow',async()=>{
