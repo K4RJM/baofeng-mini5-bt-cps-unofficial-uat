@@ -39,3 +39,11 @@ Existing [audit dispositions](AUDIT-REMEDIATION.md), [factory-compatible reconst
 ## Deployment and rollback
 
 UAT only. Baseline UAT `62d92f3cb583acd1c426d07bb81f19e971f6ccf5` (application v20.28). LIVE remains v20.28 at `4f5e789e29333f659665ea94ba1a5900b914220c`, with documentation head `f425c0ca92db4b4131a02795b70f3c778f2e4b0e`. Roll back the UAT file-interchange patch through a normal tested commit; do not force-push or copy UAT deployment configuration to LIVE.
+
+## Verified UAT release — October 23, 2026
+
+Application commit: `36eaea5a7cfe1025024cccd51ee2f3b2594a7ce7`. [Deployment 39906603120](https://github.com/K4RJM/baofeng-mini5-bt-cps-unofficial-uat/actions/runs/39906603120) succeeded. All **163 automated tests** and **23 actual-browser checks** passed. The browser checks cover both image imports, a CHIRP download, invalid-import retention, original DAT workflows, high contrast, all editable channel fields, and existing safety protections.
+
+The actual CHIRP loader passed six independent offline cases: all five supplied captures and an edited 43-channel image with channel 999 populated. Frequencies, names, power, bandwidth and scan inclusion matched. CHIRP saved each image, and Ham-Rx reimported every memory byte unchanged. All 16 protected modules and connection/read/write/reset handlers remain unchanged. No private capture content is published.
+
+LIVE head was rechecked and remains `f425c0ca92db4b4131a02795b70f3c778f2e4b0e`. UAT is ready for review; LIVE promotion is not part of this deployment.

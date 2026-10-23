@@ -14,7 +14,7 @@ New inline entries of 174 MHz and 520 MHz change to 173.99875 and 519.99875 MHz,
 
 Compact rows, alternating shading and factory CPS column order are retained. Desktop Channels keeps pagination visible and scrolls the table body. Narrow/short windows use a responsive fallback, with horizontal table scrolling. The header and interactive Help use the blue MINI-5 photograph supplied by K4RJM; the favicon is a simplified blue radio.
 
-Verification for v20.29 is recorded in the image-compatibility release record, including offline CHIRP interoperability. The full regression and deployed-browser gates remain required. [Evidence and rollback](docs/CODEX-PROGRESS.md). No physical radio was accessed for this UI release.
+Verification: all 163 automated tests and all 23 deployed browser checks passed, plus six offline interoperability cases using CHIRP’s actual loader. [v20.29 evidence and rollback](docs/IMG-COMPATIBILITY.md). [Evidence and rollback](docs/CODEX-PROGRESS.md). No physical radio was accessed for this UI release.
 
 **Retained v20.23 update:** Ham-Rx Baofeng Mini-5 is the new name for Baofeng Mini 5 BT CPS – Unofficial. The Experimental designation is removed at K4RJM’s request; the programming-risk notice, verification and write protections remain. Existing URLs and native DAT files remain compatible. Radio programming behavior is unchanged.
 
