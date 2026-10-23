@@ -39,7 +39,7 @@ File import makes no RepeaterBook or other live API calls and embeds no shared c
 
 All eleven supplied files were checked locally against expected receive/transmit frequencies and tones: 71 populated records. The ID-31 sample has one record; the other ten have seven each. The ADMS-7 sample also contains 493 empty numbered records. Original files and their channel data are not published. Public regression fixtures use invented records and the observed column layouts.
 
-Software checks cover conversion, malformed inputs, mixed valid/invalid files, encoding, selection, placement, settings preservation, cancellation, Undo and existing write guards. Release totals and deployed checks will be recorded after completion. No physical-radio write is performed for this release. K4RJM's earlier physical-radio evidence remains credited in [Testing & Compatibility](testing-compatibility.html); [audit dispositions](AUDIT-REMEDIATION.md) and F01/F03 limitations are unchanged.
+Software checks cover conversion, malformed inputs, mixed valid/invalid files, encoding, selection, placement, settings preservation, cancellation, Undo and existing write guards. All 185 automated tests and 26 deployed-browser checks passed on the final candidate. No physical-radio write is performed for this release. K4RJM's earlier physical-radio evidence remains credited in [Testing & Compatibility](testing-compatibility.html); [audit dispositions](AUDIT-REMEDIATION.md) and F01/F03 limitations are unchanged.
 
 ## Format references
 
@@ -53,3 +53,14 @@ Adapters were written for Ham-Rx using the supplied layouts and independently ch
 ## Deployment and rollback
 
 UAT only. Pre-change rollback: `33b8b874d2f39f6482b60eb37a5ec23ec5583796` (v20.30 application `f372dd2dff150524427cf13f85acfbe112e5146b`). LIVE remains v20.28 at `f425c0ca92db4b4131a02795b70f3c778f2e4b0e`. Follow the existing [rollback procedure](DEPLOYMENT.md); do not promote this feature without approval.
+
+
+## Verified v20.31 UAT release — October 23, 2026
+
+Application commit: `9b40e0815fc931c5c7090fea006beea52774ba35`. [Deployment 39993726837](https://github.com/K4RJM/baofeng-mini5-bt-cps-unofficial-uat/actions/runs/39993726837) succeeded. All **185 automated tests** and **26 deployed-browser checks** passed. The final browser run identified `20.31-UAT.9b40e08`.
+
+Checks cover all ten named layouts, common-column import, UTF-16 Kenwood TSV, row paging/selection, explicit partial-import acknowledgement, fallback power, active-reverse rejection, malformed-file retention, settings preservation, native DAT/IMG compatibility, placement, duplicate skipping, Undo, light/dark appearance, phone layouts and existing programming protections. A separate manual file-picker check and desktop/phone visual review confirmed the preview and reachable confirmation controls. All eleven original samples were rechecked against expected frequencies and tones after the final conversion change: 71 records, no rejected rows.
+
+Seventeen protected modules match the pre-change UAT source byte for byte; connection/read/write/reset handlers also match. No Bluetooth connection or physical-radio write was performed. The historical physical-radio evidence and unresolved firmware/reconnection limitations are unchanged. No new hardware compatibility claim is made by these file-import checks.
+
+LIVE was rechecked at `f425c0ca92db4b4131a02795b70f3c778f2e4b0e` (v20.28) and remains unchanged. UAT is ready for review. Restore the application state at `33b8b874d2f39f6482b60eb37a5ec23ec5583796` through a normal tested commit to roll back; do not force-push. This post-verification record follows the repository's documentation-only publication procedure and does not change the deployed application commit.
