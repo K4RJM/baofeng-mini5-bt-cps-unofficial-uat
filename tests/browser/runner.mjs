@@ -45,7 +45,7 @@ document.getElementById('start').onclick=async()=>{
    assert(h.state.fake.events.length===0,'Appearance never connects to a radio');
   });
   await check('CHIRP and Studio imports, CHIRP download and failed-import retention',async()=>{
-   assert(id('file').accept==='.dat,.img'&&id('saveImg'),'Image controls exist in the actual HTML');
+   assert(['.dat','.img'].every(ext=>id('file').accept.split(',').includes(ext))&&id('saveImg'),'Native image controls remain available alongside channel-list formats');
    const open=async(bytes,name)=>{const t=new h.w.DataTransfer();t.items.add(new h.w.File([bytes],name));id('file').files=t.files;id('file').dispatchEvent(new h.w.Event('change',{bubbles:true}));await until(()=>!id('open').disabled&&id('file').value==='','image load');};
    for(const [bytes,label] of [[h.state.studioImage,'Mini 5 Studio'],[h.state.chirpImage,'CHIRP']]){
     await open(bytes,'browser.img');assert(id('sourceTag').textContent===label+' image loaded','Image recognized: '+label);
