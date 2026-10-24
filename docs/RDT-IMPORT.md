@@ -48,7 +48,7 @@ Both preserve 17 receive-only channels. Every one of the 661 imported D168UV cha
 
 Four complete native DAT save/reopen checks passed across actual RDT import/append results, preserving optional settings, VFOs, DTMF and the reserved 1,000th file record. Input files and original workspaces were unchanged. Synthetic tests cover both layouts, shifted tables, renamed/sparse channels, ambiguity, truncation, invalid headers/counts/IDs, unsupported flags, offsets, tones, receive-only, digital filtering, all-digital files, cancellation, 999-channel limits, confirmation, Undo and write guards.
 
-The complete automated suite passes 202 tests. The deployed browser gate must also pass before promotion; final deployment evidence is recorded below after verification. No new physical-radio writes were performed. Earlier physical MINI-5 evidence remains credited in [Testing & Compatibility](testing-compatibility.html).
+The complete automated suite passes 202 tests. All 28 deployed browser checks passed on both UAT and LIVE. Final deployment evidence is recorded below. No new physical-radio writes were performed. Earlier physical MINI-5 evidence remains credited in [Testing & Compatibility](testing-compatibility.html).
 
 ## Independent references and credit
 
@@ -62,3 +62,16 @@ The complete automated suite passes 202 tests. The deployed browser gate must al
 K4RJM authorized LIVE publication after UAT checks on October 24, 2026. This promotion includes the related v20.29–20.32 image/channel-list foundation and v20.33 RDT/filtering work; it excludes UAT workflow/stamping configuration and unrelated historical documentation changes.
 
 Pre-release UAT head: `ebd780fdded13371f5c990c9cae8a72b92e2e643` (v20.32 app `9e778f8f11dadd0a29ce69f7ac2bb1ad8aea88b1`). Pre-release LIVE head: `f425c0ca92db4b4131a02795b70f3c778f2e4b0e` (v20.28 app `4f5e789e29333f659665ea94ba1a5900b914220c`). Restore the appropriate environment's source through a new revert commit and the normal tested deployment workflow; do not force-push or exchange environment workflows.
+
+## Verified publication
+
+Both deployments succeeded on October 24, 2026. The release tag [v20.33](https://github.com/K4RJM/baofeng-mini5-bt-cps-unofficial/releases/tag/v20.33) points to the verified LIVE application commit.
+
+| Environment | Application commit | Pages workflow | Deployed browser result |
+| --- | --- | --- | --- |
+| UAT | `63327af90cd8651792902658e85359285fb67e80` | [40131234207](https://github.com/K4RJM/baofeng-mini5-bt-cps-unofficial-uat/actions/runs/40131234207) | 28/28 passed |
+| LIVE | `988db9d5163f93547c97cd449cfa4e03560f9b70` | [40131446330](https://github.com/K4RJM/baofeng-mini5-bt-cps-unofficial/actions/runs/40131446330) | 28/28 passed |
+
+The exact UAT and composed LIVE source candidates each passed all 202 automated tests and public-artifact packaging. Their GitHub Actions test/package/deploy jobs also passed. The browser suites covered every import format, replacement confirmation, appending, digital filtering, all-digital refusal, Undo, editing geometry, keyboard behavior, responsive layouts, manuals and simulated write safeguards. A separate LIVE file-picker check imported a synthetic RDT, displayed one analog row with one digital channel filtered and both VFO records omitted, applied it and restored the empty workspace with Undo.
+
+Seventeen protected production modules and the radio-action handler section are unchanged from LIVE v20.28. LIVE retains its own workflow; UAT retains its separate version stamping. Personal codeplugs were not published. Documentation-only evidence commits after these application commits do not alter the verified deployment.
