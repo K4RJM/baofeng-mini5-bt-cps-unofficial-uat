@@ -134,7 +134,9 @@ function bandwidth(value,notes){const v=upper(value).replace(/[\s]/g,'');if(['FM
  if(!v){notes.push('Bandwidth not specified; using Wide FM.');return 0;}fail('Unsupported bandwidth or mode: '+value+'.');
 }
 function analog(mode,mixed,notes){const m=upper(mode);if(['FM','NFM','FMN','FM NARROW','ANALOG','ANALOGUE','A-ANALOG'].includes(m))return;
- if(mixed&&/(^|\s)FM(?=\s|$)/.test(m)){notes.push('Mixed-mode repeater: FM only.');return;}fail('Unsupported digital or non-FM mode: '+(mode||'unspecified')+'.');}
+ if(mixed&&/(^|\s)FM(?=\s|$)/.test(m)){notes.push('Mixed-mode repeater: FM only.');return;}
+ if(/(?:^|[^A-Z0-9])(?:D-DIGITAL|DIGITAL|DMR|DV|D-STAR|DSTAR|C4FM|DN|VW|NXDN|P25|DPMR|YSF|FUSION)(?:$|[^A-Z0-9])/.test(m)||['A+D TX A','D+A TX D'].includes(m)){const error=Error('Digital channel filtered out.');error.skipDigital=true;throw error;}
+ fail('Unsupported non-FM mode: '+(mode||'unspecified')+'.');}
 
 function convert(profile,cells,options,charset,defaultPower){
  const notes=[],ch=emptyChannel(),choices=new Set(options['KDH.Channel'].strRxCtsDcs.map(x=>x[0]));
@@ -212,17 +214,17 @@ export function importChannelCsv(text,{options,charset,defaultPower=1}={}){
   const lines=clean.split(/\r\n|\n|\r/),start=lines.findIndex(l=>l.trim()==='// Memory Channels');if(start<0)fail('Kenwood HMK memory section is missing.');
   const end=lines.findIndex((l,i)=>i>start&&l.startsWith('//'));lineOffset=start+1;text=lines.slice(start+1,end<0?undefined:end).join('\n');
  }
- const parsed=parseCsv(text),profile=identify(parsed.rows);let emptyRows=0;
+ const parsed=parseCsv(text),profile=identify(parsed.rows);let emptyRows=0,skippedDigital=0;
  const rows=[];for(const record of profile.records){
   // ADMS exports include numbered blank memory rows; don't turn them into errors.
   if(profile.id==='adms'&&!record.cells[1]&&record.cells.slice(1,53).every(c=>!c.trim())){emptyRows++;continue;}
   try{if(profile.heads&&record.cells.length!==profile.heads.length)fail('Column count does not match the header.');const converted=convert(profile,record.cells,options,charset,defaultPower);rows.push({line:record.line+lineOffset,...converted,error:''});}
-  catch(e){rows.push({line:record.line+lineOffset,sourceName:'',channel:null,notes:[],error:e.message});}
+  catch(e){if(e.skipDigital){skippedDigital++;continue;}rows.push({line:record.line+lineOffset,sourceName:'',channel:null,notes:[],error:e.message});}
  }
- if(!rows.length)fail('No populated channel rows were found.');
- const notes=['Only analog channel fields are imported. Source channel numbers, comments, locations, contacts, zones and digital settings are not copied.','Missing scan inclusion defaults to Include. Missing or unrepresentable power uses the selected fallback. Other MINI-5 signaling options start Off.'];
+ if(!rows.length&&!skippedDigital)fail('No populated channel rows were found.');
+ const notes=['Digital channels are filtered out automatically. Only analog channel fields are imported. Source channel numbers, comments, locations, contacts, zones and digital settings are not copied.','Missing scan inclusion defaults to Include. Missing or unrepresentable power uses the selected fallback. Other MINI-5 signaling options start Off.'];
  if(profile.mapping)notes.unshift('Mapped columns: '+Object.entries(profile.mapping).map(([k,i])=>k+' = '+profile.originalHeads[i]).join('; ')+'.');
- return {kind:'csv',format:profile.label,rows,emptyRows,channels:rows.filter(r=>r.channel).map(r=>r.channel),notes};
+ return {kind:'csv',format:profile.label,rows,emptyRows,skippedDigital,channels:rows.filter(r=>r.channel).map(r=>r.channel),notes};
 }
 
 export async function readCsvFile(file,settings){

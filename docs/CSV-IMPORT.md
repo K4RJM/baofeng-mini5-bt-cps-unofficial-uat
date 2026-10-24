@@ -1,5 +1,7 @@
 # Channel-list import — v20.32 UAT
 
+**v20.33 update:** Digital channels are now filtered out before the selectable preview, with a separate summary count. Digital exclusions alone require no acknowledgement; other invalid analog rows still do. Import and Append also accept [supported AnyTone RDT files](RDT-IMPORT.md).
+
 Use the two file buttons in the left toolbar from any screen. Both accept DAT, IMG, CSV, TSV and HMK.
 
 - **Import file:** DAT/IMG opens the complete configuration, replacing channels and radio settings after confirmation when work is already loaded. CSV/TSV/HMK opens a preview, replaces channels 1 onward with the selected records and clears the remaining editable slots. Existing radio settings and the reserved record stay intact. Confirm replacement when channels already exist; one Undo restores the previous channel list.

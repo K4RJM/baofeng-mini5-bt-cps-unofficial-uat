@@ -19,8 +19,8 @@ export function openChannelAppend({mode='preset',initialFile=null,getData,readFi
  $('appendPresetField').hidden=isDat;$('appendDatField').hidden=!isDat;$('appendTransmitRow').hidden=isDat;$('appendRepeaterField').hidden=isDat;
  $('appendPlacementField').hidden=replacing;$('appendSkipRow').hidden=replacing;$('replaceConfirmRow').hidden=true;$('replaceConfirm').checked=false;
  $('appendApply').textContent=replacing?'Replace channels':'Add to channels';
- $('appendFileLabel').textContent=replacing?'Channel list (.csv, .tsv or .hmk)':'Channel file (.dat, .img, .csv, .tsv or .hmk)';
- $('appendDat').accept=replacing?'.csv,.tsv,.hmk':'.dat,.img,.csv,.tsv,.hmk';
+ $('appendFileLabel').textContent=replacing?'Channel list (.csv, .tsv, .hmk or .rdt)':'Channel file (.dat, .img, .csv, .tsv, .hmk or .rdt)';
+ $('appendDat').accept=replacing?'.csv,.tsv,.hmk,.rdt':'.dat,.img,.csv,.tsv,.hmk,.rdt';
  $('appendPreset').replaceChildren(...PRESETS.map(p=>option(p.key,p.label)));$('appendPreset').value='shared';
  $('appendPlacement').value='next';$('appendSkip').checked=true;$('appendPower').value='1';$('appendRepeaters').checked=false;$('appendDat').value='';
  $('csvReview').hidden=true;$('csvPower').value='1';$('csvPartial').checked=false;dialog.classList.remove('csv-import-dialog');
@@ -29,16 +29,16 @@ export function openChannelAppend({mode='preset',initialFile=null,getData,readFi
  const renderCsv=()=>{
   $('csvReview').hidden=!csv;dialog.classList.toggle('csv-import-dialog',!!csv);if(!csv)return;
   const rejected=csv.rows.filter(r=>r.error).length;
-  $('csvSummary').textContent=csv.format+' · '+csv.channels.length+' valid · '+rejected+' excluded · '+csv.emptyRows+' empty rows ignored';
+  $('csvSummary').textContent=csv.format+' · '+csv.channels.length+' valid · '+rejected+' excluded · '+csv.emptyRows+' empty rows ignored'+(csv.skippedDigital?' · '+csv.skippedDigital+' digital filtered':'')+(csv.skippedVfo?' · '+csv.skippedVfo+' VFO records omitted':'');
   $('csvPartialRow').hidden=!rejected;$('csvNotes').textContent=csv.notes.join(' ');
   $('csvTableBody').replaceChildren();csvPage=Math.max(0,Math.min(csvPage,Math.ceil(csv.rows.length/25)-1));
   for(let i=csvPage*25;i<Math.min(csv.rows.length,(csvPage+1)*25);i++){
-   const r=csv.rows[i],c=r.channel,row=document.createElement('tr'),cell=document.createElement('td'),check=document.createElement('input');check.type='checkbox';check.checked=chosen.has(i);check.disabled=!c;check.setAttribute('aria-label','Include CSV line '+r.line);check.onchange=()=>{check.checked?chosen.add(i):chosen.delete(i);update();};cell.append(check);row.append(cell);
+   const r=csv.rows[i],c=r.channel,row=document.createElement('tr'),cell=document.createElement('td'),check=document.createElement('input');check.type='checkbox';check.checked=chosen.has(i);check.disabled=!c;check.setAttribute('aria-label',(csv.kind==='rdt'?'Include source channel ':'Include CSV line ')+r.line);check.onchange=()=>{check.checked?chosen.add(i):chosen.delete(i);update();};cell.append(check);row.append(cell);
    const texts=[r.line,c?.name||'—',c?.rxFreq||'—',c?.strRxCtsDcs||'—',c?(c.txFreq||'Off'):'—',c?.strTxCtsDcs||'—',c?(c.txPower?'Low':'High'):'—',c?(c.bandwide?'Narrow':'Wide'):'—',c?(c.scanAdd?'Include':'Skip'):'—',r.error||r.notes.join(' ')||'Ready'];
    for(const text of texts){const td=document.createElement('td');td.textContent=String(text);row.append(td);}
    row.children[2].title=r.sourceName;row.classList.toggle('csv-rejected',!!r.error);$('csvTableBody').append(row);
   }
-  $('csvPage').textContent='Rows '+(csvPage*25+1)+'–'+Math.min(csv.rows.length,(csvPage+1)*25)+' of '+csv.rows.length;
+  $('csvPage').textContent=!csv.rows.length?'No analog channels to import':'Rows '+(csvPage*25+1)+'–'+Math.min(csv.rows.length,(csvPage+1)*25)+' of '+csv.rows.length;
   $('csvPrevious').disabled=csvPage===0;$('csvNext').disabled=(csvPage+1)*25>=csv.rows.length;
  };
  const update=()=>{
@@ -66,8 +66,8 @@ export function openChannelAppend({mode='preset',initialFile=null,getData,readFi
  const chooseFile=async file=>{
   if(!file)return;const request=++generation;imported=null;fileError='';loading=true;csv=null;csvFile=null;chosen.clear();csvPage=0;$('csvPartial').checked=false;$('replaceConfirm').checked=false;renderCsv();update();
   $('appendFileLabel').textContent=(replacing?'Channel list: ':'Channel file: ')+file.name;
-  try{if(!(replacing?/\.(csv|tsv|hmk)$/i:/\.(dat|img|csv|tsv|hmk)$/i).test(file.name))throw Error(replacing?'Choose CSV, TSV or HMK here. Use Import file for a complete DAT/IMG configuration.':'Choose a native CPS .dat, MINI-5 .img or supported CSV / TSV / HMK file.');const next=await readFile(file,{defaultPower:Number($('csvPower').value)});if(closed||request!==generation)return;
-   if(next.kind==='csv'){csv=next;csvFile=file;imported=next.channels;chosen=new Set(next.rows.flatMap((r,i)=>r.channel?[i]:[]));renderCsv();}else imported=datChannels(next);}
+  try{if(!(replacing?/\.(csv|tsv|hmk|rdt)$/i:/\.(dat|img|csv|tsv|hmk|rdt)$/i).test(file.name))throw Error(replacing?'Choose CSV, TSV, HMK or supported AnyTone RDT here. Use Import file for a complete DAT/IMG configuration.':'Choose a native CPS .dat, MINI-5 .img or supported CSV / TSV / HMK / RDT file.');const next=await readFile(file,{defaultPower:Number($('csvPower').value)});if(closed||request!==generation)return;
+   if(next.kind==='csv'||next.kind==='rdt'){csv=next;csvFile=file;imported=next.channels;chosen=new Set(next.rows.flatMap((r,i)=>r.channel?[i]:[]));renderCsv();}else imported=datChannels(next);}
   catch(e){if(closed||request!==generation)return;fileError='File not loaded. '+e.message;}
   finally{if(!closed&&request===generation){loading=false;update();}}
  };

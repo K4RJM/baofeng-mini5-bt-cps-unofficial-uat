@@ -87,7 +87,7 @@ test('bounded file reads support UTF-16 Kenwood and Windows-1252, and reject ove
 test('actual import preview requires acknowledgement for rejected rows, preserves settings and supports selection/Undo',async()=>{
  const h=await appHarness();try{
   await h.open();const before=await h.exported();h.get('appendChannels').click();
-  h.get('appendDat').files=[file(csvFixture('chirp',{},[{Location:'2',Mode:'DV'}]))];await h.get('appendDat').onchange();
+  h.get('appendDat').files=[file(csvFixture('chirp',{},[{Location:'2',Mode:'AM'}]))];await h.get('appendDat').onchange();
   assert.equal(h.get('csvReview').hidden,false);assert.equal(h.get('appendApply').disabled,true);assert.match(h.get('csvSummary').textContent,/1 valid · 1 excluded/);assert.deepEqual(await h.exported(),before);
   h.get('csvPartial').checked=true;h.get('csvPartial').onchange();h.get('appendPlacement').value='101';h.get('appendPlacement').onchange();assert.equal(h.get('appendApply').disabled,false);
   h.get('csvPower').value='0';await h.get('csvPower').onchange();h.get('appendApply').click();const after=await h.exported();
