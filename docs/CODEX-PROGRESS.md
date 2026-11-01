@@ -2,7 +2,7 @@
 
 - Diagnostic release for distinct physical reports: GM-30 Pro gives zero opening-command response bytes; UV-32 disconnects while finding the radio service, before any handshake command.
 - Added stage-specific downloadable connection reports, supported GATT send-method selection and characteristic/notification timing evidence. No automatic method fallback or identification retry.
-- Validation and publication status: [RELEASE-20.35.md](RELEASE-20.35.md). The 30-check browser suite still needs execution on this build; v20.34's 29/29 result remains recorded below.
+- Published UAT application: `14530dc239eff3bce9eb05644eb5df5c3df7dd2d`, build **20.35-UAT.14530dc**. Pages run **41315061248** succeeded; **218/218 tests passed** locally and in CI. [Release record](RELEASE-20.35.md). The 30-check browser suite still needs execution on this build; v20.34's 29/29 result remains recorded below.
 - MINI-5 protocol, memory, codec and programming/recovery behavior unchanged. No physical radio operation performed by the development agent. Neither new model is claimed fixed or ready for memory programming.
 - UAT rollback source: f511f7fed5860313bf76e56a03f6b976171cffd8 (deployed app d1c7ae96b99dda5bdf8b7f89bd2f3f8b97594797).
 - LIVE stays v20.33, main 7a9b363a0fb643e188bb4c3b3917bb9f6cc78cd8. UAT only.

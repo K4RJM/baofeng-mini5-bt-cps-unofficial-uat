@@ -16,13 +16,13 @@ Automated suite: **218 tests passed**, zero failures, skips or TODOs. Six new au
 
 The isolated browser suite now contains 30 checks. Its new case checks failure-report downloads, stage visibility, send-method selection, busy controls and no fallback/retry. A v20.35 browser result is pending; the 29/29 result for v20.34 is preserved separately and is not reused. This environment currently cannot access the browser for execution, so the deployed suite must be run and its exact build/result recorded.
 
-Existing MINI-5 reader, writer, memory map, encoder/decoder, connection recovery and write protections are unchanged. Source and packaged protected-core hashes must match the v20.34 baseline before publication. No physical radio was accessed by the development agent.
+Existing MINI-5 reader, writer, memory map, encoder/decoder, connection recovery and write protections are unchanged. All 16 checked protected modules match the v20.34 source baseline byte for byte, and their packaged copies match the source. app.mjs differs from its baseline only by the version string before the UAT overlay. No physical radio was accessed by the development agent.
 
 GM-30 Pro and UV-32 connection/identification remain unresolved pending new physical reports. Full channel/settings programming for these models is outside this release.
 
 ## Deployment and rollback
 
-Target: [UAT](https://k4rjm.github.io/baofeng-mini5-bt-cps-unofficial-uat/), using the repository's existing test-and-Pages workflow. The source commit is recorded in the deployed build badge and deployment.json; final workflow evidence will be added after publication.
+Target: [UAT](https://k4rjm.github.io/baofeng-mini5-bt-cps-unofficial-uat/), using the repository's existing test-and-Pages workflow. Application commit: `14530dc239eff3bce9eb05644eb5df5c3df7dd2d`, build **20.35-UAT.14530dc**. [Pages workflow 41315061248](https://github.com/K4RJM/baofeng-mini5-bt-cps-unofficial-uat/actions/runs/41315061248) completed successfully. Its test job independently passed all 218 tests and packaged that exact build. The source revision is embedded in the build badge and deployment.json. Direct page retrieval and interactive browser execution were unavailable in this session; the 30 browser checks remain pending. This post-deployment documentation record uses [skip ci] and does not redeploy the application.
 
 UAT rollback source: `f511f7fed5860313bf76e56a03f6b976171cffd8`; previously deployed application: `d1c7ae96b99dda5bdf8b7f89bd2f3f8b97594797` (20.34-UAT.d1c7ae9). Restore the prior UAT tree through a normal commit and the same test/deploy workflow. Do not force-push.
 
