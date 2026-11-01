@@ -3,7 +3,7 @@
 - UV-32 now has a physical connection and opening-exchange report (`00`, not ACK `06`); successful identification remains unverified. GM-30 Pro file (2) duplicates the v20.34 report and is not new evidence.
 - Corrected terminal-notification trace ordering after reproducing a zero-notification diagnostic report with a received byte. No radio protocol or programming change.
 - Added visible browser-suite revision, application-version guard and completion count. The supplied v20.35 list passes 29 checks but omits the 30th; recorded as partial verification, not full completion.
-- Validation and deployment: [RELEASE-20.36.md](RELEASE-20.36.md). Browser suite 20.36 / 30 checks awaits execution.
+- UAT deployed **20.36-UAT.bf570af**, application commit `bf570af6411370eb398ea2ed6bd1ab625ca2eb43`; Pages run **41316919672** succeeded. **220/220 automated tests passed** locally and in CI. [Release record](RELEASE-20.36.md). Browser suite 20.36 / 30 checks awaits execution.
 - UAT rollback: f7eaf83696ec100b8b4e8a610f9fee894f4a566b; deployed 20.35 app: 14530dc239eff3bce9eb05644eb5df5c3df7dd2d.
 - LIVE remains v20.33 at main 7a9b363a0fb643e188bb4c3b3917bb9f6cc78cd8. No physical radio was operated by the development agent.
 

@@ -18,7 +18,7 @@ Browser execution of suite **20.36 / 30 checks** is pending. Earlier results are
 
 ## Deployment and rollback
 
-Target: [UAT](https://k4rjm.github.io/baofeng-mini5-bt-cps-unofficial-uat/). The existing UAT-only workflow runs tests and packages the build; commit and workflow evidence will be recorded after deployment.
+Target: [UAT](https://k4rjm.github.io/baofeng-mini5-bt-cps-unofficial-uat/). Application commit: `bf570af6411370eb398ea2ed6bd1ab625ca2eb43`, build **20.36-UAT.bf570af**. [Pages workflow 41316919672](https://github.com/K4RJM/baofeng-mini5-bt-cps-unofficial-uat/actions/runs/41316919672) completed successfully, including all 220 automated tests and packaging. Interactive browser checks remain pending; direct site verification was unavailable to the development agent. This deployment record is documentation-only [skip ci] and does not redeploy the application.
 
 Rollback source: `f7eaf83696ec100b8b4e8a610f9fee894f4a566b`; previously deployed application: `14530dc239eff3bce9eb05644eb5df5c3df7dd2d` (20.35-UAT.14530dc). Restore the prior UAT source through a normal commit and test/deploy workflow, without force-pushing.
 
