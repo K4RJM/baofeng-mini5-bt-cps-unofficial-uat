@@ -14,11 +14,11 @@ The submitted GM-30 Pro JSON is identical to its earlier v20.34 report; a fresh 
 
 The terminal-notification regression failed before the tracing correction and passed afterwards. It verifies both an invalid opening `00` and a valid final `06`, exact command count, busy cleanup and trace-listener removal. A separate regression covers stale/missing browser build labels. The browser diagnostic case now also verifies consistent `00` exchange and notification records.
 
-Browser execution of suite **20.36 / 30 checks** is pending. Earlier results are preserved under their actual revisions. No physical-radio operation was performed by the development agent. Neither GM-30 Pro nor UV-32 is claimed to identify successfully or support channel-memory programming.
+K4RJM reported one compact-row layout check failure after the **20.36 / 30 checks** test request and considers it non-blocking for identification-only radio diagnostics. [Recorded follow-up](BROWSER-20.36.md). Full browser verification is not claimed; the layout failure remains open. Earlier results are preserved under their actual revisions. No physical-radio operation was performed by the development agent. Neither GM-30 Pro nor UV-32 is claimed to identify successfully or support channel-memory programming.
 
 ## Deployment and rollback
 
-Target: [UAT](https://k4rjm.github.io/baofeng-mini5-bt-cps-unofficial-uat/). Application commit: `bf570af6411370eb398ea2ed6bd1ab625ca2eb43`, build **20.36-UAT.bf570af**. [Pages workflow 41316919672](https://github.com/K4RJM/baofeng-mini5-bt-cps-unofficial-uat/actions/runs/41316919672) completed successfully, including all 220 automated tests and packaging. Interactive browser checks remain pending; direct site verification was unavailable to the development agent. This deployment record is documentation-only [skip ci] and does not redeploy the application.
+Target: [UAT](https://k4rjm.github.io/baofeng-mini5-bt-cps-unofficial-uat/). Application commit: `bf570af6411370eb398ea2ed6bd1ab625ca2eb43`, build **20.36-UAT.bf570af**. [Pages workflow 41316919672](https://github.com/K4RJM/baofeng-mini5-bt-cps-unofficial-uat/actions/runs/41316919672) completed successfully, including all 220 automated tests and packaging. A subsequent layout-check failure is recorded above; direct site verification was unavailable to the development agent. This deployment record is documentation-only [skip ci] and does not redeploy the application.
 
 Rollback source: `f7eaf83696ec100b8b4e8a610f9fee894f4a566b`; previously deployed application: `14530dc239eff3bce9eb05644eb5df5c3df7dd2d` (20.35-UAT.14530dc). Restore the prior UAT source through a normal commit and test/deploy workflow, without force-pushing.
 
