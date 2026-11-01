@@ -49,4 +49,4 @@ No GM-30 Pro or UV-32 physical test is claimed yet. Existing MINI-5 physical evi
 
 The full automated suite passed: 212 tests, zero failures/skips. New coverage checks all three selected profiles, fragmented 7/15-byte responses, optional identity suffix handling, mismatched model reporting, malformed/truncated responses, ACK failure, unchanged connection binding, busy controls and UAT-only packaging. Failure reports retain the partial exchange for diagnosis. No radio was contacted by these tests.
 
-The isolated browser suite has a new check for the dropdown, all three handshakes, mismatch reporting, report download, controls during operations and phone-width layout. Its deployment result is recorded in RELEASE-20.34.md.
+The isolated browser suite has a new check for the dropdown, all three handshakes, mismatch reporting, report download, controls during operations and phone-width layout. K4RJM supplied the complete passing output on November 1, 2026: all 29 browser checks passed on 20.34-UAT.d1c7ae9. See [the browser result](BROWSER-20.34.md) and [release/deployment record](RELEASE-20.34.md). Physical identification on GM-30 Pro and UV-32 remains pending.

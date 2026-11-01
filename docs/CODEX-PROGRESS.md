@@ -1,5 +1,16 @@
 # Published release — v20.27
 
+## Verified UAT release — v20.34 protocol selector (November 1, 2026)
+
+- UAT application: `d1c7ae96b99dda5bdf8b7f89bd2f3f8b97594797`, build **20.34-UAT.d1c7ae9**; Pages run **41265217654** succeeded.
+- Automated: **212 tests passed**, no failures/skips; protected radio-core source and packaged bytes unchanged.
+- Browser: **29/29 passed**, run by K4RJM and supplied as full text in the project chat. [Recorded output](BROWSER-20.34.md). Includes all three protocol profiles and model-mismatch reporting using simulated Bluetooth only.
+- Feature: UAT-only MINI-5 / GM-30 Pro / UV-32 selector, identification check and handshake-report download. No model-name restriction in the identification tool; MINI-5 memory programming guards remain intact.
+- Physical GM-30 Pro/UV-32 identification: **pending**. Their full channel/settings read/write adapters are not implemented by this handshake-only release. Existing MINI-5 physical evidence is unchanged.
+- LIVE unchanged: v20.33, main `7a9b363a0fb643e188bb4c3b3917bb9f6cc78cd8`. No LIVE publication authorized for this development work.
+- UAT rollback: `f6dd9be05941271a030b392f7c3db047328424fc` through a normal tested revert.
+- The November 1 HamRx_Codex_Full.zip research bundle was received locally and all 13 manifest hashes/sizes matched. Its private codeplugs and factory binaries were not uploaded. It supplies further model-specific evidence; it is not a successful new-model BLE read/write capture.
+
 Verified October 20, 2026. K4RJM authorized LIVE publication after UAT verification.
 
 | Environment | Deployed commit | Pages workflow | Browser gate |
