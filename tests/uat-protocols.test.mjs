@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {Reader} from '../read-test/reader.mjs';
-import {PROFILES,identifyProfile,isUatPage} from '../scripts/uat-protocols.mjs';
+import {PROFILES,identifyProfile,isUatPage,selectSendMethod,isHandshakeCommand} from '../scripts/uat-protocols.mjs';
 import {asyncRadio} from './async-radio.mjs';
 const INIT='53454e4421050d010101041108050d0d01110f091209100400';
 const hex=b=>Buffer.from(b).toString('hex');
@@ -73,4 +73,34 @@ test('A changed connection during identification cannot continue the handshake',
 test('UAT packaging refuses the LIVE repository before reading or writing an artifact',()=>{
  const result=spawnSync(process.execPath,['scripts/stamp-uat.mjs'],{cwd:new URL('../',import.meta.url),env:{...process.env,GITHUB_REPOSITORY:'K4RJM/baofeng-mini5-bt-cps-unofficial'},encoding:'utf8'});
  assert.notEqual(result.status,0);assert.match(result.stderr,/restricted to the UAT repository/);
+});
+
+test('UAT read-only command allowlist cannot send memory reads, writes, reset or arbitrary bytes',()=>{
+ for(const c of [Buffer.from('PROGRAMCOLORPROU'),Uint8Array.of(70),Uint8Array.of(77),Buffer.from(INIT,'hex')])assert.equal(isHandshakeCommand(c),true);
+ for(const c of [[],[82,0,0,64],[87,0,0,128],[69],[17],[18],Buffer.from('PROGRAMCOLORPROU!')])assert.equal(isHandshakeCommand(c),false);
+});
+test('Bluetooth send selection uses only advertised capabilities and never silently falls back',()=>{
+ assert.equal(selectSendMethod({write:true,writeWithoutResponse:true}),'writeValueWithoutResponse');
+ assert.equal(selectSendMethod({write:true}),'writeValueWithResponse');
+ assert.equal(selectSendMethod({write:true,writeWithoutResponse:true},'with-response'),'writeValueWithResponse');
+ for(const [props,mode] of [[{},'auto'],[{write:true},'without-response'],[{writeWithoutResponse:true},'with-response'],[{write:true},'typo']])assert.throws(()=>selectSendMethod(props,mode));
+});
+test('Explicit BLE send modes keep the same four handshake commands and final ACK check',async()=>{
+ for(const mode of ['with-response','without-response']){
+  const h=simulated('GM-30P ');h.fake.characteristic.properties={write:true,writeWithoutResponse:true,notify:true};
+  try{const r=await identifyProfile(h.radio,'gm30pro',{sendMode:mode});assert.equal(r.completed,true);assert.equal(h.fake.events.filter(e=>e==='send-'+mode).length,4);assert.equal(h.fake.events.filter(e=>e==='send-'+(mode==='with-response'?'without-response':'with-response')).length,0);assert.deepEqual(h.fake.sent.map(hex),[hex(Buffer.from('PROGRAMCOLORPROU')),'46','4d',INIT]);assert.equal(r.exchanges.every(e=>Number.isFinite(e.sendResolvedAtMs)),true);}finally{h.close();}
+ }
+});
+test('GM-30 Pro physical symptom: silent opening command produces a stage-specific report and one attempt',async()=>{
+ for(const sendMode of ['auto','with-response']){
+  const h=simulated('GM-30P ');h.fake.faults.silentHandshake=true;h.fake.characteristic.properties={write:true,writeWithoutResponse:true,notify:true};
+  try{await assert.rejects(identifyProfile(h.radio,'gm30pro',{sendMode}),e=>{const r=e.handshakeReport;assert.match(r.stage,/Opening command/);assert.equal(r.exchanges.length,1);assert.equal(r.exchanges[0].commandHex.replaceAll(' ',''),hex(Buffer.from('PROGRAMCOLORPROU')));assert.equal(r.transport.notificationCount,0);assert.equal(r.receivedPendingHex,'');assert.equal(r.memoryReads+r.memoryWrites,0);return true;});assert.equal(h.fake.sent.length,1);assert.equal(h.radio.busy,false);}finally{h.close();}
+ }
+});
+test('Reports enumerate characteristics without switching paths and capture fragmented notifications',async()=>{
+ const h=simulated('UV32PRO');const c=h.fake.characteristic;c.properties={write:true,writeWithoutResponse:true,notify:true};c.service.getCharacteristics=async()=>[c,{uuid:'0000ffe2-0000-1000-8000-00805f9b34fb',properties:{read:true}}];
+ try{const r=await identifyProfile(h.radio,'uv32');assert.equal(r.transport.serviceUuid,'0000ffe0-0000-1000-8000-00805f9b34fb');assert.equal(r.transport.characteristics.length,2);assert.equal(r.transport.selectedCharacteristic.uuid,c.uuid);assert.equal(r.transport.notifications.length,25);assert.equal(r.transport.notificationCount,25);assert.equal(r.transport.notifications[0].hex,'06');assert.equal(r.transport.notifications.every(n=>n.bytes===1&&n.elapsedMs>=0),true);assert.equal(r.exchanges[0].completedAtMs>=r.exchanges[0].sentAtMs,true);const before=r.transport.notificationCount;c.value=new DataView(Uint8Array.of(6).buffer);c.dispatchEvent(new Event('characteristicvaluechanged'));assert.equal(r.transport.notificationCount,before,'Temporary tracing listener removed after completion');}finally{h.close();}
+});
+test('Unsupported explicit send method returns a diagnostic without sending any identification command',async()=>{
+ const h=simulated('GM-30P ');try{await assert.rejects(identifyProfile(h.radio,'gm30pro',{sendMode:'with-response'}),e=>{assert.match(e.message,/not supported/);assert.equal(e.handshakeReport.transport.selectedCharacteristic.properties.write,false);return true;});assert.equal(h.fake.sent.length,0);}finally{h.close();}
 });

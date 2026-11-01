@@ -9,7 +9,7 @@ async function fresh(mode='normal'){
  frame?.contentWindow.f13?.fake.close();frame?.remove();
  let html=await fetch(new URL('index.html',root),{cache:'no-store'}).then(r=>r.text());
  const match=html.match(/<script type="module" src="(app\.mjs[^\"]*)"><\/script>/);assert(match,'Actual application module exists');
- const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.34',root).href}"><\/script>`;
+ const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.35',root).href}"><\/script>`;
  html=html.replace('<head>','<head><base href="'+root.href+'">').replace(match[0],script);
  frame=document.createElement('iframe');frame.title='Isolated CPS test application';frame.setAttribute('allow',"bluetooth 'none'");frame.srcdoc=html;document.getElementById('workspace').append(frame);
  await until(()=>frame.contentWindow.f13?.ready||frame.contentWindow.f13?.failed,'application bootstrap');
@@ -242,7 +242,7 @@ document.getElementById('start').onclick=async()=>{
    for(const [profile,identity] of [['mini5','5RMINI  +L00000'],['gm30pro','GM-30P '],['uv32','UV32PRO'],['uv32','UV32PRO +L00000'],['gm30pro','OTHER  ']]){
     select.value=profile;select.dispatchEvent(new h.w.Event('change'));h.state.fake.faults.identity=identity;
     const before=h.state.fake.sent.length;assert(!id('uatIdentify').disabled,'Identification available');id('uatIdentify').click();
-    assert(select.disabled&&id('uatIdentify').disabled&&id('readRadio').disabled,'Controls lock for the handshake');
+    assert(select.disabled&&id('uatSendMode').disabled&&id('uatIdentify').disabled&&id('readRadio').disabled,'Controls lock for the handshake');
     await until(()=>!id('uatIdentify').disabled,'handshake complete');
     assert(id('uatProtocolResult').textContent.startsWith('Handshake complete:'),'Handshake success shown: '+id('uatProtocolResult').textContent);
     assert(h.state.fake.sent.length===before+4,'Exactly four identification commands');
@@ -252,6 +252,17 @@ document.getElementById('start').onclick=async()=>{
    id('uatHandshakeReport').click();const report=JSON.parse(await h.state.downloads.at(-1).text());
    assert(report.model==='OTHER'&&report.matchesExpected===false&&report.memoryWrites===0&&report.exchanges.length===4,'Diagnostic includes mismatched identity and wire exchange');
    frame.style.width='390px';await new Promise(r=>h.w.requestAnimationFrame(r));assert(h.d.documentElement.scrollWidth<=h.d.documentElement.clientWidth+1,'Protocol controls fit phone width');frame.style.width='';
+  });
+  await check('UAT diagnostics retain connection failures and silent handshakes with explicit BLE send selection',async()=>{
+   h=await fresh();if(!id('uatSendMode'))return;id('uatProtocol').value='gm30pro';h.state.fake.faults.disconnectDiscovery=true;
+   id('uatIdentify').click();await until(()=>!id('uatIdentify').disabled,'service discovery failure');
+   assert(id('uatProtocolResult').textContent.includes('Bluetooth connection'),'Connection stage shown');assert(!id('uatHandshakeReport').disabled,'Connection failure can be saved');id('uatHandshakeReport').click();let report=JSON.parse(await h.state.downloads.at(-1).text());
+   assert(!report.completed&&report.stage==='Bluetooth connection'&&report.exchanges.length===0&&report.connectionLog.some(e=>e.message.includes('Finding radio service')),'Failed discovery report has no handshake sends');assert(h.state.fake.sent.length===0,'Discovery failure sends no radio command');
+   h=await fresh();id('uatProtocol').value='gm30pro';h.state.fake.faults.identity='GM-30P ';h.state.fake.faults.silentHandshake=true;h.state.fake.characteristic.properties={write:true,writeWithoutResponse:true,notify:true};id('uatSendMode').value='with-response';
+   id('uatIdentify').click();assert(id('uatSendMode').disabled,'Send method locked during operation');await until(()=>!id('uatIdentify').disabled,'silent opening command timeout');
+   assert(id('uatProtocolResult').textContent.includes('Opening command'),'Exact failed command shown');id('uatHandshakeReport').click();report=JSON.parse(await h.state.downloads.at(-1).text());
+   assert(report.transport.sendMethod==='writeValueWithResponse'&&report.transport.notificationCount===0&&report.exchanges.length===1,'Failure retains chosen method and zero notifications');assert(h.state.fake.sent.length===1&&h.state.fake.events.filter(e=>e==='send-with-response').length===1,'One explicit send, no fallback or retry');
+   assert(h.state.fake.writes===0&&h.state.fake.reads===0,'Diagnostics touch no channel memory');
   });
   await check('Missing HTML control mutation is detected by actual app startup',async()=>{h=await fresh('missing-id');assert(h.state.failed&&h.state.errors.some(e=>/null|onclick/.test(e)),'Removing confirmWrite must break startup');});
   await check('Removed inertness mutation is caught by the same busy check',async()=>{h=await fresh('inert-mutant');await load(h);let detected=false;try{await busyCheck(h);}catch(e){detected=/inert/i.test(e.message);}assert(detected,'The busy test must reject removed inertness');});

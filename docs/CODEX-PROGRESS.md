@@ -1,3 +1,14 @@
+# Current UAT checkpoint — v20.35 (November 1, 2026)
+
+- Diagnostic release for distinct physical reports: GM-30 Pro gives zero opening-command response bytes; UV-32 disconnects while finding the radio service, before any handshake command.
+- Added stage-specific downloadable connection reports, supported GATT send-method selection and characteristic/notification timing evidence. No automatic method fallback or identification retry.
+- Validation and publication status: [RELEASE-20.35.md](RELEASE-20.35.md). The 30-check browser suite still needs execution on this build; v20.34's 29/29 result remains recorded below.
+- MINI-5 protocol, memory, codec and programming/recovery behavior unchanged. No physical radio operation performed by the development agent. Neither new model is claimed fixed or ready for memory programming.
+- UAT rollback source: f511f7fed5860313bf76e56a03f6b976171cffd8 (deployed app d1c7ae96b99dda5bdf8b7f89bd2f3f8b97594797).
+- LIVE stays v20.33, main 7a9b363a0fb643e188bb4c3b3917bb9f6cc78cd8. UAT only.
+
+---
+
 # Published release — v20.27
 
 ## Verified UAT release — v20.34 protocol selector (November 1, 2026)
@@ -6,7 +17,7 @@
 - Automated: **212 tests passed**, no failures/skips; protected radio-core source and packaged bytes unchanged.
 - Browser: **29/29 passed**, run by K4RJM and supplied as full text in the project chat. [Recorded output](BROWSER-20.34.md). Includes all three protocol profiles and model-mismatch reporting using simulated Bluetooth only.
 - Feature: UAT-only MINI-5 / GM-30 Pro / UV-32 selector, identification check and handshake-report download. No model-name restriction in the identification tool; MINI-5 memory programming guards remain intact.
-- Physical GM-30 Pro/UV-32 identification: **pending**. Their full channel/settings read/write adapters are not implemented by this handshake-only release. Existing MINI-5 physical evidence is unchanged.
+- Physical GM-30 Pro/UV-32 identification: unsuccessful attempts subsequently reported; see the v20.35 checkpoint. Successful identification is **pending**. Their full channel/settings read/write adapters are not implemented by this handshake-only release. Existing MINI-5 physical evidence is unchanged.
 - LIVE unchanged: v20.33, main `7a9b363a0fb643e188bb4c3b3917bb9f6cc78cd8`. No LIVE publication authorized for this development work.
 - UAT rollback: `f6dd9be05941271a030b392f7c3db047328424fc` through a normal tested revert.
 - The November 1 HamRx_Codex_Full.zip research bundle was received locally and all 13 manifest hashes/sizes matched. Its private codeplugs and factory binaries were not uploaded. It supplies further model-specific evidence; it is not a successful new-model BLE read/write capture.
