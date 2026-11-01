@@ -1,5 +1,6 @@
 // UAT-only build overlay. Never modifies source modules or the LIVE repository.
 import {readFile,writeFile} from 'node:fs/promises';
+const replaceOnce=(s,a,b)=>{if(s.split(a).length!==2)throw Error('UAT protocol anchor changed: '+a.slice(0,80));return s.replace(a,b);};
 const repository='K4RJM/baofeng-mini5-bt-cps-unofficial-uat';
 if(process.env.GITHUB_REPOSITORY && process.env.GITHUB_REPOSITORY!==repository)throw Error('UAT packaging is restricted to the UAT repository');
 const sha=process.env.GITHUB_SHA||'local';
@@ -11,9 +12,18 @@ let html=await readFile('dist/index.html','utf8');
 if(!html.includes('<body>')||!html.includes('Version '+base))throw Error('UAT branding anchors missing');
 html=html.replace('<title>','<title>UAT · ').replace('<body>','<body>\n<div role="note" style="padding:8px 20px;background:#663d00;color:#fff3d4;display:flex;gap:12px;flex-wrap:wrap;align-items:center"><strong>UAT · DEVELOPMENT</strong><span>Build '+version+'</span><a style="color:inherit;margin-left:auto" href="https://k4rjm.github.io/baofeng-mini5-bt-cps-unofficial/" target="_blank" rel="noopener noreferrer">Open LIVE ↗</a></div>').replace('Version '+base,'UAT · build '+version);
 html=html.replace('href="https://github.com/K4RJM/baofeng-mini5-bt-cps-unofficial" target="_blank"','href="https://github.com/'+repository+'" target="_blank"');
+const controls='<section class="uat-protocol-tools" aria-label="UAT radio protocols"><label for="uatProtocol">Radio protocol</label><select id="uatProtocol"><option value="mini5">MINI-5</option><option value="gm30pro">GM-30 Pro</option><option value="uv32">UV-32</option></select><button id="uatIdentify" type="button">Check radio ID</button><button id="uatHandshakeReport" type="button" disabled>Save handshake report</button><output id="uatProtocolResult" aria-live="polite">Connect and identify · no model-name lock</output><small>GM-30 Pro / UV-32: handshake testing. Channel programming still uses the MINI-5 layout.</small></section>';
+html=replaceOnce(html,'<header class="topbar">',controls+'\n<header class="topbar">');
+html=replaceOnce(html,'</head>','<style>.uat-protocol-tools{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;padding:8px 18px;border-bottom:1px solid var(--border)}.uat-protocol-tools select,.uat-protocol-tools button{min-height:32px;padding:4px 9px;font-size:.85rem}.uat-protocol-tools small{flex-basis:100%;opacity:.85}.uat-protocol-tools output{font-size:.85rem;overflow-wrap:anywhere}@media(max-width:600px){.uat-protocol-tools{padding:8px}.uat-protocol-tools output{flex-basis:100%}}</style></head>');
 await writeFile('dist/index.html',html);
-const app=await readFile('dist/app.mjs','utf8');
+let app=await readFile('dist/app.mjs','utf8');
+app="import {installProtocolTools} from './uat-protocols.mjs?v=20.34';\nlet uatProtocolTools;\n"+app;
+app=replaceOnce(app,'function sync(){','function sync(){\n uatProtocolTools?.sync(busy);');
+
+app+="\nuatProtocolTools=installProtocolTools({radio,run,connect,message});sync();\n";
 if(!app.includes("build:'"+base+"'"))throw Error('Diagnostic version anchor missing');
 await writeFile('dist/app.mjs',app.replace("build:'"+base+"'","environment:'UAT',build:'"+version+"'"));
-await writeFile('dist/deployment.json',JSON.stringify({environment:'UAT',version,sourceSha:sha,repository},null,2)+'\n');
+await writeFile('dist/uat-protocols.mjs',await readFile('scripts/uat-protocols.mjs','utf8'));
+await writeFile('dist/docs/UAT-RADIO-PROTOCOLS.md',await readFile('docs/UAT-RADIO-PROTOCOLS.md','utf8'));
+await writeFile('dist/deployment.json',JSON.stringify({environment:'UAT',version,sourceSha:sha,repository,protocolProfiles:['mini5','gm30pro','uv32']},null,2)+'\n');
 console.log('Packaged '+version+' for '+repository);

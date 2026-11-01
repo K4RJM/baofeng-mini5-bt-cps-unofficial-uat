@@ -16,7 +16,7 @@ export function asyncRadio(initial, faults={}) {
   if(b[0]===82){reads++;const a=b[1]*256+b[2];bytes=Uint8Array.of(82,b[1],b[2]^(faults.badHeader?1:0),64,...raw.slice(index(a),index(a)+64));if(faults.truncateRead)bytes=bytes.slice(0,10);}
   else if(b[0]===87){writes++;const a=b[1]*256+b[2],end=a<0x8040?0x8040:a<0x9040?0x9040:0xa1c0;raw.set(b.slice(4,4+Math.min(128,end-a)),index(a));if(faults.disconnectWrite===writes){device.gatt.disconnect();return;}if(faults.dropAck===writes)return;bytes=Uint8Array.of(faults.nak===writes?21:6);}
   else if(b.length===1&&b[0]===70)bytes=new Uint8Array(16);
-  else if(b.length===1&&b[0]===77)bytes=new TextEncoder().encode(faults.wrongModel?'OTHER   +L00000':'5RMINI  +L00000');
+  else if(b.length===1&&b[0]===77)bytes=new TextEncoder().encode(faults.identity??(faults.wrongModel?'OTHER   +L00000':'5RMINI  +L00000'));
   else if(new TextDecoder().decode(b)==='PROGRAMCOLORPROU'||Array.from(b).map(n=>n.toString(16).padStart(2,'0')).join('')==='53454e4421050d010101041108050d0d01110f091209100400')bytes=Uint8Array.of(6);
   else throw Error('Unexpected test command');
   if(b[0]===82&&faults.holdRead){held.push(()=>notify(bytes));return;}

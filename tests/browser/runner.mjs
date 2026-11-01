@@ -9,7 +9,7 @@ async function fresh(mode='normal'){
  frame?.contentWindow.f13?.fake.close();frame?.remove();
  let html=await fetch(new URL('index.html',root),{cache:'no-store'}).then(r=>r.text());
  const match=html.match(/<script type="module" src="(app\.mjs[^\"]*)"><\/script>/);assert(match,'Actual application module exists');
- const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.33',root).href}"><\/script>`;
+ const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.34',root).href}"><\/script>`;
  html=html.replace('<head>','<head><base href="'+root.href+'">').replace(match[0],script);
  frame=document.createElement('iframe');frame.title='Isolated CPS test application';frame.setAttribute('allow',"bluetooth 'none'");frame.srcdoc=html;document.getElementById('workspace').append(frame);
  await until(()=>frame.contentWindow.f13?.ready||frame.contentWindow.f13?.failed,'application bootstrap');
@@ -235,6 +235,24 @@ document.getElementById('start').onclick=async()=>{
   await check('Wrong simulated radio identity blocks every memory write',async()=>{h=await fresh();await load(h);h.state.fake.faults.wrongModel=true;id('writeRadio').click();id('hasBackup').click();id('confirmWrite').click();await until(()=>!id('open').disabled,'rejected identity');assert(/Unexpected radio model/.test(id('status').textContent),'Identity error is visible');assert(h.state.fake.writes===0,'No write sent to wrong model');});
   await check('Missing simulated ACK unlocks editing and never retries the uncertain write',async()=>{h=await fresh();await load(h);h.state.fake.faults.dropAck=1;id('writeRadio').click();id('hasBackup').click();id('confirmWrite').click();await until(()=>!id('open').disabled,'uncertain write timeout');assert(/Write incomplete or uncertain/.test(id('status').textContent),'Uncertainty is visible');assert(h.state.fake.writes===1,'Only one write attempt');assert(id('writeRadio').disabled&&!id('save').disabled&&!id('content').inert,'Editing recovers while writing stays locked');});
   await check('Bluetooth icon follows the simulated connection and returns to offline',async()=>{h=await fresh();const icon=id('linkDot'),offline=h.w.getComputedStyle(icon).color;assert(icon.localName==='svg'&&icon.getAttribute('aria-hidden')==='true','Decorative Bluetooth SVG exists');assert(!icon.classList.contains('online')&&id('connection').textContent==='Not connected','Initial offline state');id('connect').click();await until(()=>id('connection').textContent==='Connected','Bluetooth icon connected');assert(icon.classList.contains('online'),'Connected icon state');assert(h.w.getComputedStyle(icon).color!==offline,'Connected color differs visibly');assert(h.state.fake.sent.length===0,'Connecting sends no programming commands');id('connect').click();await until(()=>id('connection').textContent==='Not connected','Bluetooth icon disconnected');assert(!icon.classList.contains('online')&&h.w.getComputedStyle(icon).color===offline,'Disconnected icon restores offline color');assert(h.state.fake.writes===0,'Icon test never programs');});
+  await check('UAT protocol selector identifies MINI-5, GM-30 Pro and UV-32 without memory access',async()=>{
+   h=await fresh();const select=id('uatProtocol');if(!select){assert(!id('uatIdentify'),'No UAT tools in ordinary packaging');return;}
+   assert(Array.from(select.options,o=>o.textContent).join('|')==='MINI-5|GM-30 Pro|UV-32','Three protocol choices');
+   const initial=id('sourceTag').textContent;
+   for(const [profile,identity] of [['mini5','5RMINI  +L00000'],['gm30pro','GM-30P '],['uv32','UV32PRO'],['uv32','UV32PRO +L00000'],['gm30pro','OTHER  ']]){
+    select.value=profile;select.dispatchEvent(new h.w.Event('change'));h.state.fake.faults.identity=identity;
+    const before=h.state.fake.sent.length;assert(!id('uatIdentify').disabled,'Identification available');id('uatIdentify').click();
+    assert(select.disabled&&id('uatIdentify').disabled&&id('readRadio').disabled,'Controls lock for the handshake');
+    await until(()=>!id('uatIdentify').disabled,'handshake complete');
+    assert(id('uatProtocolResult').textContent.startsWith('Handshake complete:'),'Handshake success shown: '+id('uatProtocolResult').textContent);
+    assert(h.state.fake.sent.length===before+4,'Exactly four identification commands');
+    assert(h.state.fake.writes===0&&h.state.fake.reads===0,'No channel-memory commands');
+    assert(id('connection').textContent==='Connected'&&id('sourceTag').textContent===initial,'Connection and workspace preserved');
+   }
+   id('uatHandshakeReport').click();const report=JSON.parse(await h.state.downloads.at(-1).text());
+   assert(report.model==='OTHER'&&report.matchesExpected===false&&report.memoryWrites===0&&report.exchanges.length===4,'Diagnostic includes mismatched identity and wire exchange');
+   frame.style.width='390px';await new Promise(r=>h.w.requestAnimationFrame(r));assert(h.d.documentElement.scrollWidth<=h.d.documentElement.clientWidth+1,'Protocol controls fit phone width');frame.style.width='';
+  });
   await check('Missing HTML control mutation is detected by actual app startup',async()=>{h=await fresh('missing-id');assert(h.state.failed&&h.state.errors.some(e=>/null|onclick/.test(e)),'Removing confirmWrite must break startup');});
   await check('Removed inertness mutation is caught by the same busy check',async()=>{h=await fresh('inert-mutant');await load(h);let detected=false;try{await busyCheck(h);}catch(e){detected=/inert/i.test(e.message);}assert(detected,'The busy test must reject removed inertness');});
  }catch(e){failed++;record('Harness setup',false,e.message);}

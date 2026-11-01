@@ -42,3 +42,9 @@ The exact pre-correction LIVE source is `1b1c6b434c130e3d799bf258ff9bce2d6bef6fe
 The master task explicitly authorizes incremental LIVE promotion after the full regression suite and exact UAT release have passed verification. Each completed finding, including an accepted limitation, receives its own new version and LIVE tag. Keep [CODEX-PROGRESS.md](CODEX-PROGRESS.md) current. Do not begin the next finding until publication is verified. Post-publication progress-only commits may use [skip ci]; they record evidence and do not republish or reuse an application version. The following release packages that updated record.
 
 Rollback for v20.15: restore/revert to the v20.14 release source at c38d90f8bf047e8ccc84eb3032f05bf0d59c4fef through a new reviewed commit, then test and deploy normally. Do not force-push. The v20.15 closure changes no transport or memory behavior.
+
+## v20.34 UAT identification profiles
+
+The UAT stamp adds `uat-protocols.mjs` and the MINI-5 / GM-30 Pro / UV-32 selector only to the UAT artifact. The module checks the exact UAT site origin/path before attaching controls. Normal packaging has no selector, and the LIVE-repository stamp is refused. All protected radio modules remain byte-identical in both source and artifact; the new tool invokes only their existing identification-capable transport.
+
+UAT rollback before this change: `f6dd9be05941271a030b392f7c3db047328424fc`. LIVE remains `7a9b363a0fb643e188bb4c3b3917bb9f6cc78cd8` (deployed application/tag v20.33 at `988db9d5163f93547c97cd449cfa4e03560f9b70`). Revert the v20.34 UAT change normally; never merge this UAT-only tooling into LIVE as part of an unrelated release.
