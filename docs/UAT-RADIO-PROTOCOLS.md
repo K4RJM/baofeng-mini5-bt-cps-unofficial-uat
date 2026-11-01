@@ -1,4 +1,4 @@
-# UAT radio identification — v20.35
+# UAT radio identification — v20.36
 
 Updated November 1, 2026. UAT only; LIVE v20.33 is unchanged.
 
@@ -45,6 +45,26 @@ These are real-radio results from K4RJM, separate from the simulated regression 
 
 The two failures occur at different stages. Neither has an established root cause. They are not evidence of a model-name block, and a successful simulated handshake does not show that the physical radios work.
 
+## New report review — November 1, 2026
+
+- **UV-32, build 20.35-UAT.14530dc:** captured at `2026-11-01T14:24:50.456Z`. Connection and FFE0 service discovery succeeded this time, followed by FFE1 notification setup. The opening exchange records `00` after approximately 3.74 seconds, instead of required ACK `06`; identification stopped before F, M or SEND. This does not establish what `00` means or which component generated it.
+- FFE1 advertises read, write, write-without-response and notify. Automatic chose write-without-response. FFE0 also exposes FF31 (write with response) and FFE2 (read only). Enumeration establishes properties, not characteristic purpose; no commands were sent to FF31 or FFE2.
+- The report says zero notifications despite its recorded response. A deterministic callback-order test reproduces a trace-listener race: the receiver resolves the request, promise continuations finish the handshake and remove the trace listener, then the later listener never observes that last event. This is a demonstrated diagnostic defect and a plausible explanation for this report's inconsistency, not proof of all physical callback timing.
+- **GM-30 Pro file (2):** SHA-256 is identical to the previously supplied report (1). It still says build 20.34-UAT.d1c7ae9 and `2026-11-01T07:23:24.113Z`. It supplies no new v20.35 send-method evidence.
+
+Private file SHA-256 references (original JSON files are not republished):
+
+- UV-32: `86726f3d8325e6fb9989462cffc6911fb7495270f099e9e3c1e560eb0565098c`
+- Both GM-30 Pro copies: `e7fb2728be131bb8b242f9a366189577265e97e7529801abcd584a84dd5b2243`
+
+### v20.36 diagnostic correction
+
+The temporary trace listener now runs in the event's capture phase, before the existing receiver resolves the response. It is removed with the matching capture option on success or failure. The regression reproduces the missing terminal event before the correction and verifies both `00` failure and final `06` success afterwards. This changes tracing order only; it neither changes accepted acknowledgements nor modifies the receiver or send commands.
+
+References: [DOM event dispatch/capture ordering](https://dom.spec.whatwg.org/#concept-event-dispatch), [HTML script cleanup and microtask checkpoint](https://html.spec.whatwg.org/multipage/webappapis.html#clean-up-after-running-script).
+
+The [29-check v20.35 browser result](BROWSER-20.35.md) is retained as partial verification. It omits the new diagnostic test. v20.36 displays its own test-suite version and rejects an application version mismatch or an incomplete check count.
+
 ## v20.35 transport diagnostics
 
 **Bluetooth send** applies only to **Check radio ID**:
@@ -62,15 +82,15 @@ API references: [service characteristic enumeration](https://developer.mozilla.o
 
 ## Next physical diagnostic checks
 
-1. Open the main UAT application, not the isolated browser-test page. Confirm build 20.35-UAT. Enable Wireless CPS and keep other programming apps disconnected.
+1. Open the main UAT application, not the isolated browser-test page. Confirm build 20.36-UAT. First run the refreshed browser suite; it should identify suite 20.36 and finish all 30 checks. Enable Wireless CPS and keep other programming apps disconnected.
 2. For GM-30 Pro, select its profile and **With response**, then run **Check radio ID** once. Save the handshake report whether it succeeds, times out, or says that method is unsupported. This tests an advertised send method with the same identification command; it is not a confirmed repair.
-3. For UV-32, select its profile and **Automatic**, run **Check radio ID** once, then save the report. If the link ends during discovery again, the connection log should retain that stage even though no commands were sent.
+3. For UV-32, select its profile and **With response**, run **Check radio ID** once, then save the report. This compares the other advertised method with the captured Automatic/without-response result. A connection failure should still retain its stage without any handshake command.
 4. Disconnect with the existing control after the check. Share the saved reports for comparison. Do not use MINI-5 channel-memory programming to test either new model.
 
 No physical operation was performed by the development agent. Existing MINI-5 physical evidence remains valid and is recorded in Testing & Compatibility. Successful identification of GM-30 Pro and UV-32 remains unverified.
 
 ## Software validation
 
-The v20.35 automated suite and packaging results are recorded in [the release record](RELEASE-20.35.md). Coverage includes the silent opening-command symptom, both explicit send methods, unsupported capabilities, exact command allowlisting, notification traces, cleanup, and unchanged connection binding. The browser suite adds downloadable service-discovery failure and silent-handshake checks, bringing it to 30 checks. These use simulated Bluetooth only.
+The v20.36 automated suite and packaging results are recorded in [the release record](RELEASE-20.36.md). Coverage includes the silent opening-command symptom, both explicit send methods, unsupported capabilities, exact command allowlisting, notification traces, cleanup, and unchanged connection binding. The browser suite adds downloadable service-discovery failure and silent-handshake checks, bringing it to 30 checks. These use simulated Bluetooth only.
 
 The preceding v20.34 suite passed 212 automated tests. K4RJM supplied the complete passing browser output on November 1, 2026: all 29 browser checks passed on 20.34-UAT.d1c7ae9. See [the browser result](BROWSER-20.34.md). That result belongs to v20.34 and is not a v20.35 browser verification.

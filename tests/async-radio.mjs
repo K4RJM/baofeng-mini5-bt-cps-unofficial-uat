@@ -21,6 +21,7 @@ export function asyncRadio(initial, faults={}) {
   else if(new TextDecoder().decode(b)==='PROGRAMCOLORPROU'||Array.from(b).map(n=>n.toString(16).padStart(2,'0')).join('')==='53454e4421050d010101041108050d0d01110f091209100400')bytes=Uint8Array.of(6);
   else throw Error('Unexpected test command');
   if(b[0]===82&&faults.holdRead){held.push(()=>notify(bytes));return;}
+  if(new TextDecoder().decode(b)==='PROGRAMCOLORPROU'&&faults.openingReply!==undefined)bytes=Uint8Array.of(faults.openingReply);
   notify(bytes);if(b[0]===87&&writes===262&&faults.reboot)later(()=>device.gatt.disconnect());
  }
  async function send(value){if(!device.gatt.connected)throw Error('Test link is disconnected');const b=value.slice();sent.push(b);events.push('native-send');later(()=>reply(b));events.push('native-resolved');}

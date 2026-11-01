@@ -1,7 +1,9 @@
+import {BROWSER_SUITE_VERSION,BROWSER_CHECK_COUNT,browserBuildError} from './revision.mjs?v=20.36';
 import {rdtFixture} from '../rdt-fixtures.mjs?v=20.33';
 import {readImage} from '../../image-files.mjs?v=20.31';
 import {csvFixture,csvHeads} from '../csv-fixtures.mjs?v=20.31';
 const root=new URL('../../',import.meta.url),results=document.getElementById('results'),status=document.getElementById('status');let frame;const builds=new Set();
+document.getElementById('suite').textContent=`Browser suite ${BROWSER_SUITE_VERSION} / ${BROWSER_CHECK_COUNT} checks`;
 const assert=(value,message)=>{if(!value)throw Error(message);};
 const until=async(fn,label)=>{const end=Date.now()+15000;while(!fn()){if(Date.now()>end)throw Error('Timed out: '+label);await new Promise(r=>setTimeout(r,20));}};
 function record(name,pass,error){const li=document.createElement('li');li.className=pass?'pass':'fail';li.textContent=(pass?'PASS: ':'FAIL: ')+name+(error?' — '+error:'');results.append(li);}
@@ -9,16 +11,16 @@ async function fresh(mode='normal'){
  frame?.contentWindow.f13?.fake.close();frame?.remove();
  let html=await fetch(new URL('index.html',root),{cache:'no-store'}).then(r=>r.text());
  const match=html.match(/<script type="module" src="(app\.mjs[^\"]*)"><\/script>/);assert(match,'Actual application module exists');
- const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.35',root).href}"><\/script>`;
+ const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.36',root).href}"><\/script>`;
  html=html.replace('<head>','<head><base href="'+root.href+'">').replace(match[0],script);
  frame=document.createElement('iframe');frame.title='Isolated CPS test application';frame.setAttribute('allow',"bluetooth 'none'");frame.srcdoc=html;document.getElementById('workspace').append(frame);
  await until(()=>frame.contentWindow.f13?.ready||frame.contentWindow.f13?.failed,'application bootstrap');
- const badge=frame.contentDocument.querySelector('.build-badge')?.textContent;builds.add(badge||'Version unavailable');document.getElementById('build').textContent='Tested: '+[...builds].join(' / ');return {w:frame.contentWindow,d:frame.contentDocument,state:frame.contentWindow.f13};
+ const badge=frame.contentDocument.querySelector('.build-badge')?.textContent;builds.add(badge||'Version unavailable');document.getElementById('build').textContent='Tested: '+[...builds].join(' / ');assert(!browserBuildError(badge),browserBuildError(badge));return {w:frame.contentWindow,d:frame.contentDocument,state:frame.contentWindow.f13};
 }
 async function load(h){const transfer=new h.w.DataTransfer();transfer.items.add(new h.w.File([h.state.bytes],'browser-test.dat'));h.d.getElementById('file').files=transfer.files;h.d.getElementById('file').dispatchEvent(new h.w.Event('change',{bubbles:true}));await until(()=>h.d.getElementById('file').value===''&&!h.d.getElementById('open').disabled&&h.d.getElementById('sourceTag').textContent==='CPS file loaded','native DAT load finished');}
 async function busyCheck(h){h.state.fake.faults.holdRead=true;h.d.getElementById('readRadio').click();await until(()=>h.state.fake.reads===1,'held read');const row=h.d.querySelector('[data-channel-index="0"]');h.d.getElementById('help').focus();row.querySelector('[data-field]').focus();assert(h.d.getElementById('content').inert&&h.d.getElementById('tabs').inert,'Busy workspace must be inert');assert(!row.contains(h.d.activeElement),'Inert row must refuse focus');assert(h.d.getElementById('appendChannels').disabled&&h.d.getElementById('open').disabled&&h.d.getElementById('save').disabled&&h.d.getElementById('saveImg').disabled,'File controls must be disabled during the read');}
 document.getElementById('start').onclick=async()=>{
- const start=document.getElementById('start');start.disabled=true;results.replaceChildren();status.textContent='Running';let failed=0;
+ const start=document.getElementById('start');start.disabled=true;builds.clear();results.replaceChildren();status.textContent='Running';let failed=0;
  const check=async(name,fn)=>{try{await fn();record(name,true);}catch(e){failed++;record(name,false,e.message);}};
  try{
   let h=await fresh();assert(h.state.ready&&!h.state.errors.length,'Unmodified application must load');const id=n=>h.d.getElementById(n);
@@ -263,9 +265,13 @@ document.getElementById('start').onclick=async()=>{
    assert(id('uatProtocolResult').textContent.includes('Opening command'),'Exact failed command shown');id('uatHandshakeReport').click();report=JSON.parse(await h.state.downloads.at(-1).text());
    assert(report.transport.sendMethod==='writeValueWithResponse'&&report.transport.notificationCount===0&&report.exchanges.length===1,'Failure retains chosen method and zero notifications');assert(h.state.fake.sent.length===1&&h.state.fake.events.filter(e=>e==='send-with-response').length===1,'One explicit send, no fallback or retry');
    assert(h.state.fake.writes===0&&h.state.fake.reads===0,'Diagnostics touch no channel memory');
+   h=await fresh();id('uatProtocol').value='uv32';h.state.fake.faults.openingReply=0;
+   id('uatIdentify').click();await until(()=>!id('uatIdentify').disabled,'zero opening reply');id('uatHandshakeReport').click();report=JSON.parse(await h.state.downloads.at(-1).text());
+   assert(report.exchanges[0].responseHex==='00'&&report.transport.notifications[0].hex==='00'&&report.transport.notificationCount===1,'Zero response retained consistently in exchange and notification trace');
+   assert(!report.completed&&h.state.fake.sent.length===1&&h.state.fake.writes===0&&h.state.fake.reads===0,'Invalid ACK stops before further commands');
   });
   await check('Missing HTML control mutation is detected by actual app startup',async()=>{h=await fresh('missing-id');assert(h.state.failed&&h.state.errors.some(e=>/null|onclick/.test(e)),'Removing confirmWrite must break startup');});
   await check('Removed inertness mutation is caught by the same busy check',async()=>{h=await fresh('inert-mutant');await load(h);let detected=false;try{await busyCheck(h);}catch(e){detected=/inert/i.test(e.message);}assert(detected,'The busy test must reject removed inertness');});
  }catch(e){failed++;record('Harness setup',false,e.message);}
- finally{frame?.contentWindow.f13?.fake.close();frame?.remove();frame=null;status.textContent=failed?`${failed} check(s) failed`:`All ${results.children.length} browser checks passed`;status.dataset.result=failed?'fail':'pass';start.disabled=false;}
+ finally{if(results.children.length!==BROWSER_CHECK_COUNT){failed++;record('Complete browser suite',false,`Expected ${BROWSER_CHECK_COUNT} checks; only ${results.children.length} ran`);}frame?.contentWindow.f13?.fake.close();frame?.remove();frame=null;status.textContent=failed?`${failed} check(s) failed`:`All ${results.children.length} browser checks passed`;status.dataset.result=failed?'fail':'pass';start.disabled=false;}
 };

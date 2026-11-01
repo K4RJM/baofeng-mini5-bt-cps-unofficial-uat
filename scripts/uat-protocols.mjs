@@ -44,8 +44,11 @@ export async function identifyProfile(radio,key,{sendMode='auto'}={}){
   }
   entry.responseHex=hex(response);entry.completedAtMs=elapsed();check();return response;
  }
- radio.busy=true;characteristic.addEventListener('characteristicvaluechanged',notification);
+ radio.busy=true;
  try{
+  // Trace in the capture phase, before the receiver resolves a waiting request.
+  // Native callbacks can run promise continuations before the next listener.
+  characteristic.addEventListener('characteristicvaluechanged',notification,{capture:true});
   if(characteristic.service?.getCharacteristics){
    try{const chars=await radio.native('Inspecting Bluetooth characteristics',()=>characteristic.service.getCharacteristics(),radio.deadlines.discovery);check();transport.characteristics=chars.map(describe);}
    catch(error){transport.discoveryError=error.message;check();}
@@ -71,7 +74,7 @@ export async function identifyProfile(radio,key,{sendMode='auto'}={}){
   return {completed:true,stage:'complete',profile:key,profileLabel:profile.label,model,matchesExpected:model===profile.prefix,
    id:[...id],config:[...config],exchanges,transport,elapsedMs:elapsed(),memoryReads:0,memoryWrites:0,capturedAt:new Date().toISOString()};
  }catch(error){error.handshakeReport={completed:false,stage,profile:key,profileLabel:profile.label,exchanges,transport,elapsedMs:elapsed(),error:error.message,receivedPendingHex:hex(radio.rx),memoryReads:0,memoryWrites:0,capturedAt:new Date().toISOString()};throw error;}
- finally{characteristic.removeEventListener('characteristicvaluechanged',notification);radio.busy=false;}
+ finally{characteristic.removeEventListener('characteristicvaluechanged',notification,{capture:true});radio.busy=false;}
 }
 export function installProtocolTools({radio,run,connect,message}){
  const page=location.href==='about:srcdoc'?document.baseURI:location.href;

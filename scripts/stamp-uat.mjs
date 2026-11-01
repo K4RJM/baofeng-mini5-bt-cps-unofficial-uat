@@ -17,7 +17,7 @@ html=replaceOnce(html,'<header class="topbar">',controls+'\n<header class="topba
 html=replaceOnce(html,'</head>','<style>.uat-protocol-tools{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;padding:8px 18px;border-bottom:1px solid var(--border)}.uat-protocol-tools select,.uat-protocol-tools button{min-height:32px;padding:4px 9px;font-size:.85rem}.uat-protocol-tools small{flex-basis:100%;opacity:.85}.uat-protocol-tools output{font-size:.85rem;overflow-wrap:anywhere}@media(max-width:600px){.uat-protocol-tools{padding:8px}.uat-protocol-tools output{flex-basis:100%}}</style></head>');
 await writeFile('dist/index.html',html);
 let app=await readFile('dist/app.mjs','utf8');
-app="import {installProtocolTools} from './uat-protocols.mjs?v=20.35';\nlet uatProtocolTools;\n"+app;
+app="import {installProtocolTools} from './uat-protocols.mjs?v=20.36';\nlet uatProtocolTools;\n"+app;
 app=replaceOnce(app,'function sync(){','function sync(){\n uatProtocolTools?.sync(busy);');
 
 app+="\nuatProtocolTools=installProtocolTools({radio,run,connect,message});sync();\n";
@@ -25,6 +25,6 @@ if(!app.includes("build:'"+base+"'"))throw Error('Diagnostic version anchor miss
 await writeFile('dist/app.mjs',app.replace("build:'"+base+"'","environment:'UAT',build:'"+version+"'"));
 await writeFile('dist/uat-protocols.mjs',await readFile('scripts/uat-protocols.mjs','utf8'));
 await writeFile('dist/docs/UAT-RADIO-PROTOCOLS.md',await readFile('docs/UAT-RADIO-PROTOCOLS.md','utf8'));
-await writeFile('dist/docs/RELEASE-20.35.md',await readFile('docs/RELEASE-20.35.md','utf8'));
+for(const file of ['BROWSER-20.34.md','BROWSER-20.35.md','RELEASE-20.34.md','RELEASE-20.35.md','RELEASE-20.36.md'])await writeFile('dist/docs/'+file,await readFile('docs/'+file,'utf8'));
 await writeFile('dist/deployment.json',JSON.stringify({environment:'UAT',version,sourceSha:sha,repository,protocolProfiles:['mini5','gm30pro','uv32']},null,2)+'\n');
 console.log('Packaged '+version+' for '+repository);

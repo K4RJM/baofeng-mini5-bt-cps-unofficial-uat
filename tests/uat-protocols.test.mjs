@@ -104,3 +104,37 @@ test('Reports enumerate characteristics without switching paths and capture frag
 test('Unsupported explicit send method returns a diagnostic without sending any identification command',async()=>{
  const h=simulated('GM-30P ');try{await assert.rejects(identifyProfile(h.radio,'gm30pro',{sendMode:'with-response'}),e=>{assert.match(e.message,/not supported/);assert.equal(e.handshakeReport.transport.selectedCharacteristic.properties.write,false);return true;});assert.equal(h.fake.sent.length,0);}finally{h.close();}
 });
+
+// Model native delivery yielding to promise continuations between listeners.
+// Script-dispatched EventTarget events do not expose this ordering in Node.
+test('Native callback ordering retains the terminal notification before cleanup',async()=>{
+ for(const opening of [0,6]){
+  const listeners=[],sent=[];let delivery=Promise.resolve();
+  const c={uuid:'ffe1',properties:{writeWithoutResponse:true,notify:true},
+   addEventListener(type,fn,options){listeners.push({type,fn,capture:options===true||!!options?.capture});},
+   removeEventListener(type,fn,options){const i=listeners.findIndex(x=>x.type===type&&x.fn===fn&&x.capture===(options===true||!!options?.capture));if(i>=0)listeners.splice(i,1);},
+   writeValueWithoutResponse(bytes){
+    sent.push([...bytes]);const reply=bytes.length===1&&bytes[0]===70?new Uint8Array(16):bytes.length===1&&bytes[0]===77?new TextEncoder().encode('UV32PRO'):Uint8Array.of(sent.length===1?opening:6);
+    delivery=delivery.then(async()=>{
+     await new Promise(r=>setTimeout(r,0));c.value=new DataView(reply.buffer);
+     const ordered=[...listeners.filter(x=>x.capture),...listeners.filter(x=>!x.capture)];
+     for(const listener of ordered){if(listeners.includes(listener))listener.fn({target:c});await new Promise(r=>setTimeout(r,0));}
+    });return Promise.resolve();
+   }
+  };
+  c.service={uuid:'ffe0',getCharacteristics:async()=>[c]};
+  const radio=new Reader();radio.device={id:'NATIVE-CALLBACK-TEST',gatt:{connected:true}};radio.char=c;c.addEventListener('characteristicvaluechanged',radio.notify);
+  let report;try{report=await identifyProfile(radio,'uv32');assert.equal(opening,6);}catch(e){report=e.handshakeReport;if(!report)throw e;assert.equal(opening,0);}
+  await delivery;
+  assert.equal(report.exchanges[0].responseHex,opening===0?'00':'06');
+  assert.equal(report.transport.notificationCount,opening===0?1:4,'Every delivered response, including the terminal one, is traced');
+  assert.equal(report.transport.notifications.at(-1).hex,opening===0?'00':'06');
+  assert.equal(sent.length,opening===0?1:4);assert.equal(radio.busy,false);assert.equal(listeners.length,1,'Only the original receiver remains');
+ }
+});
+
+test('Browser suite identifies its own revision and rejects stale or missing application builds',async()=>{
+ const {browserBuildError,BROWSER_SUITE_VERSION,BROWSER_CHECK_COUNT}=await import('./browser/revision.mjs');
+ assert.equal(BROWSER_CHECK_COUNT,30);assert.equal(browserBuildError('Version '+BROWSER_SUITE_VERSION),'');assert.equal(browserBuildError('UAT build '+BROWSER_SUITE_VERSION+'-UAT.123abcd'),'');
+ for(const badge of ['UAT build 20.35-UAT.14530dc','Version 20.34','',null,'garbage'])assert.match(browserBuildError(badge),/does not match/);
+});
