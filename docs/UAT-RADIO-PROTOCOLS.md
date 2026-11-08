@@ -4,17 +4,17 @@ Updated November 8, 2026. **Active profiles: MINI-5 and UV-32.** GM-30 Pro remai
 
 ## Current physical result
 
-K4RJM's **20.37-UAT.2bad73a** report confirms Bluetooth setup, the opening ACK, frequency-range response and **UV32PRO** model response. The final 25-byte SEND failed in a native GATT operation. This is physical evidence of communication and identity, but not completed initialization or channel reading. [Full evidence](UV32-HANDSHAKE-2026-11-08.md).
+K4RJM's **20.38-UAT.3082c50** report confirms a complete physical handshake: bridge verification, opening ACK, frequency-range response, seven-byte **UV32PRO** identity and final SEND ACK **06**. The working configuration is **With response** with SEND delivered as **20 + 5 bytes**. This establishes initialization on the tested radio, not channel-memory reading or repeat/reconnect reliability. [Full evidence](UV32-HANDSHAKE-2026-11-08.md).
 
-## v20.38 identification candidate
+## Physically verified v20.38 identification configuration
 
-Choose **UV-32**, leave **Bluetooth send** at **Automatic**, and run **Check radio ID** once. Save the handshake report after either success or failure.
+Choose **UV-32**, set **Bluetooth send** to **With response**, and run **Check radio ID** once. Save the handshake report after either success or failure.
 
-The diagnostic retains the now physically confirmed FF31 setup, then sends the existing CPS commands. It delivers final SEND as 20 + 5 bytes, matching the phone-app transport. Each piece is awaited, recorded and bounded; a failure is not retried. The single final ACK remains required. This targets a plausible transport-size cause without claiming the MTU was measured or the physical fix is proven.
+The diagnostic retains the now physically confirmed FF31 setup, then sends the existing CPS commands. It delivers final SEND as 20 + 5 bytes, matching the phone-app transport. Each piece is awaited, recorded and bounded; a failure is not retried. The single final ACK remains required. The complete combination is physically verified. The earlier failing run also used a different send method, so the evidence does not isolate packet size as the only cause or establish a measured MTU.
 
 A complete handshake displays **Handshake complete: UV32PRO**. It will not load channels: **UV-32 channel-memory reading and programming are not implemented**. The selector controls identification only. MINI-5 memory, programming, identity safeguards, reset and disconnect behavior are unchanged.
 
-No physical radio operation was performed during development. [v20.38 release checks and rollback](RELEASE-20.38.md). Browser regression checks use simulated peripherals and cannot connect to the physical radio.
+K4RJM performed the physical test. No physical radio operation was performed by the development agent. [v20.38 release checks and rollback](RELEASE-20.38.md). Browser regression checks use simulated peripherals and cannot connect to the physical radio.
 
 ## Historical investigation record
 
