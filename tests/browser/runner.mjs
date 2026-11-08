@@ -1,4 +1,4 @@
-import {BROWSER_SUITE_VERSION,BROWSER_CHECK_COUNT,browserBuildError} from './revision.mjs?v=20.36';
+import {BROWSER_SUITE_VERSION,BROWSER_CHECK_COUNT,browserBuildError} from './revision.mjs?v=20.37';
 import {rdtFixture} from '../rdt-fixtures.mjs?v=20.33';
 import {readImage} from '../../image-files.mjs?v=20.31';
 import {csvFixture,csvHeads} from '../csv-fixtures.mjs?v=20.31';
@@ -11,7 +11,7 @@ async function fresh(mode='normal'){
  frame?.contentWindow.f13?.fake.close();frame?.remove();
  let html=await fetch(new URL('index.html',root),{cache:'no-store'}).then(r=>r.text());
  const match=html.match(/<script type="module" src="(app\.mjs[^\"]*)"><\/script>/);assert(match,'Actual application module exists');
- const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.36',root).href}"><\/script>`;
+ const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.37',root).href}"><\/script>`;
  html=html.replace('<head>','<head><base href="'+root.href+'">').replace(match[0],script);
  frame=document.createElement('iframe');frame.title='Isolated CPS test application';frame.setAttribute('allow',"bluetooth 'none'");frame.srcdoc=html;document.getElementById('workspace').append(frame);
  await until(()=>frame.contentWindow.f13?.ready||frame.contentWindow.f13?.failed,'application bootstrap');
@@ -237,12 +237,12 @@ document.getElementById('start').onclick=async()=>{
   await check('Wrong simulated radio identity blocks every memory write',async()=>{h=await fresh();await load(h);h.state.fake.faults.wrongModel=true;id('writeRadio').click();id('hasBackup').click();id('confirmWrite').click();await until(()=>!id('open').disabled,'rejected identity');assert(/Unexpected radio model/.test(id('status').textContent),'Identity error is visible');assert(h.state.fake.writes===0,'No write sent to wrong model');});
   await check('Missing simulated ACK unlocks editing and never retries the uncertain write',async()=>{h=await fresh();await load(h);h.state.fake.faults.dropAck=1;id('writeRadio').click();id('hasBackup').click();id('confirmWrite').click();await until(()=>!id('open').disabled,'uncertain write timeout');assert(/Write incomplete or uncertain/.test(id('status').textContent),'Uncertainty is visible');assert(h.state.fake.writes===1,'Only one write attempt');assert(id('writeRadio').disabled&&!id('save').disabled&&!id('content').inert,'Editing recovers while writing stays locked');});
   await check('Bluetooth icon follows the simulated connection and returns to offline',async()=>{h=await fresh();const icon=id('linkDot'),offline=h.w.getComputedStyle(icon).color;assert(icon.localName==='svg'&&icon.getAttribute('aria-hidden')==='true','Decorative Bluetooth SVG exists');assert(!icon.classList.contains('online')&&id('connection').textContent==='Not connected','Initial offline state');id('connect').click();await until(()=>id('connection').textContent==='Connected','Bluetooth icon connected');assert(icon.classList.contains('online'),'Connected icon state');assert(h.w.getComputedStyle(icon).color!==offline,'Connected color differs visibly');assert(h.state.fake.sent.length===0,'Connecting sends no programming commands');id('connect').click();await until(()=>id('connection').textContent==='Not connected','Bluetooth icon disconnected');assert(!icon.classList.contains('online')&&h.w.getComputedStyle(icon).color===offline,'Disconnected icon restores offline color');assert(h.state.fake.writes===0,'Icon test never programs');});
-  await check('UAT protocol selector identifies MINI-5, GM-30 Pro and UV-32 without memory access',async()=>{
+  await check('UAT protocol selector identifies MINI-5 and UV-32 without memory access',async()=>{
    h=await fresh();const select=id('uatProtocol');if(!select){assert(!id('uatIdentify'),'No UAT tools in ordinary packaging');return;}
-   assert(Array.from(select.options,o=>o.textContent).join('|')==='MINI-5|GM-30 Pro|UV-32','Three protocol choices');
+   assert(Array.from(select.options,o=>o.textContent).join('|')==='MINI-5|UV-32','Only MINI-5 and UV-32 protocol choices');
    const initial=id('sourceTag').textContent;
-   for(const [profile,identity] of [['mini5','5RMINI  +L00000'],['gm30pro','GM-30P '],['uv32','UV32PRO'],['uv32','UV32PRO +L00000'],['gm30pro','OTHER  ']]){
-    select.value=profile;select.dispatchEvent(new h.w.Event('change'));h.state.fake.faults.identity=identity;
+   for(const [profile,identity] of [['mini5','5RMINI  +L00000'],['uv32','UV32PRO'],['uv32','UV32PRO +L00000'],['uv32','OTHER  ']]){
+    select.value=profile;select.dispatchEvent(new h.w.Event('change'));h.state.fake.faults.identity=identity;h.state.fake.faults.bridgeSetup=true;
     const before=h.state.fake.sent.length;assert(!id('uatIdentify').disabled,'Identification available');id('uatIdentify').click();
     assert(select.disabled&&id('uatSendMode').disabled&&id('uatIdentify').disabled&&id('readRadio').disabled,'Controls lock for the handshake');
     await until(()=>!id('uatIdentify').disabled,'handshake complete');
@@ -255,19 +255,26 @@ document.getElementById('start').onclick=async()=>{
    assert(report.model==='OTHER'&&report.matchesExpected===false&&report.memoryWrites===0&&report.exchanges.length===4,'Diagnostic includes mismatched identity and wire exchange');
    frame.style.width='390px';await new Promise(r=>h.w.requestAnimationFrame(r));assert(h.d.documentElement.scrollWidth<=h.d.documentElement.clientWidth+1,'Protocol controls fit phone width');frame.style.width='';
   });
+  await check('UAT bridge verification failure stops before every CPS command',async()=>{
+   h=await fresh();if(!id('uatProtocol'))return;id('uatProtocol').value='uv32';h.state.fake.faults.bridgeSetup=true;h.state.fake.faults.badBridge=true;
+   id('uatIdentify').click();await until(()=>!id('uatIdentify').disabled,'bridge verification rejection');id('uatHandshakeReport').click();const report=JSON.parse(await h.state.downloads.at(-1).text());
+   assert(!report.completed&&report.stage.includes('bridge verification')&&!report.transport.bridge.verified,'Failed setup is recorded');
+   assert(report.exchanges.length===0&&h.state.fake.sent.length===0&&h.state.fake.events.filter(e=>e==='bridge-setup').length===1,'One setup attempt, no CPS commands or retry');
+   assert(h.state.fake.writes===0&&h.state.fake.reads===0&&!id('open').disabled,'No memory access and controls recover');
+  });
   await check('UAT diagnostics retain connection failures and silent handshakes with explicit BLE send selection',async()=>{
-   h=await fresh();if(!id('uatSendMode'))return;id('uatProtocol').value='gm30pro';h.state.fake.faults.disconnectDiscovery=true;
+   h=await fresh();if(!id('uatSendMode'))return;id('uatProtocol').value='uv32';h.state.fake.faults.disconnectDiscovery=true;
    id('uatIdentify').click();await until(()=>!id('uatIdentify').disabled,'service discovery failure');
    assert(id('uatProtocolResult').textContent.includes('Bluetooth connection'),'Connection stage shown');assert(!id('uatHandshakeReport').disabled,'Connection failure can be saved');id('uatHandshakeReport').click();let report=JSON.parse(await h.state.downloads.at(-1).text());
    assert(!report.completed&&report.stage==='Bluetooth connection'&&report.exchanges.length===0&&report.connectionLog.some(e=>e.message.includes('Finding radio service')),'Failed discovery report has no handshake sends');assert(h.state.fake.sent.length===0,'Discovery failure sends no radio command');
-   h=await fresh();id('uatProtocol').value='gm30pro';h.state.fake.faults.identity='GM-30P ';h.state.fake.faults.silentHandshake=true;h.state.fake.characteristic.properties={write:true,writeWithoutResponse:true,notify:true};id('uatSendMode').value='with-response';
+   h=await fresh();id('uatProtocol').value='uv32';h.state.fake.faults.identity='UV32PRO';h.state.fake.faults.silentHandshake=true;h.state.fake.faults.bridgeSetup=true;h.state.fake.characteristic.properties={write:true,writeWithoutResponse:true,notify:true};id('uatSendMode').value='with-response';
    id('uatIdentify').click();assert(id('uatSendMode').disabled,'Send method locked during operation');await until(()=>!id('uatIdentify').disabled,'silent opening command timeout');
    assert(id('uatProtocolResult').textContent.includes('Opening command'),'Exact failed command shown');id('uatHandshakeReport').click();report=JSON.parse(await h.state.downloads.at(-1).text());
-   assert(report.transport.sendMethod==='writeValueWithResponse'&&report.transport.notificationCount===0&&report.exchanges.length===1,'Failure retains chosen method and zero notifications');assert(h.state.fake.sent.length===1&&h.state.fake.events.filter(e=>e==='send-with-response').length===1,'One explicit send, no fallback or retry');
+   assert(report.transport.sendMethod==='writeValueWithResponse'&&report.transport.bridge.verified&&report.transport.notificationCount===2&&report.exchanges.length===1,'Failure retains chosen method and setup notifications without a CPS reply');assert(h.state.fake.sent.length===1&&h.state.fake.events.filter(e=>e==='send-with-response').length===1,'One explicit send, no fallback or retry');
    assert(h.state.fake.writes===0&&h.state.fake.reads===0,'Diagnostics touch no channel memory');
-   h=await fresh();id('uatProtocol').value='uv32';h.state.fake.faults.openingReply=0;
+   h=await fresh();id('uatProtocol').value='uv32';h.state.fake.faults.openingReply=0;h.state.fake.faults.bridgeSetup=true;
    id('uatIdentify').click();await until(()=>!id('uatIdentify').disabled,'zero opening reply');id('uatHandshakeReport').click();report=JSON.parse(await h.state.downloads.at(-1).text());
-   assert(report.exchanges[0].responseHex==='00'&&report.transport.notifications[0].hex==='00'&&report.transport.notificationCount===1,'Zero response retained consistently in exchange and notification trace');
+   assert(report.exchanges[0].responseHex==='00'&&report.transport.notifications.at(-1).hex==='00'&&report.transport.notificationCount===3,'Zero response retained consistently in exchange and notification trace');
    assert(!report.completed&&h.state.fake.sent.length===1&&h.state.fake.writes===0&&h.state.fake.reads===0,'Invalid ACK stops before further commands');
   });
   await check('Missing HTML control mutation is detected by actual app startup',async()=>{h=await fresh('missing-id');assert(h.state.failed&&h.state.errors.some(e=>/null|onclick/.test(e)),'Removing confirmWrite must break startup');});

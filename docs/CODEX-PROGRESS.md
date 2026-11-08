@@ -1,3 +1,24 @@
+# Current UAT candidate — v20.37, UV-32 focus (November 8, 2026)
+
+- K4RJM removed GM-30 Pro from active development. The selector, profile registry and deployment metadata now contain MINI-5 and UV-32 only.
+- Narrowed the unpublished FF31 setup candidate to UV-32. Historical GM-30 capture evidence remains accurately attributed; physical UV-32 verification is pending.
+- Regression checks cover the removed profile sending nothing, UV-32 setup and all existing MINI-5 safeguards. Current CI/deployment results belong in [RELEASE-20.37.md](RELEASE-20.37.md); the prior local 231-test result belongs to the earlier candidate.
+- UAT rollback: `ac9f00a03ec0902679ba6b53bbe00e29838feb67` / deployed `20.36-UAT.bf570af`.
+- LIVE stays v20.33 at `7a9b363a0fb643e188bb4c3b3917bb9f6cc78cd8`. No physical radio operation performed.
+
+---
+
+# Superseded unpublished candidate — v20.37 (November 1, 2026)
+
+- Found the missing FF31 setup using the supplied GM-30 Pro report and Walkie-Talkie Tool 1.4.7 APK. The calculation matches all 20 captured reply bytes. Corrected the preliminary OLA attribution using process identity.
+- Added setup only to the UAT GM-30 Pro / UV-32 identification tool. MINI-5 core and memory operations are unchanged. UV-32 applicability and physical Ham-Rx success remain pending.
+- 231/231 automated tests pass locally. Browser suite now contains 31 checks. Deployment and browser results are recorded in [RELEASE-20.37.md](RELEASE-20.37.md).
+- Recorded the UV-32 factory fields from K4RJM's four screenshots. No speculative memory mapping or channel driver was added.
+- UAT rollback: `ac9f00a03ec0902679ba6b53bbe00e29838feb67`; previous deployed app `bf570af6411370eb398ea2ed6bd1ab625ca2eb43`.
+- LIVE remains v20.33 at `7a9b363a0fb643e188bb4c3b3917bb9f6cc78cd8`. No physical radio was operated. Phone reports and APKs remain private.
+
+---
+
 # Current UAT checkpoint — v20.36 (November 1, 2026)
 
 - UV-32 now has a physical connection and opening-exchange report (`00`, not ACK `06`); successful identification remains unverified. GM-30 Pro file (2) duplicates the v20.34 report and is not new evidence.

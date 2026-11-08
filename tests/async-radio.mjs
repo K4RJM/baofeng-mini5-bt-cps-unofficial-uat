@@ -28,7 +28,18 @@ export function asyncRadio(initial, faults={}) {
  characteristic.properties=faults.withResponse?{write:true}:{writeWithoutResponse:true};
  characteristic.writeValueWithoutResponse=b=>{events.push('send-without-response');return send(b);};characteristic.writeValueWithResponse=b=>{events.push('send-with-response');return send(b);};
  characteristic.startNotifications=async()=>{events.push('notifications-enabled');return characteristic;};
- const service={uuid:'0000ffe0-0000-1000-8000-00805f9b34fb',getCharacteristics:async()=>{events.push('list-characteristics');return [characteristic];},getCharacteristic:async uuid=>{if(uuid!==0xffe1)throw Error('Wrong characteristic');events.push('characteristic');return characteristic;}};
+ const bridge={uuid:'0000ff31-0000-1000-8000-00805f9b34fb',properties:{write:true},writeValueWithResponse:async b=>{
+  events.push('bridge-setup');if(!device.gatt.connected)throw Error('Test link is disconnected');
+  if(b.length!==20||b[4]!==2||!b.slice(0,4).every(n=>n===63)||b.slice(5).some(n=>n>98))throw Error('Unexpected bridge request');
+  if(faults.silentBridge)return;
+  // Test peripheral calculates its reply independently of production helpers.
+  const response=new Uint8Array(20).fill(33);
+  for(let i=5;i<20;i++){let sum=0;for(let j=0;j<=i;j++)sum+=b[j];response[i]=sum%(b[24-i]+i-4);}
+  if(faults.badBridge)response[19]^=1;
+  later(()=>notify(response));
+ }};
+ const service={uuid:'0000ffe0-0000-1000-8000-00805f9b34fb',getCharacteristics:async()=>{events.push('list-characteristics');return faults.bridgeSetup?[characteristic,bridge]:[characteristic];},getCharacteristic:async uuid=>{if(uuid!==0xffe1)throw Error('Wrong characteristic');events.push('characteristic');return characteristic;}};
+ bridge.service=service;
  characteristic.uuid='0000ffe1-0000-1000-8000-00805f9b34fb';characteristic.service=service;
  const server={getPrimaryService:async uuid=>{if(uuid!==0xffe0)throw Error('Wrong service');events.push('service');if(faults.disconnectDiscovery){device.gatt.disconnect();throw Error('Bluetooth link ended during service discovery');}return service;}};
  device.gatt={connected:false,async connect(){events.push('connect');this.connected=true;return server;},disconnect(){if(!this.connected)return;events.push('disconnect');this.connected=false;device.dispatchEvent(new Event('gattserverdisconnected'));}};

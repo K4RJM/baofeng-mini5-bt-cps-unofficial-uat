@@ -1,12 +1,29 @@
-# UAT radio identification — v20.36
+# UAT radio identification — v20.37
 
-Updated November 1, 2026. UAT only; LIVE v20.33 is unchanged.
+Updated November 8, 2026. **Active scope: MINI-5 and UV-32.** GM-30 Pro was removed from the selectable profiles and active development at K4RJM's request. LIVE v20.33 is unchanged.
 
 ## Controls and scope
 
-Choose MINI-5, GM-30 Pro or UV-32 in **Radio protocol**, then **Check radio ID**. This connects if needed and runs the selected identification handshake. A different printable model name is displayed rather than rejected. Save the handshake report to retain the exact request/response bytes. Selection alone sends nothing. No physical-radio operation was performed while developing this release.
+Choose MINI-5 or UV-32 in **Radio protocol**, then **Check radio ID**. Selection alone sends nothing. The tool connects if needed and reports a different printable model name rather than imposing a model-name lock. Save the handshake report after success or failure.
 
-These tools establish a Bluetooth programming connection and identify the radio. They do not read channel memory, load another model's channels through the MINI-5 decoder, or send programming frames. The existing MINI-5 read/write path, identity checks, same-device binding, acknowledgement requirements and confirmation remain unchanged. The new dropdown controls the identification tool, not a full GM-30 Pro/UV-32 codeplug driver.
+For UV-32, the candidate sends a fresh FF31 Bluetooth setup request with response and validates its FFE1 reply before the existing four CPS identification commands. The **Bluetooth send** selector applies only to those later FFE1 commands. MINI-5 does not send the added setup.
+
+The setup calculation matches a historical GM-30 Pro capture from **Walkie-Talkie Tool**, not OLA. That capture remains a regression oracle, with its attribution intact; it is not evidence of a successful physical UV-32 exchange. UV-32 applicability remains pending hardware verification.
+
+No channel-memory command or UV-32 memory driver is added. The selector controls identification only. MINI-5 memory mapping, programming, identity safeguards, reset and disconnect behavior remain unchanged.
+
+## Next UV-32 physical check
+
+1. Open the main UAT application and confirm **20.37-UAT**. The browser-test page uses simulated Bluetooth; it cannot connect to a physical radio.
+2. Enable Wireless CPS and disconnect other radio-programming apps. Choose **UV-32**, leave **Bluetooth send** on **Automatic**, and run **Check radio ID** once.
+3. Save the handshake report whether the operation succeeds or stops. It separates FF31 setup from the CPS commands.
+4. Use the normal Disconnect control afterward. Do not use MINI-5 memory Read/Write controls on the UV-32.
+
+No physical radio operation was performed during development. Software checks and deployment status are recorded in [RELEASE-20.37.md](RELEASE-20.37.md). The prior 231-test local result belongs to the earlier three-profile candidate; the focused revision requires its own CI result. The updated browser suite contains 31 checks, with full execution still pending.
+
+## Historical investigation record
+
+The following evidence and earlier observations are retained for traceability. References to GM-30 Pro describe past investigation, not a currently supported selection or a request for further GM-30 testing. Later APK and capture findings are in [the capture analysis](BLUETOOTH-CAPTURE-2026-11-01.md).
 
 ## Evidence
 
@@ -80,17 +97,4 @@ Characteristic enumeration never changes the FFE1 data path or subscribes to ano
 
 API references: [service characteristic enumeration](https://developer.mozilla.org/en-US/docs/Web/API/BluetoothRemoteGATTService/getCharacteristics), [write with response](https://developer.mozilla.org/en-US/docs/Web/API/BluetoothRemoteGATTCharacteristic/writeValueWithResponse).
 
-## Next physical diagnostic checks
 
-1. Open the main UAT application, not the isolated browser-test page. Confirm build 20.36-UAT. First run the refreshed browser suite; it should identify suite 20.36 and finish all 30 checks. Enable Wireless CPS and keep other programming apps disconnected.
-2. For GM-30 Pro, select its profile and **With response**, then run **Check radio ID** once. Save the handshake report whether it succeeds, times out, or says that method is unsupported. This tests an advertised send method with the same identification command; it is not a confirmed repair.
-3. For UV-32, select its profile and **With response**, run **Check radio ID** once, then save the report. This compares the other advertised method with the captured Automatic/without-response result. A connection failure should still retain its stage without any handshake command.
-4. Disconnect with the existing control after the check. Share the saved reports for comparison. Do not use MINI-5 channel-memory programming to test either new model.
-
-No physical operation was performed by the development agent. Existing MINI-5 physical evidence remains valid and is recorded in Testing & Compatibility. Successful identification of GM-30 Pro and UV-32 remains unverified.
-
-## Software validation
-
-The v20.36 automated suite and packaging results are recorded in [the release record](RELEASE-20.36.md). Coverage includes the silent opening-command symptom, both explicit send methods, unsupported capabilities, exact command allowlisting, notification traces, cleanup, and unchanged connection binding. The browser suite adds downloadable service-discovery failure and silent-handshake checks, bringing it to 30 checks. These use simulated Bluetooth only.
-
-The preceding v20.34 suite passed 212 automated tests. K4RJM supplied the complete passing browser output on November 1, 2026: all 29 browser checks passed on 20.34-UAT.d1c7ae9. See [the browser result](BROWSER-20.34.md). That result belongs to v20.34 and is not a v20.35 browser verification.
