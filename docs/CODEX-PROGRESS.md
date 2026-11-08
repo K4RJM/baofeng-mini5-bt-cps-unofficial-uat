@@ -1,8 +1,8 @@
-# Current UAT candidate — v20.38 (November 8, 2026)
+# Published UAT — v20.38 (November 8, 2026)
 
 - K4RJM's physical v20.37 report confirms bridge verification, opening ACK, F response and seven-byte UV32PRO identity. Final 25-byte SEND failed with a native GATT error; no channel memory was read.
 - UV-32 initialization now uses the same payload delivered in 20 + 5 byte GATT sends, as observed in the phone app. No automatic retry or memory command. Full initialization still requires physical verification.
-- Eight targeted regression tests plus the complete suite are required; see [RELEASE-20.38.md](RELEASE-20.38.md) for actual CI/deployment results. Browser suite stays at 31 checks and includes the simulated 20-byte limit.
+- Published **20.38-UAT.3082c50**, application commit `3082c50c2e683e181861479db2c432b7807fb9dd`. **239/239 automated tests passed**, packaging and Pages workflow **42513910726** succeeded. [Release record](RELEASE-20.38.md). Browser suite stays at 31 checks and includes the simulated 20-byte limit; execution and physical final-initialization verification remain pending.
 - v20.37 completed 231/231 automated checks and deployed successfully in workflow 42512827358. UAT rollback: `2bad73ae672efae5b83e9beb7fb33c79f8fa547d`.
 - MINI-5 core unchanged. GM-30 Pro remains removed. LIVE stays v20.33 at `7a9b363a0fb643e188bb4c3b3917bb9f6cc78cd8`. No physical radio operated by the development agent.
 

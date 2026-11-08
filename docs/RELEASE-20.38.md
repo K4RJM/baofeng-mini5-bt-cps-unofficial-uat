@@ -16,7 +16,7 @@ MINI-5 core, memory mapping, codec, programming and disconnect/reset behavior ar
 
 Eight targeted tests cover the new physical UV-32 calculation oracle, reproduction of a rejected 25-byte GATT operation, exact 20 + 5 delivery for all send modes, unchanged MINI-5 initialization, failure of either portion, bounded stalled calls and late completion, connection changes/early responses, and missing/negative final acknowledgements. The existing full suite is also required.
 
-CI and deployment results will be recorded after completion. Browser suite remains 31 checks, updated to require UV-32 success through a simulated 20-byte peripheral and verify both recorded portions. Browser execution and physical final-initialization verification remain pending. The existing compact-row issue is retained.
+The complete CI suite passed: **239/239 tests**, zero failures/skips. Packaging and Pages deployment succeeded; details below. Browser suite remains 31 checks, updated to require UV-32 success through a simulated 20-byte peripheral and verify both recorded portions. Browser execution and physical final-initialization verification remain pending. The existing compact-row issue is retained.
 
 ## Rollback
 
@@ -24,3 +24,12 @@ CI and deployment results will be recorded after completion. Browser suite remai
 - Prior UAT workflow: [42512827358](https://github.com/K4RJM/baofeng-mini5-bt-cps-unofficial-uat/actions/runs/42512827358), successful; 231 automated tests passed.
 - LIVE: v20.33, branch head `7a9b363a0fb643e188bb4c3b3917bb9f6cc78cd8`.
 - Use a normal source revert and UAT deployment workflow to roll back. No force push or LIVE change.
+
+## Completed UAT verification
+
+- Application commit: `3082c50c2e683e181861479db2c432b7807fb9dd`; build **20.38-UAT.3082c50**.
+- [Workflow 42513910726](https://github.com/K4RJM/baofeng-mini5-bt-cps-unofficial-uat/actions/runs/42513910726) completed successfully: **239/239 automated tests passed**, zero failures/skips, packaging succeeded, Pages deployment succeeded.
+- All 16 protected MINI-5 source files have identical Git blob hashes to v20.37. LIVE branch head was rechecked and remains `7a9b363a0fb643e188bb4c3b3917bb9f6cc78cd8`.
+- An earlier CI attempt stopped deployment because a new cancellation test expected different error wording. The bounded transport correctly cancelled; the assertion now accepts its existing cancellation error and still requires that no second portion is sent. The complete rerun passed.
+- Browser execution and physical final-initialization verification remain pending. Web-fetch tools could not retrieve the Pages URL for an independent content check; deployment success is confirmed through GitHub's workflow, not a claimed rendered-browser pass.
+- Rollback remains `2bad73ae672efae5b83e9beb7fb33c79f8fa547d` / **20.37-UAT.2bad73a**.
