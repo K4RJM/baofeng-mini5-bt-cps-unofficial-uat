@@ -52,8 +52,8 @@ test('Blank, binary, truncated or partially extended identities stop before INIT
 });
 test('NACK at either handshake ACK stops with no memory command',async()=>{
  for(const stage of [1,4]){
-  const h=simulated('UV32PRO'),request=h.radio.request.bind(h.radio);let n=0;
-  h.radio.request=async(...args)=>{const result=await request(...args);return ++n===stage?Uint8Array.of(21):result;};
+  const h=simulated('UV32PRO');
+  if(stage===1)h.fake.faults.openingReply=21;else h.fake.faults.initReply=21;
   try{await assert.rejects(identifyProfile(h.radio,'uv32'),/not acknowledged/);assert.equal(h.fake.sent.length,stage);assert.equal(h.fake.writes,0);assert.equal(h.fake.reads,0);}finally{h.close();}
  }
 });
@@ -91,7 +91,7 @@ test('Bluetooth send selection uses only advertised capabilities and never silen
 test('Explicit BLE send modes keep the same four handshake commands and final ACK check',async()=>{
  for(const mode of ['with-response','without-response']){
   const h=simulated('UV32PRO');h.fake.characteristic.properties={write:true,writeWithoutResponse:true,notify:true};
-  try{const r=await identifyProfile(h.radio,'uv32',{sendMode:mode});assert.equal(r.completed,true);assert.equal(h.fake.events.filter(e=>e==='send-'+mode).length,4);assert.equal(h.fake.events.filter(e=>e==='send-'+(mode==='with-response'?'without-response':'with-response')).length,0);assert.deepEqual(h.fake.sent.map(hex),[hex(Buffer.from('PROGRAMCOLORPROU')),'46','4d',INIT]);assert.equal(r.exchanges.every(e=>Number.isFinite(e.sendResolvedAtMs)),true);}finally{h.close();}
+  try{const r=await identifyProfile(h.radio,'uv32',{sendMode:mode});assert.equal(r.completed,true);assert.equal(h.fake.events.filter(e=>e==='send-'+mode).length,5);assert.equal(h.fake.events.filter(e=>e==='send-'+(mode==='with-response'?'without-response':'with-response')).length,0);assert.deepEqual(h.fake.sent.map(hex),[hex(Buffer.from('PROGRAMCOLORPROU')),'46','4d',INIT]);assert.equal(r.exchanges.every(e=>Number.isFinite(e.sendResolvedAtMs)),true);}finally{h.close();}
  }
 });
 test('A simulated silent UV-32 opening command produces a stage-specific report and one attempt',async()=>{

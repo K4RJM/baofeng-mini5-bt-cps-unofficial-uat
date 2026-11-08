@@ -29,3 +29,10 @@ The bridge calculation matches the supplied Walkie-Talkie Tool capture and APK e
 - Roll back through a normal revert and the UAT test/deploy workflow; do not force-push or modify LIVE.
 
 See [UV-32 test instructions](UAT-RADIO-PROTOCOLS.md), [capture/APK analysis](BLUETOOTH-CAPTURE-2026-11-01.md), and [factory field reference](UV32-FACTORY-FIELDS.md).
+
+## Completed verification
+
+- UAT application commit: `2bad73ae672efae5b83e9beb7fb33c79f8fa547d`, build **20.37-UAT.2bad73a**.
+- [Workflow 42512827358](https://github.com/K4RJM/baofeng-mini5-bt-cps-unofficial-uat/actions/runs/42512827358) completed successfully. **231/231 automated tests passed**, zero failures; packaging and Pages deployment succeeded.
+- K4RJM's subsequent physical UV-32 test confirmed bridge verification, opening ACK and UV32PRO identity. Final SEND failed at the native GATT operation. No channel memory was read. See [the November 8 evidence](UV32-HANDSHAKE-2026-11-08.md).
+- Browser-suite execution remains pending. No LIVE change.

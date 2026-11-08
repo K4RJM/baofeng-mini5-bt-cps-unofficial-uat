@@ -52,7 +52,23 @@ export async function identifyProfile(radio,key,{sendMode='auto'}={}){
   stage=label;check();if(!isHandshakeCommand(command))throw Error('Only identification commands are allowed');
   const entry={stage,commandHex:hex(command),expectedBytes:n,sentAtMs:elapsed()};exchanges.push(entry);
   let response;
-  if(sendMode==='auto')response=await radio.request(command,n);
+  if(key==='uv32'&&command.length>20){
+   // The recorded phone app sends SEND as 20 + 5 bytes. Keep one logical
+   // allowlisted command and one CPS ACK, with bounded sequential GATT writes.
+   if(radio.rx.length)throw Error('Unexpected leftover response bytes; disconnect and retry');
+   entry.chunks=[];
+   for(let offset=0;offset<command.length;offset+=20){
+    check();if(radio.rx.length)throw Error('Unexpected response before initialization command was fully sent');
+    const bytes=command.slice(offset,offset+20);
+    const part={offset,bytes:bytes.length,commandHex:hex(bytes),sentAtMs:elapsed()};
+    entry.chunks.push(part);
+    try{
+     await radio.native('Sending Bluetooth identification',()=>characteristic[transport.sendMethod](bytes),radio.deadlines.send);check();
+     part.completedAtMs=elapsed();
+    }catch(error){part.error=error.message;throw error;}
+   }
+   entry.sendResolvedAtMs=elapsed();response=await radio.wait(n);
+  }else if(sendMode==='auto')response=await radio.request(command,n);
   else{
    if(radio.rx.length)throw Error('Unexpected leftover response bytes; disconnect and retry');
    await radio.native('Sending Bluetooth identification',()=>characteristic[transport.sendMethod](command),radio.deadlines.send);check();

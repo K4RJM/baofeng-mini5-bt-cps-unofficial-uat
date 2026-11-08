@@ -1,5 +1,7 @@
 # GM-30 Pro and UV-32 phone-report analysis
 
+**November 8 update:** K4RJM subsequently confirmed the same bridge verification on the physical UV-32, followed by its model response and a native failure sending final SEND. See [the UV-32 report and v20.38 transport correction](UV32-HANDSHAKE-2026-11-08.md). The November 1 evidence below remains historical.
+
 November 1, 2026. Evidence review and **v20.37 UAT identification candidate**. LIVE remains **v20.33**. MINI-5 transport, memory handling and programming behavior are unchanged. No physical radio was operated by the development agent.
 
 ## Result

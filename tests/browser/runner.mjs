@@ -1,4 +1,4 @@
-import {BROWSER_SUITE_VERSION,BROWSER_CHECK_COUNT,browserBuildError} from './revision.mjs?v=20.37';
+import {BROWSER_SUITE_VERSION,BROWSER_CHECK_COUNT,browserBuildError} from './revision.mjs?v=20.38';
 import {rdtFixture} from '../rdt-fixtures.mjs?v=20.33';
 import {readImage} from '../../image-files.mjs?v=20.31';
 import {csvFixture,csvHeads} from '../csv-fixtures.mjs?v=20.31';
@@ -11,7 +11,7 @@ async function fresh(mode='normal'){
  frame?.contentWindow.f13?.fake.close();frame?.remove();
  let html=await fetch(new URL('index.html',root),{cache:'no-store'}).then(r=>r.text());
  const match=html.match(/<script type="module" src="(app\.mjs[^\"]*)"><\/script>/);assert(match,'Actual application module exists');
- const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.37',root).href}"><\/script>`;
+ const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.38',root).href}"><\/script>`;
  html=html.replace('<head>','<head><base href="'+root.href+'">').replace(match[0],script);
  frame=document.createElement('iframe');frame.title='Isolated CPS test application';frame.setAttribute('allow',"bluetooth 'none'");frame.srcdoc=html;document.getElementById('workspace').append(frame);
  await until(()=>frame.contentWindow.f13?.ready||frame.contentWindow.f13?.failed,'application bootstrap');
@@ -242,7 +242,7 @@ document.getElementById('start').onclick=async()=>{
    assert(Array.from(select.options,o=>o.textContent).join('|')==='MINI-5|UV-32','Only MINI-5 and UV-32 protocol choices');
    const initial=id('sourceTag').textContent;
    for(const [profile,identity] of [['mini5','5RMINI  +L00000'],['uv32','UV32PRO'],['uv32','UV32PRO +L00000'],['uv32','OTHER  ']]){
-    select.value=profile;select.dispatchEvent(new h.w.Event('change'));h.state.fake.faults.identity=identity;h.state.fake.faults.bridgeSetup=true;
+    select.value=profile;select.dispatchEvent(new h.w.Event('change'));h.state.fake.faults.identity=identity;h.state.fake.faults.bridgeSetup=true;h.state.fake.faults.maxWriteBytes=profile==='uv32'?20:0;
     const before=h.state.fake.sent.length;assert(!id('uatIdentify').disabled,'Identification available');id('uatIdentify').click();
     assert(select.disabled&&id('uatSendMode').disabled&&id('uatIdentify').disabled&&id('readRadio').disabled,'Controls lock for the handshake');
     await until(()=>!id('uatIdentify').disabled,'handshake complete');
@@ -253,6 +253,7 @@ document.getElementById('start').onclick=async()=>{
    }
    id('uatHandshakeReport').click();const report=JSON.parse(await h.state.downloads.at(-1).text());
    assert(report.model==='OTHER'&&report.matchesExpected===false&&report.memoryWrites===0&&report.exchanges.length===4,'Diagnostic includes mismatched identity and wire exchange');
+   assert(report.exchanges[3].chunks.map(c=>c.bytes).join(',')==='20,5'&&report.exchanges[3].chunks.every(c=>Number.isFinite(c.completedAtMs)),'UV-32 initialization uses completed 20-byte and 5-byte sends');
    frame.style.width='390px';await new Promise(r=>h.w.requestAnimationFrame(r));assert(h.d.documentElement.scrollWidth<=h.d.documentElement.clientWidth+1,'Protocol controls fit phone width');frame.style.width='';
   });
   await check('UAT bridge verification failure stops before every CPS command',async()=>{

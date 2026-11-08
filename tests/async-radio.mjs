@@ -2,7 +2,8 @@
 // Input bytes are supplied by the test; no production encoder, decoder or memory-map import.
 export function asyncRadio(initial, faults={}) {
  if (!(initial instanceof Uint8Array) || initial.length!==33344) throw Error('Test image must contain 33344 bytes');
- const raw=initial.slice(),sent=[],events=[],timers=new Set();let writes=0,reads=0,closed=false,held=[];
+ const raw=initial.slice(),sent=[],packets=[],events=[],timers=new Set();let writes=0,reads=0,closed=false,held=[],pendingInit=[];
+ const init=Uint8Array.from('53454e4421050d010101041108050d0d01110f091209100400'.match(/../g),b=>parseInt(b,16));
  const device=new EventTarget(),characteristic=new EventTarget();device.id='F13-FAKE-ONLY';
  const later=fn=>{const t=setTimeout(()=>{timers.delete(t);if(!closed)fn();},0);timers.add(t);};
  const index=a=>a<0x8040?a:a<0x9040?0x8040+a-0x9000:0x8080+a-0xa000;
@@ -22,9 +23,23 @@ export function asyncRadio(initial, faults={}) {
   else throw Error('Unexpected test command');
   if(b[0]===82&&faults.holdRead){held.push(()=>notify(bytes));return;}
   if(new TextDecoder().decode(b)==='PROGRAMCOLORPROU'&&faults.openingReply!==undefined)bytes=Uint8Array.of(faults.openingReply);
+  if(b[0]===83&&faults.silentInit)return;
+  if(b[0]===83&&faults.initReply!==undefined)bytes=Uint8Array.of(faults.initReply);
   notify(bytes);if(b[0]===87&&writes===262&&faults.reboot)later(()=>device.gatt.disconnect());
  }
- async function send(value){if(!device.gatt.connected)throw Error('Test link is disconnected');const b=value.slice();sent.push(b);events.push('native-send');later(()=>reply(b));events.push('native-resolved');}
+ async function send(value){
+  if(!device.gatt.connected)throw Error('Test link is disconnected');
+  let b=value.slice();packets.push(b);events.push('native-send');
+  if(faults.maxWriteBytes&&b.length>faults.maxWriteBytes)throw Error('GATT operation failed for unknown reason.');
+  if(faults.failNativeSend===packets.length)throw Error('Simulated native send failure');
+  if(pendingInit.length||(b[0]===83&&b.length<init.length)){
+   pendingInit.push(...b);
+   if(pendingInit.length>init.length||!pendingInit.every((v,i)=>v===init[i]))throw Error('Unexpected fragmented test command');
+   if(pendingInit.length<init.length){events.push('native-resolved');return;}
+   b=Uint8Array.from(pendingInit);pendingInit=[];
+  }
+  sent.push(b);later(()=>reply(b));events.push('native-resolved');
+ }
  characteristic.properties=faults.withResponse?{write:true}:{writeWithoutResponse:true};
  characteristic.writeValueWithoutResponse=b=>{events.push('send-without-response');return send(b);};characteristic.writeValueWithResponse=b=>{events.push('send-with-response');return send(b);};
  characteristic.startNotifications=async()=>{events.push('notifications-enabled');return characteristic;};
@@ -43,5 +58,5 @@ export function asyncRadio(initial, faults={}) {
  characteristic.uuid='0000ffe1-0000-1000-8000-00805f9b34fb';characteristic.service=service;
  const server={getPrimaryService:async uuid=>{if(uuid!==0xffe0)throw Error('Wrong service');events.push('service');if(faults.disconnectDiscovery){device.gatt.disconnect();throw Error('Bluetooth link ended during service discovery');}return service;}};
  device.gatt={connected:false,async connect(){events.push('connect');this.connected=true;return server;},disconnect(){if(!this.connected)return;events.push('disconnect');this.connected=false;device.dispatchEvent(new Event('gattserverdisconnected'));}};
- return {raw,sent,events,faults,device,characteristic,bluetooth:{async requestDevice(){events.push('chooser');return device;}},get writes(){return writes;},get reads(){return reads;},release(){faults.holdRead=false;for(const fn of held.splice(0))later(fn);},close(){device.gatt.disconnect();closed=true;for(const timer of timers)clearTimeout(timer);timers.clear();held=[];}};
+ return {raw,sent,packets,events,faults,device,characteristic,bluetooth:{async requestDevice(){events.push('chooser');return device;}},get writes(){return writes;},get reads(){return reads;},release(){faults.holdRead=false;for(const fn of held.splice(0))later(fn);},close(){device.gatt.disconnect();closed=true;for(const timer of timers)clearTimeout(timer);timers.clear();held=[];pendingInit=[];}};
 }

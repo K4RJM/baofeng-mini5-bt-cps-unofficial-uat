@@ -1,29 +1,24 @@
-# UAT radio identification — v20.37
+# UAT radio identification — v20.38
 
-Updated November 8, 2026. **Active scope: MINI-5 and UV-32.** GM-30 Pro was removed from the selectable profiles and active development at K4RJM's request. LIVE v20.33 is unchanged.
+Updated November 8, 2026. **Active profiles: MINI-5 and UV-32.** GM-30 Pro remains removed. LIVE v20.33 is unchanged.
 
-## Controls and scope
+## Current physical result
 
-Choose MINI-5 or UV-32 in **Radio protocol**, then **Check radio ID**. Selection alone sends nothing. The tool connects if needed and reports a different printable model name rather than imposing a model-name lock. Save the handshake report after success or failure.
+K4RJM's **20.37-UAT.2bad73a** report confirms Bluetooth setup, the opening ACK, frequency-range response and **UV32PRO** model response. The final 25-byte SEND failed in a native GATT operation. This is physical evidence of communication and identity, but not completed initialization or channel reading. [Full evidence](UV32-HANDSHAKE-2026-11-08.md).
 
-For UV-32, the candidate sends a fresh FF31 Bluetooth setup request with response and validates its FFE1 reply before the existing four CPS identification commands. The **Bluetooth send** selector applies only to those later FFE1 commands. MINI-5 does not send the added setup.
+## v20.38 identification candidate
 
-The setup calculation matches a historical GM-30 Pro capture from **Walkie-Talkie Tool**, not OLA. That capture remains a regression oracle, with its attribution intact; it is not evidence of a successful physical UV-32 exchange. UV-32 applicability remains pending hardware verification.
+Choose **UV-32**, leave **Bluetooth send** at **Automatic**, and run **Check radio ID** once. Save the handshake report after either success or failure.
 
-No channel-memory command or UV-32 memory driver is added. The selector controls identification only. MINI-5 memory mapping, programming, identity safeguards, reset and disconnect behavior remain unchanged.
+The diagnostic retains the now physically confirmed FF31 setup, then sends the existing CPS commands. It delivers final SEND as 20 + 5 bytes, matching the phone-app transport. Each piece is awaited, recorded and bounded; a failure is not retried. The single final ACK remains required. This targets a plausible transport-size cause without claiming the MTU was measured or the physical fix is proven.
 
-## Next UV-32 physical check
+A complete handshake displays **Handshake complete: UV32PRO**. It will not load channels: **UV-32 channel-memory reading and programming are not implemented**. The selector controls identification only. MINI-5 memory, programming, identity safeguards, reset and disconnect behavior are unchanged.
 
-1. Open the main UAT application and confirm **20.37-UAT**. The browser-test page uses simulated Bluetooth; it cannot connect to a physical radio.
-2. Enable Wireless CPS and disconnect other radio-programming apps. Choose **UV-32**, leave **Bluetooth send** on **Automatic**, and run **Check radio ID** once.
-3. Save the handshake report whether the operation succeeds or stops. It separates FF31 setup from the CPS commands.
-4. Use the normal Disconnect control afterward. Do not use MINI-5 memory Read/Write controls on the UV-32.
-
-No physical radio operation was performed during development. Software checks and deployment status are recorded in [RELEASE-20.37.md](RELEASE-20.37.md). The prior 231-test local result belongs to the earlier three-profile candidate; the focused revision requires its own CI result. The updated browser suite contains 31 checks, with full execution still pending.
+No physical radio operation was performed during development. [v20.38 release checks and rollback](RELEASE-20.38.md). Browser regression checks use simulated peripherals and cannot connect to the physical radio.
 
 ## Historical investigation record
 
-The following evidence and earlier observations are retained for traceability. References to GM-30 Pro describe past investigation, not a currently supported selection or a request for further GM-30 testing. Later APK and capture findings are in [the capture analysis](BLUETOOTH-CAPTURE-2026-11-01.md).
+The evidence below is retained for traceability. Earlier GM-30 references are historical, and earlier UV-32 uncertainty is superseded only as described in the November 8 result above.
 
 ## Evidence
 
