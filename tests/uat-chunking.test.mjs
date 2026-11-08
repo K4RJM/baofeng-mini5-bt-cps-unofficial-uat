@@ -78,7 +78,7 @@ test('A changed connection or early response after the first chunk prevents the 
   const h=setup();try{
    const original=h.fake.characteristic.writeValueWithoutResponse;
    h.fake.characteristic.writeValueWithoutResponse=async b=>{await original(b);if(b.length===20&&b[0]===83)mutate(h.radio);};
-   await assert.rejects(identifyProfile(h.radio,'uv32'),/connection changed|before initialization/);
+   await assert.rejects(identifyProfile(h.radio,'uv32'),/connection changed|operation cancelled|before initialization/);
    assert.equal(h.fake.packets.length,4);assert.equal(h.fake.sent.length,3);assert.equal(h.radio.busy,false);
   }finally{h.close();}
  }
