@@ -65,3 +65,18 @@ The saved trace shows a self-consistent shorter response already arriving at the
 The stale-response diagnostics correction worked: `lastResponseHex` and `lastResponseAddress` are null for the incomplete fourth reply, while the notification trace preserves the bytes. Strict validation continues to exclude the short block from `wireHex`. It must not be treated as a complete 64-byte block or silently padded.
 
 Next investigation should compare the UV-32 read transport with an independently successful UV-32 phone-app session. The earlier GM-30 phone log used 128-byte reads; it does not prove the UV-32 uses that block size. No change to block length, header acceptance, retry behavior or programming is justified by this report alone. This evidence update changes documentation only; UAT remains 20.42 and LIVE remains 20.33.
+
+## Second v20.42 physical attempt — 13:43 UTC
+
+The newer local file `ham-rx-uv32-channels-partial (3).json` records **20.42-UAT.e328362** at `2026-11-09T13:43:15.035Z`. SHA-256: `b28d1d2494f22db214a4f5f53ca0a818d222f0c4c2ca330d6438b183ccabc7cd`. The attached file numbered (1) still hashes identically to the earlier v20.41 report; this newer file was discovered alongside it.
+
+- Initialization succeeded with UV32PRO and With response. The first read began 1 ms later, with an empty receive buffer and all session guards satisfied.
+- Fourteen blocks / 896 bytes / 28 complete channel records were validated. Every payload byte matches the earlier v20.41 capture.
+- Address 0x00C0, which previously returned only 48 bytes, returned the full expected 64-byte payload this time with header `52 00 c0 40`.
+- Request 15 at 0x0380 was `52 03 80 40`, sent at 2,180 ms; the native send resolved at 2,278 ms.
+- No channel response followed. The only subsequent notification was `00` at 5,279 ms, 3,001 ms after send completion. The app timed out waiting for 68 bytes.
+- The trace retained all 57 notifications, the last 12 requests, and correctly left the failed request's response fields null. Twenty-millisecond inter-block pacing remained active. The connection still reported connected at download. Zero memory writes were attempted.
+
+The failed address 0x0380 was readable in the earlier v20.41 capture. Together with the successful 0x00C0 response in this run, this shows the failures are not confined to one address or a fixed short-block boundary. It does not establish a particular Bluetooth/serial/firmware cause or prove that every untested address is valid.
+
+The two v20.42 attempts completed 3 and 14 blocks, respectively. Neither completed all 500. There is no demonstrated reliability fix from the 20 ms pause. The approximately three-second delayed 00 recurs, but its protocol meaning remains unconfirmed. Preserve strict framing and the original captures for comparison with an independently successful UV-32 phone-app read. No application change, retry or protocol adjustment accompanies this evidence-only update.

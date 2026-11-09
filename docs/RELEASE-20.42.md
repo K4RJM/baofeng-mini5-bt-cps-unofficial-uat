@@ -46,3 +46,5 @@ Use the existing UAT rollback procedure with the prior main commit; do not promo
 ## Physical result after deployment
 
 A v20.42 physical capture validated three blocks, then received a header declaring 48 bytes after requesting 64. Exactly 48 matching payload bytes arrived, followed 3.004 seconds later by 00. The requested 20 ms pacing was applied but did not prevent this failure. The bounded trace and cleared timeout-response fields worked. Full-read reliability remains unresolved; no radio writes occurred. [Trace analysis and hash](UV32-READ-EVIDENCE-2026-11-09.md#v2042-physical-follow-up--1337-utc). No application change or redeployment accompanies this documentation update.
+
+A second v20.42 physical attempt validated 14 blocks / 28 channel records, including the previously short address 0x00C0, then received only 00 after request 15 at 0x0380. The 896 validated bytes match the earlier capture. The failure varies between attempts; complete-read reliability remains unresolved. [Second attempt evidence](UV32-READ-EVIDENCE-2026-11-09.md#second-v2042-physical-attempt--1343-utc).

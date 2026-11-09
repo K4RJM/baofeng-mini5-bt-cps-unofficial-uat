@@ -1,5 +1,7 @@
 # Published UAT — v20.42 (November 9, 2026)
 
+**Second physical follow-up, 13:43 UTC:** the next v20.42 capture validated 14 blocks / 28 channel records (896 matching bytes), including previously failing 0x00C0. Request 15 at 0x0380 received only 00, 3.001 seconds after native send completion. Failures vary between attempts; pacing has not demonstrated a fix. [Evidence](UV32-READ-EVIDENCE-2026-11-09.md#second-v2042-physical-attempt--1343-utc). No code or deployment change.
+
 **Physical follow-up, 13:37 UTC:** v20.42 validated three blocks, then received a self-consistent 48-byte response to a 64-byte request at 0x00C0. The payload matches the earlier capture; 00 followed 3.004 seconds later. The 20 ms pacing was active and did not prevent this failure. The trace now exposes the length discrepancy; its origin remains unconfirmed. [Evidence and hash](UV32-READ-EVIDENCE-2026-11-09.md#v2042-physical-follow-up--1337-utc). Documentation only; no new application build or physical operation by the agent.
 
 - v20.41 physical captures contain an identical initial 1,088 bytes and 33 populated channel records. First entries match factory CPS screenshots. Reads stop at different addresses with a malformed header or a 00 timeout. [Evidence](UV32-READ-EVIDENCE-2026-11-09.md).
