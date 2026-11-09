@@ -1,5 +1,7 @@
 # Published UAT — v20.42 (November 9, 2026)
 
+**Physical follow-up, 13:37 UTC:** v20.42 validated three blocks, then received a self-consistent 48-byte response to a 64-byte request at 0x00C0. The payload matches the earlier capture; 00 followed 3.004 seconds later. The 20 ms pacing was active and did not prevent this failure. The trace now exposes the length discrepancy; its origin remains unconfirmed. [Evidence and hash](UV32-READ-EVIDENCE-2026-11-09.md#v2042-physical-follow-up--1337-utc). Documentation only; no new application build or physical operation by the agent.
+
 - v20.41 physical captures contain an identical initial 1,088 bytes and 33 populated channel records. First entries match factory CPS screenshots. Reads stop at different addresses with a malformed header or a 00 timeout. [Evidence](UV32-READ-EVIDENCE-2026-11-09.md).
 - Adds a 20 ms inter-block pause as a UAT pacing trial and a bounded request/notification trace. Its physical benefit is not yet established.
 - Corrects stale last-response reporting after a later timeout. Exact response validation, no retry, handshake, decoder and MINI-5 behavior are preserved.

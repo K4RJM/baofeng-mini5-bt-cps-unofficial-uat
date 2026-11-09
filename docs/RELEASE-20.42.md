@@ -42,3 +42,7 @@ Browser execution and a complete physical 500-block read remain pending. Local N
 - LIVE deployed application: `988db9d5163f93547c97cd449cfa4e03560f9b70`.
 
 Use the existing UAT rollback procedure with the prior main commit; do not promote this development candidate to LIVE.
+
+## Physical result after deployment
+
+A v20.42 physical capture validated three blocks, then received a header declaring 48 bytes after requesting 64. Exactly 48 matching payload bytes arrived, followed 3.004 seconds later by 00. The requested 20 ms pacing was applied but did not prevent this failure. The bounded trace and cleared timeout-response fields worked. Full-read reliability remains unresolved; no radio writes occurred. [Trace analysis and hash](UV32-READ-EVIDENCE-2026-11-09.md#v2042-physical-follow-up--1337-utc). No application change or redeployment accompanies this documentation update.

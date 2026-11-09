@@ -42,3 +42,26 @@ The failures occur at different addresses. Transport/framing instability is a po
 The pause is an experimental UAT pacing adjustment. Its physical benefit remains unverified until another capture is supplied. Automated tests replay the malformed header and single-byte timeout condition; they do not substitute for a complete hardware read.
 
 See [current read instructions](UV32-READ.md), [v20.42 release](RELEASE-20.42.md), and [earlier pre-read session evidence](UV32-SESSION-EVIDENCE-2026-11-09.md).
+
+## v20.42 physical follow-up — 13:37 UTC
+
+K4RJM's newer `ham-rx-uv32-channels-partial (2).json` identifies **20.42-UAT.e328362**, captured at `2026-11-09T13:37:36.087Z`. SHA-256: `aeca0391bf5c46973cca7068968196bbaf5af7f7c38ff5ac4a4c46d998443939`. The separately attached file numbered (1) is unchanged from the earlier v20.41 capture listed above; the newer report was found beside it and examined separately.
+
+The full handshake succeeded. Three complete blocks (192 bytes / six channel records) were validated; the fourth request stopped. The validated prefix is identical to the earlier physical capture. Zero memory writes were attempted.
+
+| Observation | Trace evidence |
+| --- | --- |
+| Fourth request, address 0x00C0 | `52 00 c0 40` at 980 ms: requests 64 payload bytes |
+| First response notification | `52 00 c0 30` at 1,139 ms: declares 48 payload bytes |
+| Response delivery | Notifications of 20, 20 and 12 bytes by 1,140 ms: 4-byte header + exactly 48 payload bytes |
+| Payload comparison | All 48 payload bytes match the corresponding prefix of the earlier validated block at 0x00C0 |
+| Later notification | Single `00` at 4,144 ms, 3,004 ms after the short response |
+| Final result | Timeout waiting for 68 bytes, with 53 buffered (52-byte short response + later 00) |
+
+The 20 ms inter-block pause is present: observed gaps from a validated response to the next request are 21, 22 and 21 ms. It did **not** prevent failure in this attempt. One attempt does not establish whether pacing helps or worsens reliability overall.
+
+The saved trace shows a self-consistent shorter response already arriving at the application's receiver. This is not explained solely by lost final notification bytes or channel-table decoding: the response header itself declares 0x30 and the payload length agrees. The record establishes what the app passed to the Bluetooth write call and what notifications it received; it does **not** establish what the bridge put onto its serial link or what the radio actually received. The layer responsible for the length discrepancy remains unproven. The later 00 is consistent with a timeout/idle response, but its exact meaning remains unconfirmed.
+
+The stale-response diagnostics correction worked: `lastResponseHex` and `lastResponseAddress` are null for the incomplete fourth reply, while the notification trace preserves the bytes. Strict validation continues to exclude the short block from `wireHex`. It must not be treated as a complete 64-byte block or silently padded.
+
+Next investigation should compare the UV-32 read transport with an independently successful UV-32 phone-app session. The earlier GM-30 phone log used 128-byte reads; it does not prove the UV-32 uses that block size. No change to block length, header acceptance, retry behavior or programming is justified by this report alone. This evidence update changes documentation only; UAT remains 20.42 and LIVE remains 20.33.
