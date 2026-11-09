@@ -1,9 +1,9 @@
-# UAT candidate — v20.41 (November 9, 2026)
+# Published UAT — v20.41 (November 9, 2026)
 
 - K4RJM supplied v20.40 reports identifying a buffered 00 byte as the only failed read guard, 7.683 seconds after successful UV32PRO identification. A separate M query received only 00 and timed out. All supplied reports have zero memory reads/writes. [Evidence and hashes](UV32-SESSION-EVIDENCE-2026-11-09.md).
 - Combined Read UV-32 channels now opens a fresh connection, identifies and reads immediately. It retains old buffered bytes before reopening the browser connection. No separate identity click is needed.
 - Radio session timeout is a hypothesis; the meaning of 00, the separate M failure and physical channel decoding remain unresolved. No timeout bytes are silently ignored.
-- Six added automated tests; two updated browser workflows (33 checks total). Full CI/deployment pending; local Node launch unavailable. No physical operation by the development agent.
+- Six added automated tests; two updated browser workflows (33 checks total). **260/260 automated tests passed**; packaging and Pages [workflow 42575142413](https://github.com/K4RJM/baofeng-mini5-bt-cps-unofficial-uat/actions/runs/42575142413) succeeded. Build **20.41-UAT.71a3eef**, commit `71a3eef47c3a9aadf0db09aab792b735bb66b9fa`. Browser execution remains pending; local Node launch unavailable. No physical operation by the development agent.
 - UAT rollback: `069190eae453e76f26185d089a96b9e6e409e9b0` / **20.40-UAT.8ce144d**.
 - LIVE v20.33 unchanged at `7a9b363a0fb643e188bb4c3b3917bb9f6cc78cd8`. [Release record](RELEASE-20.41.md).
 

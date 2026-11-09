@@ -23,7 +23,7 @@ An idle timeout is a hypothesis, not a confirmed meaning for 00. The new flow re
 
 Six added Node regressions cover the combined flow, simulated idle response, fresh connection with retained 00 evidence, M-query 00 failure, wrong model, busy/cancelled operation and cancellation before memory access. The two UV-32 browser workflows are updated; the suite still contains 33 checks.
 
-Full CI tests and deployment results are recorded below when completed. Local Node execution remains unavailable because the sandbox launcher rejects its packaged runtime; file reads succeeded. No browser-suite pass is claimed.
+**260/260 automated tests passed**, with zero failures, skips or TODOs. Packaging and UAT Pages deployment succeeded in [workflow 42575142413](https://github.com/K4RJM/baofeng-mini5-bt-cps-unofficial-uat/actions/runs/42575142413). Local Node execution remains unavailable because the sandbox launcher rejects its packaged runtime; file reads succeeded. No browser-suite pass is claimed.
 
 ## Physical test
 
@@ -39,3 +39,11 @@ Full CI tests and deployment results are recorded below when completed. Local No
 - Previous deployed app: **20.40-UAT.8ce144d**, `8ce144d355021e7efd72f428f40d9297321f450f`.
 - LIVE main remains `7a9b363a0fb643e188bb4c3b3917bb9f6cc78cd8`.
 - Restore via normal revert and UAT workflow; no force push.
+
+## Published result
+
+- Application commit: `71a3eef47c3a9aadf0db09aab792b735bb66b9fa`; build **20.41-UAT.71a3eef**.
+- Test and Pages deployment jobs both completed successfully.
+- All 16 protected MINI-5 core files and the UAT handshake implementation retain their previous Git blob hashes. UV-32 decoder and read-frame construction are unchanged.
+- The 33 browser checks were updated but not executed here. Physical channel capture and comparison remain pending; no successful radio-read claim is made.
+- LIVE head verified unchanged after deployment: `7a9b363a0fb643e188bb4c3b3917bb9f6cc78cd8`.
