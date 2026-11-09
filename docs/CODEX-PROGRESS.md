@@ -1,3 +1,14 @@
+# UAT candidate — v20.42 (November 9, 2026)
+
+- v20.41 physical captures contain an identical initial 1,088 bytes and 33 populated channel records. First entries match factory CPS screenshots. Reads stop at different addresses with a malformed header or a 00 timeout. [Evidence](UV32-READ-EVIDENCE-2026-11-09.md).
+- Adds a 20 ms inter-block pause as a UAT pacing trial and a bounded request/notification trace. Its physical benefit is not yet established.
+- Corrects stale last-response reporting after a later timeout. Exact response validation, no retry, handshake, decoder and MINI-5 behavior are preserved.
+- Four new automated regressions; existing browser suite updated for pacing. CI and deployment results pending. Browser execution and a complete physical read remain pending.
+- UAT rollback: `c58088dd9c7a13ef44e51367fcb555e1d092b1a8` / **20.41-UAT.71a3eef**.
+- LIVE v20.33 unchanged at `7a9b363a0fb643e188bb4c3b3917bb9f6cc78cd8`. [Release record](RELEASE-20.42.md).
+
+---
+
 # Published UAT — v20.41 (November 9, 2026)
 
 - K4RJM supplied v20.40 reports identifying a buffered 00 byte as the only failed read guard, 7.683 seconds after successful UV32PRO identification. A separate M query received only 00 and timed out. All supplied reports have zero memory reads/writes. [Evidence and hashes](UV32-SESSION-EVIDENCE-2026-11-09.md).

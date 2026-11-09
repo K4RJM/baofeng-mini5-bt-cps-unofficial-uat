@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {Reader} from '../read-test/reader.mjs';
-import {identifyProfile,hasUv32ReadSession,uv32ReadSessionStatus} from '../scripts/uat-protocols.mjs?v=20.41';
+import {identifyProfile,hasUv32ReadSession,uv32ReadSessionStatus} from '../scripts/uat-protocols.mjs?v=20.42';
 import {readUv32Channels,captureUv32Channels,uv32ReadDiagnostics,uv32ReadCommand,uv32Payload,uv32WireDecode,decodeUv32Channels} from '../scripts/uat-uv32-read.mjs';
 import {asyncRadio} from './async-radio.mjs';
 import {bytes,plain,wire,uv32Fixture} from './uv32-fixtures.mjs';
@@ -12,7 +12,7 @@ function setup(faults={}){
  fake.characteristic.addEventListener('characteristicvaluechanged',radio.notify);
  fake.device.addEventListener('gattserverdisconnected',()=>radio.invalidate(Error('Test radio disconnected')));
  const wait=radio.wait.bind(radio);radio.wait=n=>wait(n,100);
- const pause=radio.pause.bind(radio);radio.pause=ms=>pause(ms===1020?1:ms);
+ const pause=radio.pause.bind(radio);radio.pause=ms=>pause(ms===1020||ms===20?1:ms);
  return {fake,radio,async identify(mode='with-response'){return identifyProfile(radio,'uv32',{sendMode:mode});},close(){radio.disconnect();fake.close();}};
 }
 test('UV-32 read allowlist covers exactly 500 aligned channel blocks and rejects other addresses',()=>{
@@ -217,5 +217,54 @@ test('Cancellation after UV-32 identification prevents the first memory request'
    stage:s=>{if(s==='Reading UV-32 channels…')controller.abort();}
   }),error=>{assert.match(error.message,/cancelled/);assert.equal(error.uv32ReadReport.handshake.model,'UV32PRO');assert.equal(error.uv32ReadReport.memoryReads,0);return true;});
   assert.equal(h.fake.sent.length,4);assert.equal(h.fake.reads,0);assert.equal(h.fake.writes,0);assert.equal(h.radio.busy,false);
+ }finally{h.close();}
+});
+
+test('Paced UV-32 reads yield between blocks, retain a bounded trace and restore the original receiver',async()=>{
+ const h=setup();try{
+  await h.identify();const original=h.radio.receive,own=Object.hasOwn(h.radio,'receive'),delays=[],pause=h.radio.pause.bind(h.radio);
+  h.radio.pause=ms=>{delays.push(ms);return pause(ms);};
+  const r=await readUv32Channels(h.radio);
+  assert.equal(r.completed,true);assert.equal(r.interBlockDelayMs,20);assert.equal(delays.length,499);assert.ok(delays.every(ms=>ms===20));
+  assert.equal(r.packetTrace.requestCount,500);assert.equal(r.packetTrace.requests.length,12);assert.equal(r.packetTrace.droppedRequests,488);
+  assert.equal(r.packetTrace.notificationCount,3000);assert.equal(r.packetTrace.notifications.length,80);assert.equal(r.packetTrace.droppedNotifications,2920);
+  assert.equal(r.packetTrace.requests.at(-1).address,31936);assert.equal(r.packetTrace.requests.at(-1).validated,true);
+  assert.equal(r.packetTrace.notifications.at(-1).activeRequest,500);assert.ok(r.packetTrace.notifications.every(n=>n.bytes<=13&&n.hex.length===n.bytes*2));
+  assert.equal(h.radio.receive,original);assert.equal(Object.hasOwn(h.radio,'receive'),own);
+ }finally{h.close();}
+});
+test('The physical malformed 52470680 header remains rejected and its received bytes are traced',async()=>{
+ const h=setup();try{
+  await h.identify();const original=h.radio.receive;let attempts=0;
+  const response=bytes('52470680'+'ff'.repeat(128));
+  h.fake.characteristic.writeValueWithResponse=()=>{attempts++;h.radio.receive(new DataView(response.buffer));return Promise.resolve();};
+  await assert.rejects(readUv32Channels(h.radio),error=>{
+   const r=error.uv32ReadReport;assert.equal(r.memoryReads,1);assert.equal(r.bytes,0);assert.equal(r.wireHex,'');
+   assert.equal(r.packetTrace.requests[0].responseHeaderHex,'52470680');assert.equal(r.packetTrace.requests[0].validated,undefined);
+   assert.equal(r.packetTrace.notifications[0].hex,Buffer.from(response).toString('hex'));assert.equal(r.pendingHex,'ff'.repeat(64));
+   assert.equal(r.readPhase,'validating');return true;
+  });
+  assert.equal(attempts,1);assert.equal(h.radio.receive,original);assert.equal(h.fake.writes,0);
+ }finally{h.close();}
+});
+test('A later read timeout cannot mislabel the preceding valid response as the failing block response',async()=>{
+ const h=setup();try{
+  await h.identify();const original=h.radio.receive;
+  await assert.rejects(readUv32Channels(h.radio,{progress:n=>{if(n===1)h.fake.characteristic.writeValueWithResponse=()=>{h.radio.receive(new DataView(Uint8Array.of(0).buffer));return Promise.resolve();};}}),error=>{
+   const r=error.uv32ReadReport;assert.equal(r.completedBlocks,1);assert.equal(r.memoryReads,2);assert.equal(r.lastRequestHex,'52004040');
+   assert.equal(r.lastResponseHex,null);assert.equal(r.lastResponseAddress,null);assert.equal(r.pendingHex,'00');
+   assert.equal(r.packetTrace.requests[0].responseHeaderHex,'52000040');assert.equal(r.packetTrace.requests[0].validated,true);
+   assert.equal(r.packetTrace.requests[1].responseHeaderHex,undefined);assert.match(r.packetTrace.requests[1].error,/expected 68 response bytes, received 1/);
+   assert.equal(r.packetTrace.notifications.at(-1).hex,'00');assert.equal(r.readPhase,'waiting');return true;
+  });
+  assert.equal(h.radio.receive,original);assert.equal(h.fake.reads,1);assert.equal(h.fake.writes,0);
+ }finally{h.close();}
+});
+test('Disconnect during the inter-block pause stops before another request and restores the receiver',async()=>{
+ const h=setup();try{
+  await h.identify();const original=h.radio.receive,pause=h.radio.pause.bind(h.radio);
+  h.radio.pause=ms=>{if(ms===20){h.radio.disconnect();return Promise.resolve();}return pause(ms);};
+  await assert.rejects(readUv32Channels(h.radio),error=>{const r=error.uv32ReadReport;assert.equal(r.bytes,64);assert.equal(r.memoryReads,1);assert.equal(r.readPhase,'between-blocks');assert.equal(r.packetTrace.requests[0].validated,true);return true;});
+  assert.equal(h.fake.reads,1);assert.equal(h.radio.receive,original);assert.equal(h.radio.busy,false);assert.equal(h.fake.writes,0);
  }finally{h.close();}
 });

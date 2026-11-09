@@ -1,6 +1,6 @@
 import {exportChirpImage} from '../../image-files.mjs?v=20.31';
 import {imageFile} from '../../read-test/memory.mjs';
-import {asyncRadio} from '../async-radio.mjs?v=20.41';
+import {asyncRadio} from '../async-radio.mjs?v=20.42';
 import {blankData,emptyChannel} from '../../channels.mjs';import {writeDat} from '../../dat.mjs';import {makePlan} from '../../writer.mjs';
 const root=new URL('../../',import.meta.url),json=p=>fetch(new URL(p,root)).then(r=>r.json());
 const [defaults,schemas,f,e]=await Promise.all(['defaults.json','schemas.json','function-options.json','editor-options.json'].map(json));

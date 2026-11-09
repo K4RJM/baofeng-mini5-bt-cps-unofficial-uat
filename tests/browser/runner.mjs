@@ -1,17 +1,17 @@
-import {BROWSER_SUITE_VERSION,BROWSER_CHECK_COUNT,browserBuildError} from './revision.mjs?v=20.41';
+import {BROWSER_SUITE_VERSION,BROWSER_CHECK_COUNT,browserBuildError} from './revision.mjs?v=20.42';
 import {rdtFixture} from '../rdt-fixtures.mjs?v=20.33';
 import {readImage} from '../../image-files.mjs?v=20.31';
 import {csvFixture,csvHeads} from '../csv-fixtures.mjs?v=20.31';
 const root=new URL('../../',import.meta.url),results=document.getElementById('results'),status=document.getElementById('status');let frame;const builds=new Set();
 document.getElementById('suite').textContent=`Browser suite ${BROWSER_SUITE_VERSION} / ${BROWSER_CHECK_COUNT} checks`;
 const assert=(value,message)=>{if(!value)throw Error(message);};
-const until=async(fn,label)=>{const end=Date.now()+15000;while(!fn()){if(Date.now()>end)throw Error('Timed out: '+label);await new Promise(r=>setTimeout(r,20));}};
+const until=async(fn,label,timeout=15000)=>{const end=Date.now()+timeout;while(!fn()){if(Date.now()>end)throw Error('Timed out: '+label);await new Promise(r=>setTimeout(r,20));}};
 function record(name,pass,error){const li=document.createElement('li');li.className=pass?'pass':'fail';li.textContent=(pass?'PASS: ':'FAIL: ')+name+(error?' — '+error:'');results.append(li);}
 async function fresh(mode='normal'){
  frame?.contentWindow.f13?.fake.close();frame?.remove();
  let html=await fetch(new URL('index.html',root),{cache:'no-store'}).then(r=>r.text());
  const match=html.match(/<script type="module" src="(app\.mjs[^\"]*)"><\/script>/);assert(match,'Actual application module exists');
- const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.41',root).href}"><\/script>`;
+ const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.42',root).href}"><\/script>`;
  html=html.replace('<head>','<head><base href="'+root.href+'">').replace(match[0],script);
  frame=document.createElement('iframe');frame.title='Isolated CPS test application';frame.setAttribute('allow',"bluetooth 'none'");frame.srcdoc=html;document.getElementById('workspace').append(frame);
  await until(()=>frame.contentWindow.f13?.ready||frame.contentWindow.f13?.failed,'application bootstrap');
@@ -292,12 +292,13 @@ document.getElementById('start').onclick=async()=>{
    assert(id('readRadio').disabled&&id('writeRadio').disabled,'MINI-5 radio actions unavailable in UV-32 mode');
    id('uatUv32Read').click();
    assert(id('content').inert&&id('tabs').inert&&!id('uatUv32Cancel').hidden,'Busy lock and read cancel available');
-   await until(()=>id('uatUv32Results').open&&id('uatUv32Cancel').hidden,'UV-32 channel capture');
+   await until(()=>id('uatUv32Results').open&&id('uatUv32Cancel').hidden,'UV-32 channel capture',30000);
    assert(h.state.fake.reads===500&&h.state.fake.writes===0,'Exactly 500 read commands and no memory writes');
    assert(id('uatUv32Rows').querySelectorAll('tr').length===3&&id('uatUv32Rows').querySelector('[data-uv32-channel="1000"]'),'Channel 1000 retained');
    assert(id('uatUv32Rows').textContent.includes('<b>TEST</b>')&&!id('uatUv32Rows').querySelector('b,input,select'),'Untrusted names are text; preview is read only');
    assert(id('sourceTag').textContent===source&&h.d.querySelector('[data-channel-index="0"]').textContent===originalRow,'Original workspace remains intact');
    id('uatUv32SavePreview').click();let capture=JSON.parse(await h.state.downloads.at(-1).text());
+   assert(capture.interBlockDelayMs===20&&capture.packetTrace.requests.length===12&&capture.packetTrace.notifications.length<=80,'Paced read records bounded diagnostics');
    assert(capture.completed&&capture.bytes===32000&&capture.wireHex.length===64000&&capture.preview.channels.at(-1).number===1000,'Saved capture retains original wire bytes and channel 1000');
    frame.style.width='390px';await new Promise(r=>h.w.requestAnimationFrame(r));
    assert(h.d.documentElement.scrollWidth<=h.d.documentElement.clientWidth+1&&id('uatUv32Results').getBoundingClientRect().width<=390,'Preview fits mobile with internal table scroll');frame.style.width='';
@@ -321,7 +322,7 @@ document.getElementById('start').onclick=async()=>{
    c.value=new h.w.DataView(h.w.Uint8Array.of(0).buffer);c.dispatchEvent(new h.w.Event('characteristicvaluechanged'));
    id('uatUv32Save').click();let report=JSON.parse(await h.state.downloads.at(-1).text());
    assert(report.sessionAtStart.pendingHex==='00'&&report.sessionAtStart.checks.sessionPresent,'Late byte preserved before reconnect');
-   id('uatUv32Read').click();await until(()=>id('uatUv32Results').open&&id('uatUv32Cancel').hidden,'combined read from a fresh connection');
+   id('uatUv32Read').click();await until(()=>id('uatUv32Results').open&&id('uatUv32Cancel').hidden,'combined read from a fresh connection',30000);
    id('uatUv32SavePreview').click();report=JSON.parse(await h.state.downloads.at(-1).text());
    assert(report.completed&&report.connectionRestarted&&report.sessionBeforeConnect.pendingHex==='00','Expired-session evidence retained');
    assert(report.sessionAtStart.ready&&report.handshake.model==='UV32PRO'&&report.memoryReads===500,'Fresh handshake precedes all reads');
