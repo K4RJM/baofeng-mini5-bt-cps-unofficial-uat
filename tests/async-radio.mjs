@@ -2,7 +2,7 @@
 // Input bytes are supplied by the test; no production encoder, decoder or memory-map import.
 export function asyncRadio(initial, faults={}) {
  if (!(initial instanceof Uint8Array) || initial.length!==33344) throw Error('Test image must contain 33344 bytes');
- const raw=initial.slice(),sent=[],packets=[],events=[],timers=new Set();let writes=0,reads=0,closed=false,held=[],pendingInit=[];
+ const raw=initial.slice(),sent=[],packets=[],events=[],timers=new Set();let writes=0,reads=0,closed=false,held=[],pendingInit=[],idleTimer=null;
  const init=Uint8Array.from('53454e4421050d010101041108050d0d01110f091209100400'.match(/../g),b=>parseInt(b,16));
  const device=new EventTarget(),characteristic=new EventTarget();device.id='F13-FAKE-ONLY';
  const later=fn=>{const t=setTimeout(()=>{timers.delete(t);if(!closed)fn();},0);timers.add(t);};
@@ -15,17 +15,19 @@ export function asyncRadio(initial, faults={}) {
   if(!device.gatt.connected)return;
   if(faults.silentHandshake&&b[0]!==82&&b[0]!==87)return;
   let bytes;
-  if(b[0]===82){reads++;const a=b[1]*256+b[2];bytes=Uint8Array.of(82,b[1],b[2]^(faults.badHeader?1:0),64,...raw.slice(index(a),index(a)+64));if(faults.badReadOpcode)bytes[0]=0x57;if(faults.badReadLength)bytes[3]=128;if(faults.extraRead)bytes=Uint8Array.of(...bytes,6);if(faults.truncateRead)bytes=bytes.slice(0,10);if(faults.silentRead)return;if(faults.disconnectRead===reads){device.gatt.disconnect();return;}}
+  if(b[0]===82){if(idleTimer){clearTimeout(idleTimer);timers.delete(idleTimer);idleTimer=null;}reads++;const a=b[1]*256+b[2];bytes=Uint8Array.of(82,b[1],b[2]^(faults.badHeader?1:0),64,...raw.slice(index(a),index(a)+64));if(faults.badReadOpcode)bytes[0]=0x57;if(faults.badReadLength)bytes[3]=128;if(faults.extraRead)bytes=Uint8Array.of(...bytes,6);if(faults.truncateRead)bytes=bytes.slice(0,10);if(faults.silentRead)return;if(faults.disconnectRead===reads){device.gatt.disconnect();return;}}
   else if(b[0]===87){writes++;const a=b[1]*256+b[2],end=a<0x8040?0x8040:a<0x9040?0x9040:0xa1c0;raw.set(b.slice(4,4+Math.min(128,end-a)),index(a));if(faults.disconnectWrite===writes){device.gatt.disconnect();return;}if(faults.dropAck===writes)return;bytes=Uint8Array.of(faults.nak===writes?21:6);}
   else if(b.length===1&&b[0]===70)bytes=new Uint8Array(16);
-  else if(b.length===1&&b[0]===77)bytes=new TextEncoder().encode(faults.identity??(faults.wrongModel?'OTHER   +L00000':'5RMINI  +L00000'));
+  else if(b.length===1&&b[0]===77)bytes=faults.modelReply?Uint8Array.from(faults.modelReply):new TextEncoder().encode(faults.identity??(faults.wrongModel?'OTHER   +L00000':'5RMINI  +L00000'));
   else if(new TextDecoder().decode(b)==='PROGRAMCOLORPROU'||Array.from(b).map(n=>n.toString(16).padStart(2,'0')).join('')==='53454e4421050d010101041108050d0d01110f091209100400')bytes=Uint8Array.of(6);
   else throw Error('Unexpected test command');
   if(b[0]===82&&faults.holdRead){held.push(()=>notify(bytes));return;}
   if(new TextDecoder().decode(b)==='PROGRAMCOLORPROU'&&faults.openingReply!==undefined)bytes=Uint8Array.of(faults.openingReply);
   if(b[0]===83&&faults.silentInit)return;
   if(b[0]===83&&faults.initReply!==undefined)bytes=Uint8Array.of(faults.initReply);
-  notify(bytes);if(b[0]===87&&writes===262&&faults.reboot)later(()=>device.gatt.disconnect());
+  notify(bytes);
+  if(b[0]===83&&faults.sessionIdleMs){idleTimer=setTimeout(()=>{timers.delete(idleTimer);idleTimer=null;if(!closed&&device.gatt.connected){events.push('session-idle');notify(Uint8Array.of(0));}},faults.sessionIdleMs);timers.add(idleTimer);}
+  if(b[0]===87&&writes===262&&faults.reboot)later(()=>device.gatt.disconnect());
  }
  async function send(value){
   if(!device.gatt.connected)throw Error('Test link is disconnected');
@@ -57,6 +59,6 @@ export function asyncRadio(initial, faults={}) {
  bridge.service=service;
  characteristic.uuid='0000ffe1-0000-1000-8000-00805f9b34fb';characteristic.service=service;
  const server={getPrimaryService:async uuid=>{if(uuid!==0xffe0)throw Error('Wrong service');events.push('service');if(faults.disconnectDiscovery){device.gatt.disconnect();throw Error('Bluetooth link ended during service discovery');}return service;}};
- device.gatt={connected:false,async connect(){events.push('connect');this.connected=true;return server;},disconnect(){if(!this.connected)return;events.push('disconnect');this.connected=false;device.dispatchEvent(new Event('gattserverdisconnected'));}};
+ device.gatt={connected:false,async connect(){events.push('connect');this.connected=true;return server;},disconnect(){if(idleTimer){clearTimeout(idleTimer);timers.delete(idleTimer);idleTimer=null;}if(!this.connected)return;events.push('disconnect');this.connected=false;device.dispatchEvent(new Event('gattserverdisconnected'));}};
  return {raw,sent,packets,events,faults,device,characteristic,bluetooth:{async requestDevice(){events.push('chooser');return device;}},get writes(){return writes;},get reads(){return reads;},release(){faults.holdRead=false;for(const fn of held.splice(0))later(fn);},close(){device.gatt.disconnect();closed=true;for(const timer of timers)clearTimeout(timer);timers.clear();held=[];pendingInit=[];}};
 }

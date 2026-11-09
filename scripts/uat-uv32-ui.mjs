@@ -1,7 +1,7 @@
 // UAT-only read-only channel preview. Never loads a capture into the MINI-5 editor.
-import {uv32ReadSessionStatus,isUatPage} from './uat-protocols.mjs?v=20.40';
-import {readUv32Channels,uv32ReadDiagnostics} from './uat-uv32-read.mjs?v=20.40';
-export function installUv32Reader({radio,run,message,refresh}){
+import {uv32ReadSessionStatus,isUatPage} from './uat-protocols.mjs?v=20.41';
+import {captureUv32Channels,uv32ReadDiagnostics} from './uat-uv32-read.mjs?v=20.41';
+export function installUv32Reader({radio,run,connect,message,refresh}){
  const page=location.href==='about:srcdoc'?document.baseURI:location.href;
  const protocolModule=new URL('./uat-protocols.mjs',import.meta.url).href;
  if(!isUatPage(protocolModule,page))return null;
@@ -18,7 +18,7 @@ export function installUv32Reader({radio,run,message,refresh}){
  const download=report=>{
   const build=d.querySelector('.build-badge')?.textContent;
   const url=URL.createObjectURL(new Blob([JSON.stringify({build,...report,selectedProtocol:select.value,requestedSendMode:mode.value,sessionAtDownload:uv32ReadSessionStatus(radio)},null,2)],{type:'application/json'}));
-  const a=d.createElement('a');a.href=url;a.download=report.stage==='before-read'?'ham-rx-uv32-read-diagnostics.json':'ham-rx-uv32-channels'+(report.completed?'':'-partial')+'.json';d.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  const a=d.createElement('a');a.href=url;a.download=report.memoryReads===0?'ham-rx-uv32-read-diagnostics.json':'ham-rx-uv32-channels'+(report.completed?'':'-partial')+'.json';d.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
  };
  function render(){
   if(!preview)return;const p=preview.preview,rows=p.channels,total=Math.max(1,Math.ceil(rows.length/100));pageIndex=Math.max(0,Math.min(pageIndex,total-1));
@@ -37,12 +37,12 @@ export function installUv32Reader({radio,run,message,refresh}){
  $('uatUv32Next').onclick=()=>{pageIndex++;render();};
  $('uatUv32SavePreview').onclick=()=>{if(preview)download(preview);};
  view.onclick=open;save.onclick=()=>download(capture??uv32ReadDiagnostics(radio));
- cancel.onclick=()=>{controller?.abort();cancel.disabled=true;message('Stopping UV-32 read after the current Bluetooth operation…');};
+ cancel.onclick=()=>{controller?.abort();cancel.disabled=true;message('Stopping UV-32 read after connection/identification or the current channel request…');};
  read.onclick=()=>run(async()=>{
   const uiSessionAtClick=uv32ReadSessionStatus(radio);
   controller=new AbortController();output.textContent='Reading UV-32 channels…';refresh();
   try{
-   capture=await readUv32Channels(radio,{signal:controller.signal,progress:(n,total)=>{const p=$('progress');p.max=total;p.value=n;message('Reading UV-32 channels: '+n+' / '+total+' blocks');}});
+   capture=await captureUv32Channels(radio,{connect,signal:controller.signal,stage:text=>{output.textContent=text;message(text);},progress:(n,total)=>{const p=$('progress');p.max=total;p.value=n;message('Reading UV-32 channels: '+n+' / '+total+' blocks');}});
    capture.uiSessionAtClick=uiSessionAtClick;preview=capture;pageIndex=0;output.textContent='UV-32 channel capture complete: '+capture.preview.channels.length+' populated channels · read only';message(output.textContent);open();
   }catch(error){if(error.uv32ReadReport){capture=error.uv32ReadReport;capture.uiSessionAtClick=uiSessionAtClick;}output.textContent=error.message;throw error;}
   finally{controller=null;}
@@ -51,11 +51,10 @@ export function installUv32Reader({radio,run,message,refresh}){
  mode.addEventListener('change',refresh);
  return {sync(busy){
   const uv=select.value==='uv32';for(const el of [read,view,save])el.hidden=!uv;
-  const session=uv32ReadSessionStatus(radio);
-  read.disabled=busy||mode.value!=='with-response'||!session.ready;
-  read.title=mode.value==='with-response'?session.reason:'Choose With response before reading UV-32 channels.';
+  read.disabled=busy||mode.value!=='with-response'||!navigator.bluetooth||!window.isSecureContext;
+  read.title='Connect, identify and read UV-32 channels in one operation. An existing connection is reopened.';
   view.disabled=busy||!preview;save.disabled=busy;
-  save.textContent=capture&&capture.stage!=='before-read'?'Save UV-32 capture':'Save read diagnostics';
+  save.textContent=capture&&capture.memoryReads>0?'Save UV-32 capture':'Save read diagnostics';
   cancel.hidden=!controller;cancel.disabled=!controller||controller.signal.aborted;
   if(uv)for(const id of ['readRadio','writeRadio','verify'])$(id).disabled=true;
  }};

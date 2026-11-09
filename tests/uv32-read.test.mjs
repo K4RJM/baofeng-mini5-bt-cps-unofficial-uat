@@ -1,8 +1,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {Reader} from '../read-test/reader.mjs';
-import {identifyProfile,hasUv32ReadSession,uv32ReadSessionStatus} from '../scripts/uat-protocols.mjs?v=20.40';
-import {readUv32Channels,uv32ReadDiagnostics,uv32ReadCommand,uv32Payload,uv32WireDecode,decodeUv32Channels} from '../scripts/uat-uv32-read.mjs';
+import {identifyProfile,hasUv32ReadSession,uv32ReadSessionStatus} from '../scripts/uat-protocols.mjs?v=20.41';
+import {readUv32Channels,captureUv32Channels,uv32ReadDiagnostics,uv32ReadCommand,uv32Payload,uv32WireDecode,decodeUv32Channels} from '../scripts/uat-uv32-read.mjs';
 import {asyncRadio} from './async-radio.mjs';
 import {bytes,plain,wire,uv32Fixture} from './uv32-fixtures.mjs';
 function setup(faults={}){
@@ -152,5 +152,70 @@ test('A late response after an eligible handshake is retained and blocks reading
   assert.equal(snapshot.sessionAtStart.pendingBytes,302);assert.equal(snapshot.sessionAtStart.pendingHex.length,512);
   assert.equal(snapshot.sessionAtStart.pendingTruncated,true);assert.equal(h.radio.rx.length,302);
   assert.doesNotThrow(()=>JSON.stringify(snapshot));
+ }finally{h.close();}
+});
+
+async function connectSimulated(h){
+ const descriptor=Object.getOwnPropertyDescriptor(globalThis,'navigator');
+ Object.defineProperty(globalThis,'navigator',{configurable:true,value:{bluetooth:h.fake.bluetooth}});
+ try{await h.radio.connect();}finally{if(descriptor)Object.defineProperty(globalThis,'navigator',descriptor);else delete globalThis.navigator;}
+}
+test('One UV-32 read action connects, identifies and reads before the simulated session idle response',async()=>{
+ const h=setup({sessionIdleMs:50});try{
+  const stages=[],r=await captureUv32Channels(h.radio,{connect:()=>connectSimulated(h),stage:s=>stages.push(s)});
+  assert.equal(r.completed,true);assert.equal(r.memoryReads,500);assert.equal(r.memoryWrites,0);
+  assert.equal(h.fake.sent.length,504);assert.deepEqual(h.fake.sent.slice(0,4).map(b=>b[0]),[80,70,77,83]);
+  assert.equal(h.fake.sent[4][0],82);assert.equal(h.fake.events.includes('session-idle'),false);
+  assert.deepEqual(stages,['Connecting for UV-32 channel read…','Identifying UV-32 for channel read…','Reading UV-32 channels…']);
+  assert.ok(Number.isFinite(r.firstReadAfterHandshakeMs)&&r.firstReadAfterHandshakeMs>=0);
+  assert.equal(h.radio.busy,false);
+ }finally{h.close();}
+});
+test('An expired separate handshake is retained in diagnostics and replaced by one fresh read connection',async()=>{
+ const h=setup({sessionIdleMs:20});try{
+  await h.identify();await new Promise(r=>setTimeout(r,40));assert.deepEqual(h.radio.rx,[0]);
+  const old=h.radio.generation,sent=h.fake.sent.length;
+  const r=await captureUv32Channels(h.radio,{connect:()=>connectSimulated(h)});
+  assert.equal(r.sessionBeforeConnect.pendingHex,'00');assert.equal(r.sessionBeforeConnect.checks.sessionPresent,true);
+  assert.equal(r.connectionRestarted,true);assert.ok(h.radio.generation>old);
+  assert.equal(r.sessionAtStart.ready,true);assert.equal(r.sessionAtStart.pendingHex,'');
+  assert.equal(r.completed,true);assert.equal(h.fake.sent.length-sent,504);assert.equal(h.fake.writes,0);
+ }finally{h.close();}
+});
+test('Model query 00 is retained with its failed handshake and no memory read or automatic retry',async()=>{
+ const h=setup({modelReply:[0]});try{
+  await assert.rejects(captureUv32Channels(h.radio,{connect:()=>connectSimulated(h)}),error=>{
+   const r=error.uv32ReadReport;assert.equal(r.stage,'identifying');assert.equal(r.memoryReads,0);assert.equal(r.memoryWrites,0);
+   assert.equal(r.handshake.stage,'Model query (M)');assert.equal(r.handshake.receivedPendingHex,'00');assert.equal(r.pendingHex,'00');
+   assert.match(error.message,/expected 7 response bytes, received 1/);return true;
+  });
+  assert.equal(h.fake.sent.length,3);assert.equal(h.fake.reads,0);assert.equal(h.fake.writes,0);
+ }finally{h.close();}
+});
+test('The combined UV-32 action still rejects an unexpected model and preserves its identification report',async()=>{
+ const h=setup({identity:'OTHER  '});try{
+  await assert.rejects(captureUv32Channels(h.radio,{connect:()=>connectSimulated(h)}),error=>{
+   assert.equal(error.uv32ReadReport.handshake.model,'OTHER');assert.equal(error.uv32ReadReport.memoryReads,0);
+   assert.equal(error.uv32ReadReport.sessionAtStart.checks.sessionPresent,false);return true;
+  });
+  assert.equal(h.fake.sent.length,4);assert.equal(h.fake.reads,0);assert.equal(h.fake.writes,0);
+ }finally{h.close();}
+});
+test('Busy or already-cancelled combined reads send nothing and do not disconnect another operation',async()=>{
+ for(const busy of [true,false]){
+  const h=setup(),controller=new AbortController();try{
+   h.radio.busy=busy;if(!busy)controller.abort();const events=h.fake.events.length;
+   await assert.rejects(captureUv32Channels(h.radio,{connect:()=>connectSimulated(h),signal:controller.signal}));
+   assert.equal(h.fake.events.length,events);assert.equal(h.radio.busy,busy);assert.equal(h.radio.connected,true);
+   assert.equal(h.fake.sent.length,0);assert.equal(h.fake.reads,0);assert.equal(h.fake.writes,0);
+  }finally{h.radio.busy=false;h.close();}
+ }
+});
+test('Cancellation after UV-32 identification prevents the first memory request',async()=>{
+ const h=setup(),controller=new AbortController();try{
+  await assert.rejects(captureUv32Channels(h.radio,{connect:()=>connectSimulated(h),signal:controller.signal,
+   stage:s=>{if(s==='Reading UV-32 channels…')controller.abort();}
+  }),error=>{assert.match(error.message,/cancelled/);assert.equal(error.uv32ReadReport.handshake.model,'UV32PRO');assert.equal(error.uv32ReadReport.memoryReads,0);return true;});
+  assert.equal(h.fake.sent.length,4);assert.equal(h.fake.reads,0);assert.equal(h.fake.writes,0);assert.equal(h.radio.busy,false);
  }finally{h.close();}
 });
