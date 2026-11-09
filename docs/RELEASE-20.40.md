@@ -23,7 +23,7 @@ All identity and one-use-session requirements remain enforced. The read commands
 
 Three additional automated regressions cover all pre-read guards, zero-command failure reports, busy ownership, late buffered bytes and bounded diagnostic snapshots. Existing UV-32 tests still exercise all 500 reads, channel 1000, invalid responses, interruption and partial retention. The browser suite adds the corresponding click-and-download scenario and now contains 33 checks.
 
-Local execution is unavailable: the shell launcher rejects the packaged runtime before starting PowerShell. CI runs the full suite and packaging before Pages deployment. Test totals and deployment results will be recorded after completion. Browser execution is not claimed.
+Local execution is unavailable: the shell launcher rejects the packaged runtime before starting PowerShell. CI completed the full suite: **254/254 tests passed**, with zero failures, skips or TODOs. Packaging and UAT Pages deployment succeeded in [workflow 42572505546](https://github.com/K4RJM/baofeng-mini5-bt-cps-unofficial-uat/actions/runs/42572505546). Browser execution is not claimed.
 
 The underlying physical read blocker remains **unresolved pending the diagnostic report**. A synthetic late-response regression is not evidence that the physical radio sent an extra response.
 
@@ -43,3 +43,12 @@ No physical-radio operation is performed by the development agent.
 - Previous deployed application: **20.39-UAT.3cadadf**, `3cadadf2956e5f76ce3592d40bc05b259f294187`.
 - LIVE remains `7a9b363a0fb643e188bb4c3b3917bb9f6cc78cd8`.
 - Revert through the normal UAT test/deploy workflow; no force push.
+
+## Published result
+
+- Application commit: `8ce144d355021e7efd72f428f40d9297321f450f`; build **20.40-UAT.8ce144d**.
+- GitHub reports both test and deploy jobs successful. Direct retrieval through the available web tool was unavailable; independent browser verification remains pending.
+- All 16 protected MINI-5 source files are byte-identical to the rollback source. Handshake implementation, UV-32 decoding and read command construction are unchanged.
+- The 33 browser checks have not been executed in this environment. The previously reported compact-row browser failure is outside this change and remains recorded.
+- LIVE head rechecked after deployment: `7a9b363a0fb643e188bb4c3b3917bb9f6cc78cd8`, unchanged.
+- Next evidence needed: the first saved v20.40 UV-32 read diagnostic or capture. This release does not claim a completed physical channel read.
