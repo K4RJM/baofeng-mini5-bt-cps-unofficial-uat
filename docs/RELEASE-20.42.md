@@ -22,7 +22,9 @@ Four new automated regressions cover pacing and bounded tracing across all 500 b
 
 The browser suite remains 33 checks; its two full UV-32 capture waits allow for the added pacing and check bounded trace metadata. The existing compact-row assertion is not weakened.
 
-Automated execution and UAT deployment results will be recorded after CI completes. Browser execution and a complete physical 500-block read remain pending. Local Node/browser launch is unavailable in this environment.
+**264/264 automated tests passed**, with zero failures, skips or cancellations. Packaging and GitHub Pages deployment succeeded in [workflow 42626781482](https://github.com/K4RJM/baofeng-mini5-bt-cps-unofficial-uat/actions/runs/42626781482). Application commit: `e3283624bc898a1c806baca02cb5138f03cf0dfc`; deployed build: **20.42-UAT.e328362**. The 17 protected MINI-5/core and UV-32 handshake files were verified unchanged against the prior UAT tree. LIVE main was rechecked after deployment and remains `7a9b363a0fb643e188bb4c3b3917bb9f6cc78cd8`.
+
+Browser execution and a complete physical 500-block read remain pending. Local Node/browser launch is unavailable in this environment. CI success does not establish the physical benefit of pacing.
 
 ## Hardware follow-up
 

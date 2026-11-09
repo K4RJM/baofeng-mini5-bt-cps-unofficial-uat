@@ -1,9 +1,9 @@
-# UAT candidate — v20.42 (November 9, 2026)
+# Published UAT — v20.42 (November 9, 2026)
 
 - v20.41 physical captures contain an identical initial 1,088 bytes and 33 populated channel records. First entries match factory CPS screenshots. Reads stop at different addresses with a malformed header or a 00 timeout. [Evidence](UV32-READ-EVIDENCE-2026-11-09.md).
 - Adds a 20 ms inter-block pause as a UAT pacing trial and a bounded request/notification trace. Its physical benefit is not yet established.
 - Corrects stale last-response reporting after a later timeout. Exact response validation, no retry, handshake, decoder and MINI-5 behavior are preserved.
-- Four new automated regressions; existing browser suite updated for pacing. CI and deployment results pending. Browser execution and a complete physical read remain pending.
+- Four new automated regressions; **264/264 automated tests passed**. Packaging and Pages [workflow 42626781482](https://github.com/K4RJM/baofeng-mini5-bt-cps-unofficial-uat/actions/runs/42626781482) succeeded. Build **20.42-UAT.e328362**, application `e3283624bc898a1c806baca02cb5138f03cf0dfc`. Existing browser suite updated for pacing; browser execution and a complete physical read remain pending. The agent performed no physical-radio operation.
 - UAT rollback: `c58088dd9c7a13ef44e51367fcb555e1d092b1a8` / **20.41-UAT.71a3eef**.
 - LIVE v20.33 unchanged at `7a9b363a0fb643e188bb4c3b3917bb9f6cc78cd8`. [Release record](RELEASE-20.42.md).
 
