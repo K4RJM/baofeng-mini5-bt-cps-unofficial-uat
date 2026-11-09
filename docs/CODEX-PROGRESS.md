@@ -1,11 +1,11 @@
-# Current UAT candidate — v20.39 (November 8, 2026)
+# Published UAT — v20.39 (November 8, 2026)
 
 - Added UV-32-only channel capture after the confirmed With-response handshake: 1,000 records, 500 fixed reads, read-only preview and downloadable original wire bytes.
 - The capture is isolated from the MINI-5 workspace. It does not enable UV-32 writes, edits, settings or DAT/IMG export.
 - Bound one-use read capability, strict header/range validation, deadlines, no retry, cancellation and partial-capture retention. Unknown values are not silently normalized.
 - Independent source: CHIRP UV32 / UV17ProGPS at `19b5359693d37204e21ad11ce4e5613614de3886`. Twelve targeted tests and an added browser workflow. [Evidence and physical test instructions](UV32-READ.md).
 - Physical Bluetooth memory read and channel decoding remain unverified. K4RJM's v20.38 successful handshake remains established.
-- Actual automated/deployment results belong in [RELEASE-20.39.md](RELEASE-20.39.md). UAT rollback: `8b00e10d2f3d8795298b3e29569ab40946a7bbb3` / deployed **20.38-UAT.3082c50**.
+- Published **20.39-UAT.3cadadf**, application commit `3cadadf2956e5f76ce3592d40bc05b259f294187`. **251/251 automated tests passed**; packaging and Pages workflow **42544364007** succeeded. Browser launch failed before a page opened; the 32 browser checks and physical read remain pending. [Release record](RELEASE-20.39.md). UAT rollback: `8b00e10d2f3d8795298b3e29569ab40946a7bbb3` / deployed **20.38-UAT.3082c50**.
 - LIVE stays v20.33. No physical operation by the development agent.
 
 ---

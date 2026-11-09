@@ -1,4 +1,4 @@
-# UAT radio identification — v20.38
+# UAT radio identification and read-only capture — v20.39
 
 Updated November 8, 2026. **Active profiles: MINI-5 and UV-32.** GM-30 Pro remains removed. LIVE v20.33 is unchanged.
 
@@ -12,7 +12,7 @@ Choose **UV-32**, set **Bluetooth send** to **With response**, and run **Check r
 
 The diagnostic retains the now physically confirmed FF31 setup, then sends the existing CPS commands. It delivers final SEND as 20 + 5 bytes, matching the phone-app transport. Each piece is awaited, recorded and bounded; a failure is not retried. The single final ACK remains required. The complete combination is physically verified. The earlier failing run also used a different send method, so the evidence does not isolate packet size as the only cause or establish a measured MTU.
 
-A complete handshake displays **Handshake complete: UV32PRO**. It will not load channels: **UV-32 channel-memory reading and programming are not implemented**. The selector controls identification only. MINI-5 memory, programming, identity safeguards, reset and disconnect behavior are unchanged.
+A complete handshake displays **Handshake complete: UV32PRO**. In v20.39, the separate **Read UV-32 channels** button then captures the 1,000 channel records into a read-only preview. This first Bluetooth memory reader is a candidate pending physical verification. [Scope, evidence and test steps](UV32-READ.md). **UV-32 editing and programming remain unavailable.** MINI-5 memory, programming, identity safeguards, reset and disconnect behavior are unchanged.
 
 K4RJM performed the physical test. No physical radio operation was performed by the development agent. [v20.38 release checks and rollback](RELEASE-20.38.md). Browser regression checks use simulated peripherals and cannot connect to the physical radio.
 

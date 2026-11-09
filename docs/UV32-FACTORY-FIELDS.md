@@ -1,5 +1,7 @@
 # UV-32 factory CPS field reference
 
+**v20.39 update:** [A read-only channel capture/preview](UV32-READ.md) is available in UAT, using the independent CHIRP UV-32 layout. Physical channel comparison is pending; settings, VFO and DTMF editing are not implemented for UV-32.
+
 Received from K4RJM on November 1, 2026: four screenshots of **BF-UVPROs CPS**, with model **UV32PRO** selected. This is the interface reference for a future UV-32-specific Ham-Rx adapter. It records visible controls, not implemented support or verified binary mappings. Existing MINI-5 fields and its 999-channel safeguards are unchanged.
 
 ## Channels and zones
