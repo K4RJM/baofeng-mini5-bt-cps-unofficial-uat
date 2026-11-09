@@ -17,7 +17,7 @@ html=replaceOnce(html,'<header class="topbar">',controls+'\n<header class="topba
 html=replaceOnce(html,'</head>','<style>.uat-protocol-tools [hidden]{display:none!important}.uat-uv32-view{width:min(1250px,96vw);max-height:88dvh;padding:14px}.uv32-head,.uv32-foot{display:flex;align-items:center;gap:10px}.uv32-head h2{font-size:1.1rem;margin:0 auto 0 0}.uat-uv32-view p{margin:8px 0;font-size:.85rem}.uv32-scroll{max-height:58dvh;overflow:auto}.uv32-scroll table{width:100%;min-width:1150px;border-collapse:collapse;font-size:.82rem}.uv32-scroll th,.uv32-scroll td{padding:4px 6px;white-space:nowrap;border-bottom:1px solid var(--border)}.uv32-scroll tbody tr:nth-child(even){background:var(--panel)}.uv32-foot{margin-top:10px}.uat-protocol-tools{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;padding:8px 18px;border-bottom:1px solid var(--border)}.uat-protocol-tools select,.uat-protocol-tools button{min-height:32px;padding:4px 9px;font-size:.85rem}.uat-protocol-tools small{flex-basis:100%;opacity:.85}.uat-protocol-tools output{font-size:.85rem;overflow-wrap:anywhere}@media(max-width:600px){.uat-protocol-tools{padding:8px}.uat-protocol-tools output{flex-basis:100%}}</style></head>');
 await writeFile('dist/index.html',html);
 let app=await readFile('dist/app.mjs','utf8');
-app="import {installProtocolTools} from './uat-protocols.mjs?v=20.39';\nimport {installUv32Reader} from './uat-uv32-ui.mjs?v=20.39';\nlet uatProtocolTools,uatUv32Reader;\n"+app;
+app="import {installProtocolTools} from './uat-protocols.mjs?v=20.40';\nimport {installUv32Reader} from './uat-uv32-ui.mjs?v=20.40';\nlet uatProtocolTools,uatUv32Reader;\n"+app;
 app=replaceOnce(app,'function sync(){','function sync(){\n uatProtocolTools?.sync(busy);');
 
 app=replaceOnce(app,"$('content').inert=busy;$('tabs').inert=busy;","$('content').inert=busy;$('tabs').inert=busy;uatUv32Reader?.sync(busy);");
@@ -26,6 +26,6 @@ if(!app.includes("build:'"+base+"'"))throw Error('Diagnostic version anchor miss
 await writeFile('dist/app.mjs',app.replace("build:'"+base+"'","environment:'UAT',build:'"+version+"'"));
 for(const file of ['uat-protocols.mjs','uat-uv32-read.mjs','uat-uv32-ui.mjs'])await writeFile('dist/'+file,await readFile('scripts/'+file,'utf8'));
 await writeFile('dist/docs/UAT-RADIO-PROTOCOLS.md',await readFile('docs/UAT-RADIO-PROTOCOLS.md','utf8'));
-for(const file of ['BLUETOOTH-CAPTURE-2026-11-01.md','UV32-FACTORY-FIELDS.md','BROWSER-20.36.md','RELEASE-20.36.md','BROWSER-20.34.md','BROWSER-20.35.md','RELEASE-20.34.md','RELEASE-20.35.md','RELEASE-20.37.md','RELEASE-20.39.md','UV32-HANDSHAKE-2026-11-08.md','UV32-READ.md','RELEASE-20.38.md'])await writeFile('dist/docs/'+file,await readFile('docs/'+file,'utf8'));
+for(const file of ['BLUETOOTH-CAPTURE-2026-11-01.md','UV32-FACTORY-FIELDS.md','BROWSER-20.36.md','RELEASE-20.36.md','BROWSER-20.34.md','BROWSER-20.35.md','RELEASE-20.34.md','RELEASE-20.35.md','RELEASE-20.37.md','RELEASE-20.39.md','RELEASE-20.40.md','UV32-HANDSHAKE-2026-11-08.md','UV32-READ.md','RELEASE-20.38.md'])await writeFile('dist/docs/'+file,await readFile('docs/'+file,'utf8'));
 await writeFile('dist/deployment.json',JSON.stringify({environment:'UAT',version,sourceSha:sha,repository,protocolProfiles:['mini5','uv32']},null,2)+'\n');
 console.log('Packaged '+version+' for '+repository);

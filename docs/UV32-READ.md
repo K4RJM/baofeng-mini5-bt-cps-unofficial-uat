@@ -1,6 +1,6 @@
-# UV-32 read-only channel capture — UAT v20.39
+# UV-32 read-only channel capture — UAT v20.40
 
-November 8, 2026. UAT only. MINI-5 programming and LIVE are unchanged.
+Updated November 9, 2026. UAT only. MINI-5 programming and LIVE are unchanged.
 
 ## What this adds
 
@@ -37,7 +37,7 @@ The candidate additionally requires an exact response opcode `52`, requested add
 
 ## First physical test
 
-1. Open UAT and confirm **20.39-UAT**.
+1. Open UAT and confirm **20.40-UAT**.
 2. Select **UV-32**. The send selector changes to the physically verified **With response** setting.
 3. Enable Wireless CPS and disconnect other programming apps. Click **Check radio ID**.
 4. After **Handshake complete: UV32PRO**, click **Read UV-32 channels**.
@@ -54,4 +54,8 @@ The two fixed channel records used in tests come from [CHIRP's public UV-17ProGP
 
 Credit: K4RJM's physical testing; CHIRP contributors, including Sander van der Wel, for the independent UV-17Pro/UV-32 format and protocol reference; the previously credited phone-app capture for Bluetooth bridge setup. This repository remains GPL v3. No APK, private capture or shared token is published.
 
-See [release results and rollback](RELEASE-20.39.md). This candidate does not establish UV-32 programming compatibility, repeated-read reliability or full settings support.
+See [initial reader release](RELEASE-20.39.md) and [current diagnostics release and rollback](RELEASE-20.40.md). This candidate does not establish UV-32 programming compatibility, repeated-read reliability or full settings support.
+
+## v20.40 pre-read diagnostic update
+
+K4RJM's successful handshake was followed by a rejected read-session check in v20.39. The screenshot did not identify the failed condition. v20.40 retains a before-read report with the exact guard results and any buffered bytes; **Save read diagnostics** remains available when no channel capture exists. The top toolbar displays a failed read instead of leaving the previous handshake success as the latest result. Diagnostics do not clear pending bytes or authorize a read. The physical cause remains open until the saved report is inspected. Three added Node regressions and one added browser check cover these diagnostic paths; execution results are recorded in the release document.

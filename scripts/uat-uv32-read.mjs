@@ -2,7 +2,7 @@
 // Layout/CO7 interpretation: CHIRP baofeng_uv17Pro.py, commit
 // 19b5359693d37204e21ad11ce4e5613614de3886. See docs/UV32-READ.md.
 // Independent implementation; CHIRP attribution and GPL-3.0 project terms apply.
-import {consumeUv32ReadSession} from './uat-protocols.mjs?v=20.39';
+import {consumeUv32ReadSession,uv32ReadSessionStatus} from './uat-protocols.mjs?v=20.40';
 export const UV32_CHANNELS=1000,UV32_RECORD_BYTES=32,UV32_BLOCK_BYTES=64,UV32_CHANNEL_BYTES=32000;
 export const UV32_BLOCKS=UV32_CHANNEL_BYTES/UV32_BLOCK_BYTES;
 const hex=b=>Array.from(b,n=>n.toString(16).padStart(2,'0')).join('');
@@ -52,17 +52,22 @@ export function decodeUv32Channels(wire){
  }
  return {interpretation:'CHIRP UV-32 CO7 layout; physical channel comparison pending',channels,empty,warnings};
 }
+// A diagnostic snapshot never consumes a handshake, clears buffered bytes, or sends commands.
+export function uv32ReadDiagnostics(radio){
+ return {kind:'uv32-channel-read-v1',completed:false,stage:'before-read',scope:'Channel records only; not a complete codeplug or firmware backup',
+  model:'UV32PRO',sendMethod:'writeValueWithResponse',startAddress:0,endAddressExclusive:32000,
+  blockBytes:64,totalBlocks:500,completedBlocks:0,memoryReads:0,memoryWrites:0,headers:[],
+  bytes:0,wireHex:'',sessionAtStart:uv32ReadSessionStatus(radio),capturedAt:new Date().toISOString()};
+}
 export async function readUv32Channels(radio,{progress=()=>{},signal}={}){
  // Only a completed, current, With-response UV32PRO handshake can issue this capability.
  // It is consumed once; no caller-supplied identity or saved JSON grants memory access.
- const session=consumeUv32ReadSession(radio),started=Date.now(),raw=new Uint8Array(32000);
- const report={kind:'uv32-channel-read-v1',completed:false,scope:'Channel records only; not a complete codeplug or firmware backup',
-  model:'UV32PRO',handshake:session.identity,sendMethod:'writeValueWithResponse',startAddress:0,endAddressExclusive:32000,
-  blockBytes:64,totalBlocks:500,completedBlocks:0,memoryReads:0,memoryWrites:0,headers:[],capturedAt:new Date().toISOString()};
- let address=0;
+ const started=Date.now(),raw=new Uint8Array(32000),report=uv32ReadDiagnostics(radio);
+ let session,address=0,ownsBusy=false;
  const check=()=>{if(signal?.aborted)throw Error('UV-32 channel read cancelled');if(!radio.connected||radio.generation!==session.generation||radio.device!==session.device||radio.char!==session.characteristic)throw Error('Radio connection changed during UV-32 read');};
- radio.busy=true;
  try{
+  session=consumeUv32ReadSession(radio);report.handshake=session.identity;
+  radio.busy=true;ownsBusy=true;report.stage='reading';
   for(address=0;address<32000;address+=64){
    check();if(radio.rx.length)throw Error('Unexpected buffered response before UV-32 read');
    const command=uv32ReadCommand(address);report.lastRequestHex=hex(command);report.attemptedAddress=address;report.memoryReads++;
@@ -73,7 +78,7 @@ export async function readUv32Channels(radio,{progress=()=>{},signal}={}){
    progress(report.completedBlocks,500);
   }
   // Invalid decoding is kept visible and never converted into an editable MINI-5 workspace.
-  report.preview=decodeUv32Channels(raw);report.completed=true;return report;
- }catch(error){report.error=error.message;report.pendingHex=hex(Uint8Array.from(radio.rx.slice(0,256)));error.uv32ReadReport=report;throw error;}
- finally{report.wireHex=hex(raw.slice(0,report.completedBlocks*64));report.bytes=report.completedBlocks*64;report.elapsedMs=Date.now()-started;radio.busy=false;}
+  report.preview=decodeUv32Channels(raw);report.completed=true;report.stage='complete';return report;
+ }catch(error){report.error=error.message;if(error.uv32SessionStatus)report.sessionAtStart=error.uv32SessionStatus;report.pendingHex=hex(Uint8Array.from(radio.rx.slice(0,256)));error.uv32ReadReport=report;throw error;}
+ finally{report.wireHex=hex(raw.slice(0,report.completedBlocks*64));report.bytes=report.completedBlocks*64;report.elapsedMs=Date.now()-started;if(ownsBusy)radio.busy=false;}
 }

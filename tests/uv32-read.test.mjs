@@ -1,8 +1,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {Reader} from '../read-test/reader.mjs';
-import {identifyProfile,hasUv32ReadSession} from '../scripts/uat-protocols.mjs?v=20.39';
-import {readUv32Channels,uv32ReadCommand,uv32Payload,uv32WireDecode,decodeUv32Channels} from '../scripts/uat-uv32-read.mjs';
+import {identifyProfile,hasUv32ReadSession,uv32ReadSessionStatus} from '../scripts/uat-protocols.mjs?v=20.40';
+import {readUv32Channels,uv32ReadDiagnostics,uv32ReadCommand,uv32Payload,uv32WireDecode,decodeUv32Channels} from '../scripts/uat-uv32-read.mjs';
 import {asyncRadio} from './async-radio.mjs';
 import {bytes,plain,wire,uv32Fixture} from './uv32-fixtures.mjs';
 function setup(faults={}){
@@ -50,7 +50,7 @@ test('UV-32 fields preserve unknown codes and frequency failures without modulo 
 });
 test('UV-32 channel read requires a fresh exact identity and explicit With response capability',async()=>{
  for(const [identity,mode] of [['UV32PRO',null],['OTHER  ','with-response'],['UV32PRO','auto']]){
-  const h=setup({identity});try{if(mode)await h.identify(mode);await assert.rejects(readUv32Channels(h.radio),/Check UV-32/);assert.equal(h.fake.reads,0);assert.equal(h.fake.writes,0);}finally{h.close();}
+  const h=setup({identity});try{if(mode)await h.identify(mode);await assert.rejects(readUv32Channels(h.radio),/UV-32 read blocked/);assert.equal(h.fake.reads,0);assert.equal(h.fake.writes,0);}finally{h.close();}
  }
 });
 test('Complete UV-32 read captures 1000 records with exact addresses, no write/reset/exit and one-use session',async()=>{
@@ -61,12 +61,12 @@ test('Complete UV-32 read captures 1000 records with exact addresses, no write/r
   assert.deepEqual(r.preview.channels.map(c=>c.number),[1,2,1000]);assert.equal(r.preview.channels.at(-1).bank,10);assert.equal(r.preview.channels.at(-1).bankChannel,100);
   const commands=h.fake.sent.slice(n);assert.equal(commands.length,500);commands.forEach((cmd,i)=>assert.deepEqual([...cmd],[82,(i*64)>>8,(i*64)&255,64]));
   assert.deepEqual(progress.at(-1),[500,500]);assert.equal(h.fake.writes,0);assert.equal(h.radio.busy,false);
-  await assert.rejects(readUv32Channels(h.radio),/Check UV-32/);assert.equal(h.fake.reads,500);
+  await assert.rejects(readUv32Channels(h.radio),/UV-32 read blocked/);assert.equal(h.fake.reads,500);
  }finally{h.close();}
 });
 test('A replaced connection cannot reuse a successful UV-32 handshake',async()=>{
  for(const mutate of [r=>r.generation++,r=>r.device={...r.device},r=>r.char={...r.char}]){
-  const h=setup();try{await h.identify();mutate(h.radio);await assert.rejects(readUv32Channels(h.radio),/Check UV-32/);assert.equal(h.fake.reads,0);}finally{h.close();}
+  const h=setup();try{await h.identify();mutate(h.radio);await assert.rejects(readUv32Channels(h.radio),/UV-32 read blocked/);assert.equal(h.fake.reads,0);}finally{h.close();}
  }
 });
 test('Malformed, truncated, silent or excessive UV-32 responses stop at the first read without retry',async()=>{
@@ -95,5 +95,62 @@ test('A native UV-32 read stall is bounded and late completion never resumes the
   const native=h.radio.native.bind(h.radio);h.radio.native=(stage,start,ms)=>native(stage,start,stage==='Reading UV-32 channels'?20:ms);
   await assert.rejects(readUv32Channels(h.radio),e=>{assert.match(e.message,/timed out/);assert.equal(e.uv32ReadReport.memoryReads,1);assert.equal(e.uv32ReadReport.bytes,0);return true;});
   resolveSend();await new Promise(r=>setTimeout(r,0));assert.equal(h.fake.reads,0);assert.equal(h.fake.writes,0);assert.equal(h.radio.busy,false);
+ }finally{h.close();}
+});
+
+test('UV-32 diagnostic snapshots identify every read guard without consuming the session or clearing data',async()=>{
+ const h=setup();try{
+  const absent=uv32ReadDiagnostics(h.radio);assert.equal(absent.sessionAtStart.checks.sessionPresent,false);
+  await h.identify();const baseline=h.fake.sent.length;
+  for(const [key,mutate,restore] of [
+   ['connected',()=>h.fake.device.gatt.connected=false,()=>h.fake.device.gatt.connected=true],
+   ['idle',()=>h.radio.busy=true,()=>h.radio.busy=false],
+   ['notConnecting',()=>h.radio.connecting=true,()=>h.radio.connecting=false],
+   ['sameDevice',()=>h.radio.device={...h.fake.device},()=>h.radio.device=h.fake.device],
+   ['sameCharacteristic',()=>h.radio.char={...h.fake.characteristic},()=>h.radio.char=h.fake.characteristic],
+   ['sameGeneration',()=>h.radio.generation++,()=>h.radio.generation--],
+   ['emptyReceiveBuffer',()=>h.radio.rx.push(6),()=>h.radio.rx.splice(0)]
+  ]){
+   mutate();const status=uv32ReadSessionStatus(h.radio);
+   assert.deepEqual(status.failedChecks,[key]);assert.equal(status.ready,false);assert.equal(hasUv32ReadSession(h.radio),false);
+   assert.deepEqual(uv32ReadDiagnostics(h.radio).sessionAtStart.failedChecks,[key]);restore();
+   assert.equal(hasUv32ReadSession(h.radio),true,'Diagnostics never consume or authorize a session');
+  }
+  assert.equal(h.fake.sent.length,baseline);assert.equal(h.fake.reads,0);assert.equal(h.fake.writes,0);
+ }finally{h.close();}
+});
+test('Pre-read failures retain a zero-command report and never unlock a busy operation owned elsewhere',async()=>{
+ for(const [key,mutate] of [
+  ['sessionPresent',()=>{}],['idle',r=>r.busy=true],['notConnecting',r=>r.connecting=true],
+  ['sameGeneration',r=>r.generation++],['sameDevice',r=>r.device={...r.device}],
+  ['sameCharacteristic',r=>r.char={...r.char}],['connected',r=>r.device.gatt.connected=false]
+ ]){
+  const h=setup();try{
+   if(key!=='sessionPresent')await h.identify();mutate(h.radio);const n=h.fake.sent.length;
+   await assert.rejects(readUv32Channels(h.radio),error=>{
+    const r=error.uv32ReadReport;assert.equal(r.stage,'before-read');assert.equal(r.completed,false);
+    assert.equal(r.memoryReads,0);assert.equal(r.memoryWrites,0);assert.equal(r.bytes,0);assert.equal(r.wireHex,'');
+    assert.ok(r.sessionAtStart.failedChecks.includes(key));assert.equal(r.lastRequestHex,undefined);return true;
+   });
+   assert.equal(h.radio.busy,key==='idle');assert.equal(h.fake.sent.length,n);assert.equal(h.fake.reads,0);
+  }finally{h.radio.busy=false;h.radio.connecting=false;h.close();}
+ }
+});
+test('A late response after an eligible handshake is retained and blocks reading without discard or retry',async()=>{
+ const h=setup();try{
+  await h.identify();assert.equal(hasUv32ReadSession(h.radio),true);const n=h.fake.sent.length;
+  h.radio.receive(new DataView(Uint8Array.of(6,21).buffer));
+  await assert.rejects(readUv32Channels(h.radio),error=>{
+   assert.match(error.message,/Unexpected radio response bytes arrived/);
+   assert.deepEqual(error.uv32ReadReport.sessionAtStart.failedChecks,['emptyReceiveBuffer']);
+   assert.equal(error.uv32ReadReport.sessionAtStart.pendingHex,'0615');
+   assert.equal(error.uv32ReadReport.pendingHex,'0615');assert.equal(error.uv32ReadReport.memoryReads,0);return true;
+  });
+  assert.deepEqual(h.radio.rx,[6,21]);assert.equal(h.fake.sent.length,n);assert.equal(h.fake.reads,0);assert.equal(h.fake.writes,0);
+  assert.equal(hasUv32ReadSession(h.radio),false,'A rejected attempt cannot be reused');
+  h.radio.rx.push(...new Array(300).fill(170));const snapshot=uv32ReadDiagnostics(h.radio);
+  assert.equal(snapshot.sessionAtStart.pendingBytes,302);assert.equal(snapshot.sessionAtStart.pendingHex.length,512);
+  assert.equal(snapshot.sessionAtStart.pendingTruncated,true);assert.equal(h.radio.rx.length,302);
+  assert.doesNotThrow(()=>JSON.stringify(snapshot));
  }finally{h.close();}
 });

@@ -1,4 +1,4 @@
-import {BROWSER_SUITE_VERSION,BROWSER_CHECK_COUNT,browserBuildError} from './revision.mjs?v=20.39';
+import {BROWSER_SUITE_VERSION,BROWSER_CHECK_COUNT,browserBuildError} from './revision.mjs?v=20.40';
 import {rdtFixture} from '../rdt-fixtures.mjs?v=20.33';
 import {readImage} from '../../image-files.mjs?v=20.31';
 import {csvFixture,csvHeads} from '../csv-fixtures.mjs?v=20.31';
@@ -11,7 +11,7 @@ async function fresh(mode='normal'){
  frame?.contentWindow.f13?.fake.close();frame?.remove();
  let html=await fetch(new URL('index.html',root),{cache:'no-store'}).then(r=>r.text());
  const match=html.match(/<script type="module" src="(app\.mjs[^\"]*)"><\/script>/);assert(match,'Actual application module exists');
- const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.39',root).href}"><\/script>`;
+ const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.40',root).href}"><\/script>`;
  html=html.replace('<head>','<head><base href="'+root.href+'">').replace(match[0],script);
  frame=document.createElement('iframe');frame.title='Isolated CPS test application';frame.setAttribute('allow',"bluetooth 'none'");frame.srcdoc=html;document.getElementById('workspace').append(frame);
  await until(()=>frame.contentWindow.f13?.ready||frame.contentWindow.f13?.failed,'application bootstrap');
@@ -310,6 +310,28 @@ document.getElementById('start').onclick=async()=>{
    id('uatUv32View').click();assert(id('uatUv32Rows').querySelector('[data-uv32-channel="1000"]'),'Previous successful preview retained');id('uatUv32Close').click();
    id('uatProtocol').value='mini5';id('uatProtocol').dispatchEvent(new h.w.Event('change'));
    assert(id('uatUv32Read').hidden&&!id('readRadio').disabled,'Returning to MINI-5 restores its controls');
+  });
+  await check('UV-32 pre-read rejection explains the failed guard and downloads diagnostics without any read command',async()=>{
+   h=await fresh();if(!id('uatUv32Read'))return;
+   id('uatProtocol').value='uv32';id('uatProtocol').dispatchEvent(new h.w.Event('change'));
+   assert(id('uatUv32Read').disabled&&!id('uatUv32Save').disabled,'Read diagnostics available even before identification');
+   id('uatUv32Save').click();let report=JSON.parse(await h.state.downloads.at(-1).text());
+   assert(report.stage==='before-read'&&!report.sessionAtStart.checks.sessionPresent&&report.memoryReads===0,'No-session diagnostic is explicit');
+   h.state.fake.faults.identity='UV32PRO';h.state.fake.faults.bridgeSetup=true;h.state.fake.faults.maxWriteBytes=20;
+   h.state.fake.characteristic.properties={write:true,writeWithoutResponse:true,notify:true};
+   id('uatIdentify').click();await until(()=>!id('uatUv32Read').disabled,'UV-32 handshake before late response');
+   const sent=h.state.fake.sent.length,c=h.state.fake.characteristic;
+   c.value=new h.w.DataView(h.w.Uint8Array.of(6,21).buffer);c.dispatchEvent(new h.w.Event('characteristicvaluechanged'));
+   id('uatUv32Read').click();await until(()=>!id('uatUv32Save').disabled&&id('uatUv32Cancel').hidden,'pre-read failure recovery');
+   assert(id('status').textContent.includes('Unexpected radio response bytes arrived'),'Specific failed condition replaces repeated ID instruction');
+   assert(id('uatProtocolResult').textContent.includes('UV-32 read blocked'),'Top status no longer implies the read succeeded');
+   assert(!id('content').inert&&!id('tabs').inert&&id('uatUv32Read').disabled,'UI recovers while invalid session stays blocked');
+   id('uatUv32Save').click();report=JSON.parse(await h.state.downloads.at(-1).text());
+   assert(report.stage==='before-read'&&report.sessionAtStart.pendingHex==='0615'&&report.pendingHex==='0615','Download retains unexpected bytes');
+   assert(report.uiSessionAtClick.checks.sessionPresent&&report.sessionAtStart.checks.sessionPresent,'Both module views retain the successful handshake');
+   assert(report.sessionAtDownload.pendingHex==='0615'&&report.sessionAtDownload.checks.sessionPresent===false,'Attempt consumed once and bytes were not discarded');
+   assert(report.memoryReads===0&&report.memoryWrites===0&&report.wireHex==='','Rejected attempt is not represented as a capture');
+   assert(h.state.fake.sent.length===sent&&h.state.fake.reads===0&&h.state.fake.writes===0,'No read, retry, reset or write command');
   });
   await check('Missing HTML control mutation is detected by actual app startup',async()=>{h=await fresh('missing-id');assert(h.state.failed&&h.state.errors.some(e=>/null|onclick/.test(e)),'Removing confirmWrite must break startup');});
   await check('Removed inertness mutation is caught by the same busy check',async()=>{h=await fresh('inert-mutant');await load(h);let detected=false;try{await busyCheck(h);}catch(e){detected=/inert/i.test(e.message);}assert(detected,'The busy test must reject removed inertness');});

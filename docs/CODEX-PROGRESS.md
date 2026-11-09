@@ -1,3 +1,15 @@
+# UAT candidate — v20.40 (November 9, 2026)
+
+- Corrects a confirmed diagnostic gap: a rejected UV-32 pre-read check previously produced a generic repeated-identification message and no saveable report.
+- Preserves the specific guard results, queued bytes and UI/reader session snapshots. Zero-command failures remain explicitly before-read. Saving diagnostics does not touch the radio.
+- The screenshot proves identification succeeded and a later session check rejected reading; it does not establish the failed condition. The physical blocker remains unresolved. No speculative buffer clearing or protocol change.
+- Three added automated tests and one added browser scenario (33 browser checks total). CI/deployment results pending. Local shell execution is unavailable because the launcher rejects its packaged runtime.
+- UAT rollback: `f48952773c62f1bf5c0dfd2e3bdfaa2777599fc1` / deployed **20.39-UAT.3cadadf**.
+- LIVE remains v20.33 at `7a9b363a0fb643e188bb4c3b3917bb9f6cc78cd8`. No physical-radio operation by the development agent.
+- [Release details](RELEASE-20.40.md).
+
+---
+
 # Published UAT — v20.39 (November 8, 2026)
 
 - Added UV-32-only channel capture after the confirmed With-response handshake: 1,000 records, 500 fixed reads, read-only preview and downloadable original wire bytes.

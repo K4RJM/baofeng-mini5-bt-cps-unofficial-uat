@@ -138,6 +138,6 @@ test('Native callback ordering retains the terminal notification before cleanup'
 
 test('Browser suite identifies its own revision and rejects stale or missing application builds',async()=>{
  const {browserBuildError,BROWSER_SUITE_VERSION,BROWSER_CHECK_COUNT}=await import('./browser/revision.mjs');
- assert.equal(BROWSER_CHECK_COUNT,32);assert.equal(browserBuildError('Version '+BROWSER_SUITE_VERSION),'');assert.equal(browserBuildError('UAT build '+BROWSER_SUITE_VERSION+'-UAT.123abcd'),'');
+ assert.equal(BROWSER_CHECK_COUNT,33);assert.equal(browserBuildError('Version '+BROWSER_SUITE_VERSION),'');assert.equal(browserBuildError('UAT build '+BROWSER_SUITE_VERSION+'-UAT.123abcd'),'');
  for(const badge of ['UAT build 20.35-UAT.14530dc','Version 20.34','',null,'garbage'])assert.match(browserBuildError(badge),/does not match/);
 });

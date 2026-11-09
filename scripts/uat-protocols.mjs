@@ -3,12 +3,33 @@
 const MAGIC=new TextEncoder().encode('PROGRAMCOLORPROU');
 const INIT=Uint8Array.from('53454e4421050d010101041108050d0d01110f091209100400'.match(/../g),x=>parseInt(x,16));
 const uv32ReadSessions=new WeakMap();
-export function hasUv32ReadSession(radio){
- const s=uv32ReadSessions.get(radio);return !!s&&radio.connected&&!radio.busy&&!radio.connecting&&s.device===radio.device&&s.characteristic===radio.char&&s.generation===radio.generation&&radio.rx.length===0;
+export function uv32ReadSessionStatus(radio){
+ const s=uv32ReadSessions.get(radio),pending=radio.rx;
+ const checks={sessionPresent:!!s,connected:!!radio.connected,idle:!radio.busy,notConnecting:!radio.connecting,
+  sameDevice:!!s&&s.device===radio.device,sameCharacteristic:!!s&&s.characteristic===radio.char,
+  sameGeneration:!!s&&s.generation===radio.generation,emptyReceiveBuffer:pending.length===0};
+ const reasons=[
+  ['sessionPresent','No unused UV32PRO / With response handshake is available on this connection.'],
+  ['connected','The Bluetooth connection ended after identification.'],
+  ['idle','Another radio operation is still running.'],
+  ['notConnecting','Bluetooth connection setup is still running.'],
+  ['sameDevice','The selected Bluetooth device changed after identification.'],
+  ['sameCharacteristic','The Bluetooth data connection changed after identification.'],
+  ['sameGeneration','The Bluetooth session changed after identification.'],
+  ['emptyReceiveBuffer','Unexpected radio response bytes arrived after identification.']
+ ];
+ const failed=reasons.filter(([key])=>!checks[key]);
+ return {ready:failed.length===0,reason:failed[0]?.[1]??'Ready to read UV-32 channels.',
+  failedChecks:failed.map(([key])=>key),checks,generation:radio.generation,
+  handshakeGeneration:s?.generation??null,handshakeModel:s?.identity.model??null,
+  handshakeCapturedAt:s?.identity.capturedAt??null,moduleUrl:import.meta.url,
+  pendingBytes:pending.length,pendingHex:Array.from(pending.slice(0,256),n=>n.toString(16).padStart(2,'0')).join(''),
+  pendingTruncated:pending.length>256,checkedAt:new Date().toISOString()};
 }
+export function hasUv32ReadSession(radio){return uv32ReadSessionStatus(radio).ready;}
 export function consumeUv32ReadSession(radio){
- const valid=hasUv32ReadSession(radio),s=uv32ReadSessions.get(radio);uv32ReadSessions.delete(radio);
- if(!valid)throw Error('Check UV-32 radio ID with With response before reading channels');
+ const status=uv32ReadSessionStatus(radio),s=uv32ReadSessions.get(radio);uv32ReadSessions.delete(radio);
+ if(!status.ready)throw Object.assign(Error('UV-32 read blocked: '+status.reason+' Save read diagnostics.'),{uv32SessionStatus:status});
  return s;
 }
 const BRIDGE_UUID='0000ff31-0000-1000-8000-00805f9b34fb';
