@@ -68,3 +68,7 @@ Do not perform a radio write. A successful full read would justify repeat and co
 Revert only this UAT development commit through the existing tested deployment workflow if rollback is needed; do not force-push or merge UAT tooling into LIVE.
 
 Credit: K4RJM's physical tests; CHIRP contributors for UV-32 framing; dz0ny's browser implementation for the transport comparison. No source implementation, APK or private radio capture is bundled from the comparison project.
+
+## Physical comparison result
+
+The November 9, 23:13 UTC capture confirms the selected Without response method was used after successful With response initialization. The first channel request at 0x0000 received only 00 after 3.183 seconds; zero blocks completed and no memory writes occurred. This test has not established a fix. With response remains the default. [Physical trace and hash](UV32-READ-EVIDENCE-2026-11-09.md#v2043-without-response-comparison--2313-utc). No code change or redeployment accompanies this evidence update.

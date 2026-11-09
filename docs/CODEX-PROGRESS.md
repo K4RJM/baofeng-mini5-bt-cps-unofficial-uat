@@ -1,5 +1,7 @@
 # Published UAT — v20.43 (November 9, 2026)
 
+**Physical follow-up, 23:13 UTC:** Without response was confirmed for the first channel request after the successful With response handshake. The only reply was 00 at 3.183 seconds; zero blocks completed and zero memory writes were attempted. This comparison has not fixed reading. With response remains the default. A current successful full UV-32 phone-app read is the next comparison needed. [Evidence and hash](UV32-READ-EVIDENCE-2026-11-09.md#v2043-without-response-comparison--2313-utc). Documentation only; no new deployment.
+
 - Two v20.42 physical attempts failed at different addresses. Pacing has not demonstrated a fix; validated bytes remain consistent. [Evidence](UV32-READ-EVIDENCE-2026-11-09.md).
 - Independent browser source prefers Without response for the same read frames. This is a source-supported transport comparison, not proof of successful UV-32 hardware operation or OLA's actual method.
 - New UV-32-only Read requests selector keeps With response as default and offers Without response (test). Initialization stays With response, while framing, size, pacing, decoder and all validation stay unchanged. No retry, fallback, reset or memory write is added.

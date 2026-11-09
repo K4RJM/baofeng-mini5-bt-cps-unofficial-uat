@@ -80,3 +80,26 @@ The newer local file `ham-rx-uv32-channels-partial (3).json` records **20.42-UAT
 The failed address 0x0380 was readable in the earlier v20.41 capture. Together with the successful 0x00C0 response in this run, this shows the failures are not confined to one address or a fixed short-block boundary. It does not establish a particular Bluetooth/serial/firmware cause or prove that every untested address is valid.
 
 The two v20.42 attempts completed 3 and 14 blocks, respectively. Neither completed all 500. There is no demonstrated reliability fix from the 20 ms pause. The approximately three-second delayed 00 recurs, but its protocol meaning remains unconfirmed. Preserve strict framing and the original captures for comparison with an independently successful UV-32 phone-app read. No application change, retry or protocol adjustment accompanies this evidence-only update.
+
+## v20.43 Without response comparison — 23:13 UTC
+
+K4RJM supplied a new `ham-rx-uv32-channels-partial.json` captured at `2026-11-09T23:13:43.108Z`, identifying **20.43-UAT.abe10e1**. SHA-256: `9f7535e81935cef4bad6d096d22eda089b91dfa9b1fdde7673c62a08e581042a`. This filename now contains a different capture from the earlier v20.41 original; distinguish the reports by hash and timestamp.
+
+| Stage | Observed result |
+| --- | --- |
+| Initialization | Completed; UV32PRO identity; With response used throughout |
+| Final SEND | 20 + 5-byte portions; final CPS ACK 06 |
+| Channel-read choice | Without response, confirmed by requestedReadSendMode, sendMethod and the per-request trace |
+| First request | `52 00 00 40`, address 0x0000, at 0 ms after identification |
+| Native send | Resolved at 3 ms; this is not proof of delivery to the radio's serial parser |
+| Received notification | Single `00` at 3,183 ms; no channel header or payload |
+| Result | Timeout waiting for 68 bytes; zero validated blocks, one attempted read, zero memory writes |
+| Connection state | All initial guards passed with an empty receive buffer; still reported connected at download |
+
+The 20 ms inter-block pause never ran because the first block did not complete. This is an explicitly selected without-response trial with the existing with-response initialization, not a test of an all-without-response handshake. The trace contains one request and one notification, with no dropped trace entries.
+
+This attempt provides no evidence that changing the read send method improves reliability. It does not prove that write-without-response can never work on UV-32 or identify the origin/meaning of 00. Keep With response as the default; no automatic fallback or retry is justified.
+
+The next evidence gap is a currently successful full read of this same UV-32 on the S25 Ultra, with the exact app identified. The retained successful phone command log is GM-30 Pro evidence; the earlier UV-32 bug report lacked the equivalent command/ACL trace. Confirming the UV-32 reference read distinguishes a Ham-Rx/host-specific failure from a problem also affecting the phone path and guides a useful capture comparison.
+
+Documentation only. UAT remains v20.43, LIVE remains v20.33, and no physical operation was performed by the development agent.
