@@ -2,7 +2,7 @@
 // Layout/CO7 interpretation: CHIRP baofeng_uv17Pro.py, commit
 // 19b5359693d37204e21ad11ce4e5613614de3886. See docs/UV32-READ.md.
 // Independent implementation; CHIRP attribution and GPL-3.0 project terms apply.
-import {consumeUv32ReadSession,uv32ReadSessionStatus,identifyProfile} from './uat-protocols.mjs?v=20.42';
+import {consumeUv32ReadSession,uv32ReadSessionStatus,identifyProfile,selectSendMethod} from './uat-protocols.mjs?v=20.43';
 export const UV32_CHANNELS=1000,UV32_RECORD_BYTES=32,UV32_BLOCK_BYTES=64,UV32_CHANNEL_BYTES=32000;
 export const UV32_BLOCKS=UV32_CHANNEL_BYTES/UV32_BLOCK_BYTES;
 export const UV32_INTER_BLOCK_MS=20; // UAT transport-pacing candidate; physical benefit unverified.
@@ -53,22 +53,32 @@ export function decodeUv32Channels(wire){
  }
  return {interpretation:'CHIRP UV-32 CO7 layout; physical channel comparison pending',channels,empty,warnings};
 }
+function assertReadSendMode(mode){
+ if(!['with-response','without-response'].includes(mode))throw Error('Choose With response or Without response for UV-32 read requests');
+}
+function readSendMethod(characteristic,mode){
+ assertReadSendMode(mode);
+ const method=selectSendMethod(characteristic?.properties,mode);
+ if(typeof characteristic?.[method]!=='function')throw Error('Selected UV-32 read send method is unavailable');
+ return method;
+}
 // A diagnostic snapshot never consumes a handshake, clears buffered bytes, or sends commands.
-export function uv32ReadDiagnostics(radio){
+export function uv32ReadDiagnostics(radio,{readSendMode='with-response'}={}){
  return {kind:'uv32-channel-read-v1',completed:false,stage:'before-read',scope:'Channel records only; not a complete codeplug or firmware backup',
-  model:'UV32PRO',sendMethod:'writeValueWithResponse',startAddress:0,endAddressExclusive:32000,
+  model:'UV32PRO',requestedReadSendMode:readSendMode,handshakeSendMethod:'writeValueWithResponse',sendMethod:null,startAddress:0,endAddressExclusive:32000,
   blockBytes:64,totalBlocks:500,completedBlocks:0,memoryReads:0,memoryWrites:0,headers:[],
   bytes:0,wireHex:'',interBlockDelayMs:UV32_INTER_BLOCK_MS,sessionAtStart:uv32ReadSessionStatus(radio),capturedAt:new Date().toISOString()};
 }
-export async function readUv32Channels(radio,{progress=()=>{},signal}={}){
+export async function readUv32Channels(radio,{progress=()=>{},signal,readSendMode='with-response'}={}){
  // Only a completed, current, With-response UV32PRO handshake can issue this capability.
  // It is consumed once; no caller-supplied identity or saved JSON grants memory access.
- const started=Date.now(),raw=new Uint8Array(32000),report=uv32ReadDiagnostics(radio);
+ const started=Date.now(),raw=new Uint8Array(32000),report=uv32ReadDiagnostics(radio,{readSendMode});
  let session,address=0,ownsBusy=false,currentRequest=null,receiver=null;
  const originalReceive=radio.receive,receiveDescriptor=Object.getOwnPropertyDescriptor(radio,'receive');
  const check=()=>{if(signal?.aborted)throw Error('UV-32 channel read cancelled');if(!radio.connected||radio.generation!==session.generation||radio.device!==session.device||radio.char!==session.characteristic)throw Error('Radio connection changed during UV-32 read');};
  try{
   session=consumeUv32ReadSession(radio);report.handshake=session.identity;
+  const sendMethod=readSendMethod(session.characteristic,readSendMode);report.sendMethod=sendMethod;
   radio.busy=true;ownsBusy=true;report.stage='reading';
   const trace=report.packetTrace={requests:[],notifications:[],requestCount:0,notificationCount:0,droppedRequests:0,droppedNotifications:0};
   const retain=(key,entry,limit)=>{trace[key].push(entry);if(trace[key].length>limit){trace[key].shift();trace[key==='requests'?'droppedRequests':'droppedNotifications']++;}};
@@ -87,9 +97,9 @@ export async function readUv32Channels(radio,{progress=()=>{},signal}={}){
    if(address===0)report.firstReadAfterHandshakeMs=Date.now()-Date.parse(session.identity.capturedAt);
    const command=uv32ReadCommand(address);report.lastRequestHex=hex(command);report.attemptedAddress=address;report.memoryReads++;
    report.lastResponseHex=null;report.lastResponseAddress=null;report.readPhase='sending';
-   currentRequest={number:report.memoryReads,address,hex:hex(command),sentAtMs:Date.now()-started};trace.requestCount++;
+   currentRequest={number:report.memoryReads,address,hex:hex(command),sendMethod,sentAtMs:Date.now()-started};trace.requestCount++;
    retain('requests',currentRequest,12);
-   await radio.native('Reading UV-32 channels',()=>session.characteristic.writeValueWithResponse(command),radio.deadlines.send);check();
+   await radio.native('Reading UV-32 channels',()=>session.characteristic[sendMethod](command),radio.deadlines.send);check();
    currentRequest.sendResolvedAtMs=Date.now()-started;report.readPhase='waiting';
    const response=await radio.wait(68);check();report.lastResponseHex=hex(response);report.lastResponseAddress=address;
    currentRequest.responseAtMs=Date.now()-started;currentRequest.responseBytes=response.length;currentRequest.responseHeaderHex=hex(response.slice(0,4));report.readPhase='validating';
@@ -105,24 +115,25 @@ export async function readUv32Channels(radio,{progress=()=>{},signal}={}){
 
 // One explicit Read action opens a fresh browser connection, identifies, then
 // starts reading without an intervening human click. No CPS reset/exit or retry.
-export async function captureUv32Channels(radio,{connect=()=>radio.connect(),progress,signal,stage=()=>{}}={}){
- const report=uv32ReadDiagnostics(radio),started=Date.now();
+export async function captureUv32Channels(radio,{connect=()=>radio.connect(),progress,signal,stage=()=>{},readSendMode='with-response'}={}){
+ const report=uv32ReadDiagnostics(radio,{readSendMode}),started=Date.now();
  const before=report.sessionAtStart;
  const cancelled=()=>{if(signal?.aborted)throw Error('UV-32 channel read cancelled');};
  try{
   if(radio.busy||radio.connecting)throw Error('Another radio operation is already running');
-  cancelled();
+  cancelled();assertReadSendMode(readSendMode);
   report.stage='connecting';stage('Connecting for UV-32 channel read…');
   // Preserve the old state before using the existing browser disconnect/connect
   // lifecycle. Never discard bytes and continue on the same programming session.
   report.connectionRestarted=!!(radio.connected||radio.char||radio.rx.length);
   if(report.connectionRestarted)radio.disconnect();
   await connect();cancelled();
+  report.sendMethod=readSendMethod(radio.char,readSendMode);
   report.stage='identifying';stage('Identifying UV-32 for channel read…');
   report.handshake=await identifyProfile(radio,'uv32',{sendMode:'with-response'});
   cancelled();
   report.stage='reading';stage('Reading UV-32 channels…');
-  const capture=await readUv32Channels(radio,{progress,signal});
+  const capture=await readUv32Channels(radio,{progress,signal,readSendMode});
   capture.sessionBeforeConnect=before;capture.connectionRestarted=report.connectionRestarted;
   capture.operationElapsedMs=Date.now()-started;return capture;
  }catch(error){

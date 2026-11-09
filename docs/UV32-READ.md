@@ -1,4 +1,4 @@
-# UV-32 read-only channel capture — UAT v20.42
+# UV-32 read-only channel capture — UAT v20.43
 
 Updated November 9, 2026. UAT only. MINI-5 programming and LIVE are unchanged.
 
@@ -37,9 +37,9 @@ The candidate additionally requires an exact response opcode `52`, requested add
 
 ## Next physical test
 
-1. Open UAT and confirm **20.42-UAT**.
+1. Open UAT and confirm **20.43-UAT**.
 2. Select **UV-32**. The send selector changes to the physically verified **With response** setting.
-3. Enable Wireless CPS and disconnect other programming apps.
+3. For the current transport comparison, set **Read requests** to **Without response (test)**. Initialization still uses With response. Enable Wireless CPS and disconnect other programming apps.
 4. Click **Read UV-32 channels** directly and select the radio in the chooser. Identification and reading run together.
 5. Save the capture whether it succeeds or stops. Compare the first channels, a later bank and the last populated channel against the radio/factory CPS.
 6. Use Disconnect when finished. Each explicit read opens a fresh connection and performs its own identity check.
@@ -54,7 +54,7 @@ The two fixed channel records used in tests come from [CHIRP's public UV-17ProGP
 
 Credit: K4RJM's physical testing; CHIRP contributors, including Sander van der Wel, for the independent UV-17Pro/UV-32 format and protocol reference; the previously credited phone-app capture for Bluetooth bridge setup. This repository remains GPL v3. No APK, private capture or shared token is published.
 
-See [initial reader release](RELEASE-20.39.md) and [diagnostics release](RELEASE-20.40.md) and [combined-read release](RELEASE-20.41.md) and [current pacing release and rollback](RELEASE-20.42.md). This candidate does not establish UV-32 programming compatibility, repeated-read reliability or full settings support.
+See [initial reader release](RELEASE-20.39.md) and [diagnostics release](RELEASE-20.40.md) and [combined-read release](RELEASE-20.41.md) and [pacing release](RELEASE-20.42.md) and [current read-transport comparison and rollback](RELEASE-20.43.md). This candidate does not establish UV-32 programming compatibility, repeated-read reliability or full settings support.
 
 ## v20.40 pre-read diagnostic update
 
@@ -67,3 +67,7 @@ The [November 9 physical diagnostics](UV32-SESSION-EVIDENCE-2026-11-09.md) ident
 ## v20.42 pacing and packet trace
 
 [Two physical partial captures](UV32-READ-EVIDENCE-2026-11-09.md) establish identical initial channel data, including 33 populated records. They stop with a malformed header or a single-byte 00 timeout at different addresses. The cause remains open. v20.42 adds 20 ms between blocks (about 10 seconds across the read) and retains bounded request/notification timing and bytes. Per-request response fields are cleared before sending, correcting stale-response reporting after a timeout. The first read stays immediate; strict response checks, no retry and all read-only boundaries remain. The pacing benefit needs another physical test.
+
+## v20.43 explicit read transport
+
+The two v20.42 physical attempts stopped after 3 and 14 blocks despite active pacing. The new **Read requests** control changes only the Bluetooth method used for channel requests: With response (default) or Without response (test). Both still require the same exact radio reply. The known working handshake always uses With response. No fallback, retry, block-size change, decoding change or memory write is introduced. Physical success remains unverified. [Evidence, comparison source and test instructions](RELEASE-20.43.md).

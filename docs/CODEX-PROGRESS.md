@@ -1,3 +1,14 @@
+# UAT candidate — v20.43 (November 9, 2026)
+
+- Two v20.42 physical attempts failed at different addresses. Pacing has not demonstrated a fix; validated bytes remain consistent. [Evidence](UV32-READ-EVIDENCE-2026-11-09.md).
+- Independent browser source prefers Without response for the same read frames. This is a source-supported transport comparison, not proof of successful UV-32 hardware operation or OLA's actual method.
+- New UV-32-only Read requests selector keeps With response as default and offers Without response (test). Initialization stays With response, while framing, size, pacing, decoder and all validation stay unchanged. No retry, fallback, reset or memory write is added.
+- Five added automated regressions and existing browser scenarios updated; CI/deployment results pending. Physical comparison and browser execution pending.
+- UAT rollback: `0fe50b007c1bad35cebc7c84f02742220c82ddd9` / **20.42-UAT.e328362**.
+- LIVE v20.33 unchanged at `7a9b363a0fb643e188bb4c3b3917bb9f6cc78cd8`. [Release record and source attribution](RELEASE-20.43.md).
+
+---
+
 # Published UAT — v20.42 (November 9, 2026)
 
 **Second physical follow-up, 13:43 UTC:** the next v20.42 capture validated 14 blocks / 28 channel records (896 matching bytes), including previously failing 0x00C0. Request 15 at 0x0380 received only 00, 3.001 seconds after native send completion. Failures vary between attempts; pacing has not demonstrated a fix. [Evidence](UV32-READ-EVIDENCE-2026-11-09.md#second-v2042-physical-attempt--1343-utc). No code or deployment change.

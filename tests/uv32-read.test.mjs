@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {Reader} from '../read-test/reader.mjs';
-import {identifyProfile,hasUv32ReadSession,uv32ReadSessionStatus} from '../scripts/uat-protocols.mjs?v=20.42';
+import {identifyProfile,hasUv32ReadSession,uv32ReadSessionStatus} from '../scripts/uat-protocols.mjs?v=20.43';
 import {readUv32Channels,captureUv32Channels,uv32ReadDiagnostics,uv32ReadCommand,uv32Payload,uv32WireDecode,decodeUv32Channels} from '../scripts/uat-uv32-read.mjs';
 import {asyncRadio} from './async-radio.mjs';
 import {bytes,plain,wire,uv32Fixture} from './uv32-fixtures.mjs';
@@ -225,7 +225,7 @@ test('Paced UV-32 reads yield between blocks, retain a bounded trace and restore
   await h.identify();const original=h.radio.receive,own=Object.hasOwn(h.radio,'receive'),delays=[],pause=h.radio.pause.bind(h.radio);
   h.radio.pause=ms=>{delays.push(ms);return pause(ms);};
   const r=await readUv32Channels(h.radio);
-  assert.equal(r.completed,true);assert.equal(r.interBlockDelayMs,20);assert.equal(delays.length,499);assert.ok(delays.every(ms=>ms===20));
+  assert.equal(r.completed,true);assert.equal(r.sendMethod,'writeValueWithResponse');assert.equal(r.requestedReadSendMode,'with-response');assert.equal(h.fake.events.filter(x=>x==='send-without-response').length,0);assert.equal(r.interBlockDelayMs,20);assert.equal(delays.length,499);assert.ok(delays.every(ms=>ms===20));
   assert.equal(r.packetTrace.requestCount,500);assert.equal(r.packetTrace.requests.length,12);assert.equal(r.packetTrace.droppedRequests,488);
   assert.equal(r.packetTrace.notificationCount,3000);assert.equal(r.packetTrace.notifications.length,80);assert.equal(r.packetTrace.droppedNotifications,2920);
   assert.equal(r.packetTrace.requests.at(-1).address,31936);assert.equal(r.packetTrace.requests.at(-1).validated,true);
@@ -267,4 +267,82 @@ test('Disconnect during the inter-block pause stops before another request and r
   await assert.rejects(readUv32Channels(h.radio),error=>{const r=error.uv32ReadReport;assert.equal(r.bytes,64);assert.equal(r.memoryReads,1);assert.equal(r.readPhase,'between-blocks');assert.equal(r.packetTrace.requests[0].validated,true);return true;});
   assert.equal(h.fake.reads,1);assert.equal(h.radio.receive,original);assert.equal(h.radio.busy,false);assert.equal(h.fake.writes,0);
  }finally{h.close();}
+});
+
+test('Without-response channel requests keep the verified with-response handshake and exact read frames',async()=>{
+ const h=setup();try{
+  const r=await captureUv32Channels(h.radio,{connect:()=>connectSimulated(h),readSendMode:'without-response'});
+  assert.equal(r.completed,true);assert.equal(r.memoryReads,500);assert.equal(r.memoryWrites,0);assert.equal(r.bytes,32000);
+  assert.equal(r.requestedReadSendMode,'without-response');assert.equal(r.sendMethod,'writeValueWithoutResponse');
+  assert.equal(r.handshake.transport.sendMethod,'writeValueWithResponse');assert.equal(r.handshake.completed,true);
+  assert.equal(h.fake.events.filter(x=>x==='send-with-response').length,5,'Four handshake commands, with SEND split into two portions');
+  assert.equal(h.fake.events.filter(x=>x==='send-without-response').length,500);
+  assert.equal(h.fake.sent.length,504);assert.equal(h.fake.writes,0);
+  h.fake.sent.slice(4).forEach((command,i)=>assert.deepEqual([...command],[82,(i*64)>>8,(i*64)&255,64]));
+  assert.equal(r.wireHex,Buffer.from(h.fake.raw.slice(0,32000)).toString('hex'));
+  assert.ok(r.packetTrace.requests.every(x=>x.sendMethod==='writeValueWithoutResponse'&&x.validated));
+  await assert.rejects(readUv32Channels(h.radio,{readSendMode:'without-response'}),/UV-32 read blocked/);
+  assert.equal(h.fake.reads,500,'No reused capability');
+ }finally{h.close();}
+});
+test('Invalid or unsupported read send modes stop without automatic selection or fallback',async()=>{
+ for(const mode of ['auto','invalid','writeValue',null]){
+  const h=setup();try{
+   await assert.rejects(captureUv32Channels(h.radio,{connect:()=>{throw Error('Must not connect');},readSendMode:mode}),/Choose With response/);
+   assert.equal(h.fake.sent.length,0);assert.equal(h.fake.reads,0);assert.equal(h.fake.writes,0);
+  }finally{h.close();}
+ }
+ for(const missing of ['property','method']){
+  const h=setup();try{
+   if(missing==='property')h.fake.characteristic.properties.writeWithoutResponse=false;
+   else h.fake.characteristic.writeValueWithoutResponse=undefined;
+   await assert.rejects(captureUv32Channels(h.radio,{connect:()=>connectSimulated(h),readSendMode:'without-response'}),e=>{
+    assert.match(e.message,/not supported|unavailable/);assert.equal(e.uv32ReadReport.memoryReads,0);
+    assert.equal(e.uv32ReadReport.requestedReadSendMode,'without-response');return true;
+   });
+   assert.equal(h.fake.sent.length,0);assert.equal(h.fake.writes,0);
+  }finally{h.close();}
+ }
+});
+test('Native without-response failure or stall never falls back or retries a read',async()=>{
+ for(const stall of [false,true]){
+  const h=setup();try{
+   await h.identify();const before=h.fake.sent.length;let attempts=0,finish=()=>{};
+   h.fake.characteristic.writeValueWithoutResponse=()=>{attempts++;return stall?new Promise(resolve=>{finish=resolve;}):Promise.reject(Error('Test send failed'));};
+   const native=h.radio.native.bind(h.radio);h.radio.native=(stage,start,ms)=>native(stage,start,stage==='Reading UV-32 channels'?20:ms);
+   await assert.rejects(readUv32Channels(h.radio,{readSendMode:'without-response'}),e=>{
+    assert.match(e.message,/Test send failed|timed out/);assert.equal(e.uv32ReadReport.memoryReads,1);
+    assert.equal(e.uv32ReadReport.sendMethod,'writeValueWithoutResponse');assert.equal(e.uv32ReadReport.bytes,0);return true;
+   });
+   finish();await new Promise(resolve=>setTimeout(resolve,0));
+   assert.equal(attempts,1);assert.equal(h.fake.sent.length,before);assert.equal(h.fake.reads,0);assert.equal(h.fake.writes,0);assert.equal(h.radio.busy,false);
+  }finally{h.close();}
+ }
+});
+test('Without-response reads still reject malformed, incomplete, excess and physically short replies',async()=>{
+ for(const fault of ['badHeader','badReadOpcode','badReadLength','truncateRead','silentRead','extraRead','physicalShort']){
+  const h=setup();try{
+   await h.identify();let physicalAttempts=0;
+   if(fault==='physicalShort')h.fake.characteristic.writeValueWithoutResponse=()=>{
+    physicalAttempts++;const response=Uint8Array.of(82,0,0,48,...wire.slice(0,48),0);
+    h.radio.receive(new DataView(response.buffer));return Promise.resolve();
+   };else h.fake.faults[fault]=true;
+   await assert.rejects(readUv32Channels(h.radio,{readSendMode:'without-response'}),e=>{
+    const r=e.uv32ReadReport;assert.equal(r.completed,false);assert.equal(r.completedBlocks,0);assert.equal(r.bytes,0);assert.equal(r.wireHex,'');assert.equal(r.memoryReads,1);
+    if(fault==='physicalShort'){assert.match(e.message,/expected 68 response bytes, received 53/);assert.ok(r.pendingHex.startsWith('52000030'));}return true;
+   });
+   assert.equal(fault==='physicalShort'?physicalAttempts:h.fake.reads,1);assert.equal(h.fake.writes,0);assert.equal(h.radio.busy,false);
+  }finally{h.close();}
+ }
+});
+test('Cancellation or disconnect stops without-response reading and preserves only completed blocks',async()=>{
+ for(const disconnect of [false,true]){
+  const h=setup(),controller=new AbortController();try{
+   await h.identify();const original=h.radio.receive;
+   await assert.rejects(readUv32Channels(h.radio,{readSendMode:'without-response',signal:controller.signal,progress:()=>{if(disconnect)h.radio.disconnect();else controller.abort();}}),e=>{
+    assert.equal(e.uv32ReadReport.completedBlocks,1);assert.equal(e.uv32ReadReport.bytes,64);assert.equal(e.uv32ReadReport.sendMethod,'writeValueWithoutResponse');return true;
+   });
+   assert.equal(h.fake.reads,1);assert.equal(h.fake.writes,0);assert.equal(h.radio.receive,original);assert.equal(h.radio.busy,false);
+  }finally{h.close();}
+ }
 });

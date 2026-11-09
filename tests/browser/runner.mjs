@@ -1,4 +1,4 @@
-import {BROWSER_SUITE_VERSION,BROWSER_CHECK_COUNT,browserBuildError} from './revision.mjs?v=20.42';
+import {BROWSER_SUITE_VERSION,BROWSER_CHECK_COUNT,browserBuildError} from './revision.mjs?v=20.43';
 import {rdtFixture} from '../rdt-fixtures.mjs?v=20.33';
 import {readImage} from '../../image-files.mjs?v=20.31';
 import {csvFixture,csvHeads} from '../csv-fixtures.mjs?v=20.31';
@@ -11,7 +11,7 @@ async function fresh(mode='normal'){
  frame?.contentWindow.f13?.fake.close();frame?.remove();
  let html=await fetch(new URL('index.html',root),{cache:'no-store'}).then(r=>r.text());
  const match=html.match(/<script type="module" src="(app\.mjs[^\"]*)"><\/script>/);assert(match,'Actual application module exists');
- const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.42',root).href}"><\/script>`;
+ const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.43',root).href}"><\/script>`;
  html=html.replace('<head>','<head><base href="'+root.href+'">').replace(match[0],script);
  frame=document.createElement('iframe');frame.title='Isolated CPS test application';frame.setAttribute('allow',"bluetooth 'none'");frame.srcdoc=html;document.getElementById('workspace').append(frame);
  await until(()=>frame.contentWindow.f13?.ready||frame.contentWindow.f13?.failed,'application bootstrap');
@@ -290,8 +290,9 @@ document.getElementById('start').onclick=async()=>{
    id('uatProtocol').value='uv32';id('uatProtocol').dispatchEvent(new h.w.Event('change'));
    assert(id('uatSendMode').value==='with-response'&&!id('uatUv32Read').disabled,'One-click read available with working send default');
    assert(id('readRadio').disabled&&id('writeRadio').disabled,'MINI-5 radio actions unavailable in UV-32 mode');
+   assert(!id('uatUv32ReadSendControl').hidden&&id('uatUv32ReadSend').value==='with-response','Explicit read transport defaults to existing behavior');
    id('uatUv32Read').click();
-   assert(id('content').inert&&id('tabs').inert&&!id('uatUv32Cancel').hidden,'Busy lock and read cancel available');
+   assert(id('content').inert&&id('tabs').inert&&!id('uatUv32Cancel').hidden&&id('uatUv32ReadSend').disabled,'Busy lock, transport lock and read cancel available');
    await until(()=>id('uatUv32Results').open&&id('uatUv32Cancel').hidden,'UV-32 channel capture',30000);
    assert(h.state.fake.reads===500&&h.state.fake.writes===0,'Exactly 500 read commands and no memory writes');
    assert(id('uatUv32Rows').querySelectorAll('tr').length===3&&id('uatUv32Rows').querySelector('[data-uv32-channel="1000"]'),'Channel 1000 retained');
@@ -299,6 +300,7 @@ document.getElementById('start').onclick=async()=>{
    assert(id('sourceTag').textContent===source&&h.d.querySelector('[data-channel-index="0"]').textContent===originalRow,'Original workspace remains intact');
    id('uatUv32SavePreview').click();let capture=JSON.parse(await h.state.downloads.at(-1).text());
    assert(capture.interBlockDelayMs===20&&capture.packetTrace.requests.length===12&&capture.packetTrace.notifications.length<=80,'Paced read records bounded diagnostics');
+   assert(capture.sendMethod==='writeValueWithResponse'&&capture.requestedReadSendMode==='with-response','Default read transport recorded');
    assert(capture.completed&&capture.bytes===32000&&capture.wireHex.length===64000&&capture.preview.channels.at(-1).number===1000,'Saved capture retains original wire bytes and channel 1000');
    frame.style.width='390px';await new Promise(r=>h.w.requestAnimationFrame(r));
    assert(h.d.documentElement.scrollWidth<=h.d.documentElement.clientWidth+1&&id('uatUv32Results').getBoundingClientRect().width<=390,'Preview fits mobile with internal table scroll');frame.style.width='';
@@ -309,9 +311,9 @@ document.getElementById('start').onclick=async()=>{
    id('uatUv32Save').click();capture=JSON.parse(await h.state.downloads.at(-1).text());assert(!capture.completed&&capture.bytes===0&&capture.error.includes('header'),'Partial capture clearly identifies failure');
    id('uatUv32View').click();assert(id('uatUv32Rows').querySelector('[data-uv32-channel="1000"]'),'Previous successful preview retained');id('uatUv32Close').click();
    id('uatProtocol').value='mini5';id('uatProtocol').dispatchEvent(new h.w.Event('change'));
-   assert(id('uatUv32Read').hidden&&!id('readRadio').disabled,'Returning to MINI-5 restores its controls');
+   assert(id('uatUv32Read').hidden&&id('uatUv32ReadSendControl').hidden&&!id('readRadio').disabled,'Returning to MINI-5 restores its controls');
   });
-  await check('UV-32 combined read renews a stale identified connection and retains handshake failures',async()=>{
+  await check('UV-32 alternate read transport preserves initialization, renews stale sessions and retains failures',async()=>{
    h=await fresh();if(!id('uatUv32Read'))return;
    id('uatProtocol').value='uv32';id('uatProtocol').dispatchEvent(new h.w.Event('change'));
    assert(!id('uatUv32Read').disabled&&!id('uatUv32Save').disabled,'Read and diagnostics available without a separate identity click');
@@ -322,9 +324,12 @@ document.getElementById('start').onclick=async()=>{
    c.value=new h.w.DataView(h.w.Uint8Array.of(0).buffer);c.dispatchEvent(new h.w.Event('characteristicvaluechanged'));
    id('uatUv32Save').click();let report=JSON.parse(await h.state.downloads.at(-1).text());
    assert(report.sessionAtStart.pendingHex==='00'&&report.sessionAtStart.checks.sessionPresent,'Late byte preserved before reconnect');
+   id('uatUv32ReadSend').value='without-response';id('uatUv32ReadSend').dispatchEvent(new h.w.Event('change'));
    id('uatUv32Read').click();await until(()=>id('uatUv32Results').open&&id('uatUv32Cancel').hidden,'combined read from a fresh connection',30000);
    id('uatUv32SavePreview').click();report=JSON.parse(await h.state.downloads.at(-1).text());
    assert(report.completed&&report.connectionRestarted&&report.sessionBeforeConnect.pendingHex==='00','Expired-session evidence retained');
+   assert(report.requestedReadSendMode==='without-response'&&report.sendMethod==='writeValueWithoutResponse'&&report.handshake.transport.sendMethod==='writeValueWithResponse','Only channel-read transport changes');
+   assert(h.state.fake.events.filter(x=>x==='send-without-response').length===500,'All channel requests use explicitly selected method');
    assert(report.sessionAtStart.ready&&report.handshake.model==='UV32PRO'&&report.memoryReads===500,'Fresh handshake precedes all reads');
    assert(h.state.fake.sent.length===sent+504&&h.state.fake.writes===0,'One handshake, 500 reads, no retry or write');
    id('uatUv32Close').click();
