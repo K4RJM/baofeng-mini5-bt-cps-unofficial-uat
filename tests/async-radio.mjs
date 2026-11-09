@@ -15,7 +15,7 @@ export function asyncRadio(initial, faults={}) {
   if(!device.gatt.connected)return;
   if(faults.silentHandshake&&b[0]!==82&&b[0]!==87)return;
   let bytes;
-  if(b[0]===82){reads++;const a=b[1]*256+b[2];bytes=Uint8Array.of(82,b[1],b[2]^(faults.badHeader?1:0),64,...raw.slice(index(a),index(a)+64));if(faults.truncateRead)bytes=bytes.slice(0,10);}
+  if(b[0]===82){reads++;const a=b[1]*256+b[2];bytes=Uint8Array.of(82,b[1],b[2]^(faults.badHeader?1:0),64,...raw.slice(index(a),index(a)+64));if(faults.badReadOpcode)bytes[0]=0x57;if(faults.badReadLength)bytes[3]=128;if(faults.extraRead)bytes=Uint8Array.of(...bytes,6);if(faults.truncateRead)bytes=bytes.slice(0,10);if(faults.silentRead)return;if(faults.disconnectRead===reads){device.gatt.disconnect();return;}}
   else if(b[0]===87){writes++;const a=b[1]*256+b[2],end=a<0x8040?0x8040:a<0x9040?0x9040:0xa1c0;raw.set(b.slice(4,4+Math.min(128,end-a)),index(a));if(faults.disconnectWrite===writes){device.gatt.disconnect();return;}if(faults.dropAck===writes)return;bytes=Uint8Array.of(faults.nak===writes?21:6);}
   else if(b.length===1&&b[0]===70)bytes=new Uint8Array(16);
   else if(b.length===1&&b[0]===77)bytes=new TextEncoder().encode(faults.identity??(faults.wrongModel?'OTHER   +L00000':'5RMINI  +L00000'));

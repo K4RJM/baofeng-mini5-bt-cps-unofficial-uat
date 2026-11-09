@@ -1,4 +1,4 @@
-import {BROWSER_SUITE_VERSION,BROWSER_CHECK_COUNT,browserBuildError} from './revision.mjs?v=20.38';
+import {BROWSER_SUITE_VERSION,BROWSER_CHECK_COUNT,browserBuildError} from './revision.mjs?v=20.39';
 import {rdtFixture} from '../rdt-fixtures.mjs?v=20.33';
 import {readImage} from '../../image-files.mjs?v=20.31';
 import {csvFixture,csvHeads} from '../csv-fixtures.mjs?v=20.31';
@@ -11,7 +11,7 @@ async function fresh(mode='normal'){
  frame?.contentWindow.f13?.fake.close();frame?.remove();
  let html=await fetch(new URL('index.html',root),{cache:'no-store'}).then(r=>r.text());
  const match=html.match(/<script type="module" src="(app\.mjs[^\"]*)"><\/script>/);assert(match,'Actual application module exists');
- const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.38',root).href}"><\/script>`;
+ const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.39',root).href}"><\/script>`;
  html=html.replace('<head>','<head><base href="'+root.href+'">').replace(match[0],script);
  frame=document.createElement('iframe');frame.title='Isolated CPS test application';frame.setAttribute('allow',"bluetooth 'none'");frame.srcdoc=html;document.getElementById('workspace').append(frame);
  await until(()=>frame.contentWindow.f13?.ready||frame.contentWindow.f13?.failed,'application bootstrap');
@@ -242,7 +242,7 @@ document.getElementById('start').onclick=async()=>{
    assert(Array.from(select.options,o=>o.textContent).join('|')==='MINI-5|UV-32','Only MINI-5 and UV-32 protocol choices');
    const initial=id('sourceTag').textContent;
    for(const [profile,identity] of [['mini5','5RMINI  +L00000'],['uv32','UV32PRO'],['uv32','UV32PRO +L00000'],['uv32','OTHER  ']]){
-    select.value=profile;select.dispatchEvent(new h.w.Event('change'));h.state.fake.faults.identity=identity;h.state.fake.faults.bridgeSetup=true;h.state.fake.faults.maxWriteBytes=profile==='uv32'?20:0;
+    select.value=profile;select.dispatchEvent(new h.w.Event('change'));h.state.fake.faults.identity=identity;h.state.fake.faults.bridgeSetup=true;h.state.fake.characteristic.properties={write:true,writeWithoutResponse:true,notify:true};h.state.fake.faults.maxWriteBytes=profile==='uv32'?20:0;
     const before=h.state.fake.sent.length;assert(!id('uatIdentify').disabled,'Identification available');id('uatIdentify').click();
     assert(select.disabled&&id('uatSendMode').disabled&&id('uatIdentify').disabled&&id('readRadio').disabled,'Controls lock for the handshake');
     await until(()=>!id('uatIdentify').disabled,'handshake complete');
@@ -277,6 +277,39 @@ document.getElementById('start').onclick=async()=>{
    id('uatIdentify').click();await until(()=>!id('uatIdentify').disabled,'zero opening reply');id('uatHandshakeReport').click();report=JSON.parse(await h.state.downloads.at(-1).text());
    assert(report.exchanges[0].responseHex==='00'&&report.transport.notifications.at(-1).hex==='00'&&report.transport.notificationCount===3,'Zero response retained consistently in exchange and notification trace');
    assert(!report.completed&&h.state.fake.sent.length===1&&h.state.fake.writes===0&&h.state.fake.reads===0,'Invalid ACK stops before further commands');
+  });
+
+  await check('UV-32 reads 1000 channel records into an isolated read-only preview and retains it after failure',async()=>{
+   h=await fresh();if(!id('uatUv32Read'))return;await load(h);
+   const source=id('sourceTag').textContent,originalRow=h.d.querySelector('[data-channel-index="0"]').textContent;
+   const fixture=h.w.Uint8Array.from('001f0621001f60220000000000000000ffffffff1507461772ffffffffffffff00000721000061220000000000000100ffffffff1507461771ffffffffffffff'.match(/../g),v=>parseInt(v,16));
+   h.state.fake.raw.fill(255);h.state.fake.raw.set(fixture);h.state.fake.raw.set(fixture.slice(0,32),999*32);
+   const name=new h.w.TextEncoder().encode('<b>TEST</b>');for(let i=0;i<name.length;i++){const key=[67,79,32,55][i%4],v=name[i];h.state.fake.raw[20+i]=key!==32&&![0,255,key,key^255].includes(v)?v^key:v;}
+   h.state.fake.faults.identity='UV32PRO';h.state.fake.faults.bridgeSetup=true;h.state.fake.faults.maxWriteBytes=20;
+   h.state.fake.characteristic.properties={write:true,writeWithoutResponse:true,notify:true};
+   id('uatProtocol').value='uv32';id('uatProtocol').dispatchEvent(new h.w.Event('change'));
+   assert(id('uatSendMode').value==='with-response'&&id('uatUv32Read').disabled,'Working send default and identity required');
+   assert(id('readRadio').disabled&&id('writeRadio').disabled,'MINI-5 radio actions unavailable in UV-32 mode');
+   id('uatIdentify').click();await until(()=>!id('uatUv32Read').disabled,'verified UV-32 read session');
+   id('uatUv32Read').click();
+   assert(id('content').inert&&id('tabs').inert&&!id('uatUv32Cancel').hidden,'Busy lock and read cancel available');
+   await until(()=>id('uatUv32Results').open&&id('uatUv32Cancel').hidden,'UV-32 channel capture');
+   assert(h.state.fake.reads===500&&h.state.fake.writes===0,'Exactly 500 read commands and no memory writes');
+   assert(id('uatUv32Rows').querySelectorAll('tr').length===3&&id('uatUv32Rows').querySelector('[data-uv32-channel="1000"]'),'Channel 1000 retained');
+   assert(id('uatUv32Rows').textContent.includes('<b>TEST</b>')&&!id('uatUv32Rows').querySelector('b,input,select'),'Untrusted names are text; preview is read only');
+   assert(id('sourceTag').textContent===source&&h.d.querySelector('[data-channel-index="0"]').textContent===originalRow,'Original workspace remains intact');
+   id('uatUv32SavePreview').click();let capture=JSON.parse(await h.state.downloads.at(-1).text());
+   assert(capture.completed&&capture.bytes===32000&&capture.wireHex.length===64000&&capture.preview.channels.at(-1).number===1000,'Saved capture retains original wire bytes and channel 1000');
+   frame.style.width='390px';await new Promise(r=>h.w.requestAnimationFrame(r));
+   assert(h.d.documentElement.scrollWidth<=h.d.documentElement.clientWidth+1&&id('uatUv32Results').getBoundingClientRect().width<=390,'Preview fits mobile with internal table scroll');frame.style.width='';
+   id('uatUv32Close').click();assert(id('uatUv32Read').disabled,'Read session consumed once');
+   id('uatIdentify').click();await until(()=>!id('uatUv32Read').disabled,'fresh UV-32 session');h.state.fake.faults.badHeader=true;
+   id('uatUv32Read').click();await until(()=>!id('uatUv32Save').disabled&&id('uatUv32Cancel').hidden,'rejected header recovery');
+   assert(h.state.fake.reads===501&&h.state.fake.writes===0&&!id('content').inert,'Failure stops after one read and unlocks UI');
+   id('uatUv32Save').click();capture=JSON.parse(await h.state.downloads.at(-1).text());assert(!capture.completed&&capture.bytes===0&&capture.error.includes('header'),'Partial capture clearly identifies failure');
+   id('uatUv32View').click();assert(id('uatUv32Rows').querySelector('[data-uv32-channel="1000"]'),'Previous successful preview retained');id('uatUv32Close').click();
+   id('uatProtocol').value='mini5';id('uatProtocol').dispatchEvent(new h.w.Event('change'));
+   assert(id('uatUv32Read').hidden&&!id('readRadio').disabled,'Returning to MINI-5 restores its controls');
   });
   await check('Missing HTML control mutation is detected by actual app startup',async()=>{h=await fresh('missing-id');assert(h.state.failed&&h.state.errors.some(e=>/null|onclick/.test(e)),'Removing confirmWrite must break startup');});
   await check('Removed inertness mutation is caught by the same busy check',async()=>{h=await fresh('inert-mutant');await load(h);let detected=false;try{await busyCheck(h);}catch(e){detected=/inert/i.test(e.message);}assert(detected,'The busy test must reject removed inertness');});

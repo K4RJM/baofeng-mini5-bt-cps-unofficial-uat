@@ -2,6 +2,15 @@
 // Uses the existing bounded transport; sends no memory-read or memory-write command.
 const MAGIC=new TextEncoder().encode('PROGRAMCOLORPROU');
 const INIT=Uint8Array.from('53454e4421050d010101041108050d0d01110f091209100400'.match(/../g),x=>parseInt(x,16));
+const uv32ReadSessions=new WeakMap();
+export function hasUv32ReadSession(radio){
+ const s=uv32ReadSessions.get(radio);return !!s&&radio.connected&&!radio.busy&&!radio.connecting&&s.device===radio.device&&s.characteristic===radio.char&&s.generation===radio.generation&&radio.rx.length===0;
+}
+export function consumeUv32ReadSession(radio){
+ const valid=hasUv32ReadSession(radio),s=uv32ReadSessions.get(radio);uv32ReadSessions.delete(radio);
+ if(!valid)throw Error('Check UV-32 radio ID with With response before reading channels');
+ return s;
+}
 const BRIDGE_UUID='0000ff31-0000-1000-8000-00805f9b34fb';
 // Independent implementation of the FF31 request/verification observed in the
 // supplied Walkie-Talkie Tool 1.4.7 and matching GM-30 Pro capture. No memory command.
@@ -42,6 +51,7 @@ export async function identifyProfile(radio,key,{sendMode='auto'}={}){
  if(radio.busy||radio.connecting)throw Error('Another radio operation is already running');
  if(!radio.connected)throw Error('Connect the radio first');
  if(radio.rx.length)throw Error('Unexpected leftover response bytes; disconnect and retry');
+ uv32ReadSessions.delete(radio);
  const generation=radio.generation,device=radio.device,deviceId=device.id,characteristic=radio.char,exchanges=[],started=Date.now();
  const elapsed=()=>Date.now()-started;
  const transport={serviceUuid:characteristic.service?.uuid??null,selectedCharacteristic:describe(characteristic),requestedSendMode:sendMode,sendMethod:null,characteristics:[],notifications:[],notificationCount:0,droppedNotifications:0};
@@ -121,8 +131,10 @@ export async function identifyProfile(radio,key,{sendMode='auto'}={}){
   const model=new TextDecoder().decode(nameBytes).trim();if(!model)throw Error('Empty radio model response');
   if((await request(INIT,1,'Final initialization (SEND)'))[0]!==6)throw Error('Initialization not acknowledged');
   if(radio.rx.length)throw Error('Unexpected trailing handshake data');
-  return {completed:true,stage:'complete',profile:key,profileLabel:profile.label,model,matchesExpected:model===profile.prefix,
+  const result={completed:true,stage:'complete',profile:key,profileLabel:profile.label,model,matchesExpected:model===profile.prefix,
    id:[...id],config:[...config],exchanges,transport,elapsedMs:elapsed(),memoryReads:0,memoryWrites:0,capturedAt:new Date().toISOString()};
+  if(key==='uv32'&&model==='UV32PRO'&&sendMode==='with-response')uv32ReadSessions.set(radio,{device,characteristic,generation,identity:structuredClone(result)});
+  return result;
  }catch(error){error.handshakeReport={completed:false,stage,profile:key,profileLabel:profile.label,exchanges,transport,elapsedMs:elapsed(),error:error.message,receivedPendingHex:hex(radio.rx),memoryReads:0,memoryWrites:0,capturedAt:new Date().toISOString()};throw error;}
  finally{characteristic.removeEventListener('characteristicvaluechanged',notification,{capture:true});radio.busy=false;}
 }
