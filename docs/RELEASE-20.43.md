@@ -44,7 +44,9 @@ Five new automated regressions cover:
 
 The default-mode regression also checks that no without-response calls occur. Two existing browser scenarios cover the new control, busy locking, default and alternate transport, saved metadata, mobile containment and MINI-5 restoration. The suite remains 33 browser checks.
 
-CI and UAT deployment results will be recorded after execution. Real-browser execution and physical UV-32 results remain pending. Local runtime/browser launch is unavailable; simulated tests cannot establish hardware success.
+**269/269 automated tests passed**, with zero failures, cancellations or skips. Packaging and GitHub Pages deployment succeeded in [workflow 42716712528](https://github.com/K4RJM/baofeng-mini5-bt-cps-unofficial-uat/actions/runs/42716712528). Application commit: `abe10e1448565f4679dabada8108fbbf05835ce4`; deployed build: **20.43-UAT.abe10e1**. The 17 protected core and identification files match the previous UAT tree; the UV-32 read-frame construction, constants and decoder are unchanged. LIVE main was rechecked and remains `7a9b363a0fb643e188bb4c3b3917bb9f6cc78cd8`.
+
+Real-browser execution and physical UV-32 results remain pending. Local runtime/browser launch is unavailable; simulated tests cannot establish hardware success.
 
 ## One physical test
 

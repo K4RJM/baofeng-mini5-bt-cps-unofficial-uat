@@ -1,9 +1,9 @@
-# UAT candidate — v20.43 (November 9, 2026)
+# Published UAT — v20.43 (November 9, 2026)
 
 - Two v20.42 physical attempts failed at different addresses. Pacing has not demonstrated a fix; validated bytes remain consistent. [Evidence](UV32-READ-EVIDENCE-2026-11-09.md).
 - Independent browser source prefers Without response for the same read frames. This is a source-supported transport comparison, not proof of successful UV-32 hardware operation or OLA's actual method.
 - New UV-32-only Read requests selector keeps With response as default and offers Without response (test). Initialization stays With response, while framing, size, pacing, decoder and all validation stay unchanged. No retry, fallback, reset or memory write is added.
-- Five added automated regressions and existing browser scenarios updated; CI/deployment results pending. Physical comparison and browser execution pending.
+- Five added automated regressions; **269/269 automated tests passed**. Packaging and Pages [workflow 42716712528](https://github.com/K4RJM/baofeng-mini5-bt-cps-unofficial-uat/actions/runs/42716712528) succeeded. Build **20.43-UAT.abe10e1**, application commit `abe10e1448565f4679dabada8108fbbf05835ce4`. Existing browser scenarios updated; physical comparison and browser execution remain pending. No physical operation by the development agent.
 - UAT rollback: `0fe50b007c1bad35cebc7c84f02742220c82ddd9` / **20.42-UAT.e328362**.
 - LIVE v20.33 unchanged at `7a9b363a0fb643e188bb4c3b3917bb9f6cc78cd8`. [Release record and source attribution](RELEASE-20.43.md).
 
