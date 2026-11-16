@@ -52,7 +52,7 @@ export function installUv32Reader({radio,run,connect,message,refresh}){
  mode.addEventListener('change',refresh);readSend.addEventListener('change',refresh);
  return {sync(busy){
   const uv=select.value==='uv32';for(const el of [read,view,save,readSendControl])el.hidden=!uv;readSend.disabled=busy;
-  read.disabled=busy||mode.value!=='with-response'||!navigator.bluetooth||!window.isSecureContext;
+  read.disabled=busy||!navigator.bluetooth||!window.isSecureContext;
   read.title='Connect, identify and read UV-32 channels in one operation. An existing connection is reopened.';
   view.disabled=busy||!preview;save.disabled=busy;
   save.textContent=capture&&capture.memoryReads>0?'Save UV-32 capture':'Save read diagnostics';

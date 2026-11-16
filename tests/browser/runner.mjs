@@ -324,6 +324,8 @@ document.getElementById('start').onclick=async()=>{
    c.value=new h.w.DataView(h.w.Uint8Array.of(0).buffer);c.dispatchEvent(new h.w.Event('characteristicvaluechanged'));
    id('uatUv32Save').click();let report=JSON.parse(await h.state.downloads.at(-1).text());
    assert(report.sessionAtStart.pendingHex==='00'&&report.sessionAtStart.checks.sessionPresent,'Late byte preserved before reconnect');
+   id('uatSendMode').value='without-response';id('uatSendMode').dispatchEvent(new h.w.Event('change'));
+   assert(!id('uatUv32Read').disabled,'Separate Check radio ID send choice does not block the combined UV-32 read');
    id('uatUv32ReadSend').value='without-response';id('uatUv32ReadSend').dispatchEvent(new h.w.Event('change'));
    id('uatUv32Read').click();await until(()=>id('uatUv32Results').open&&id('uatUv32Cancel').hidden,'combined read from a fresh connection',30000);
    id('uatUv32SavePreview').click();report=JSON.parse(await h.state.downloads.at(-1).text());
