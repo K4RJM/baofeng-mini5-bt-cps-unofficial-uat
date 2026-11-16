@@ -2,7 +2,7 @@
 // Layout/CO7 interpretation: CHIRP baofeng_uv17Pro.py, commit
 // 19b5359693d37204e21ad11ce4e5613614de3886. See docs/UV32-READ.md.
 // Independent implementation; CHIRP attribution and GPL-3.0 project terms apply.
-import {consumeUv32ReadSession,uv32ReadSessionStatus,identifyProfile,selectSendMethod} from './uat-protocols.mjs?v=20.45';
+import {consumeUv32ReadSession,uv32ReadSessionStatus,identifyProfile,selectSendMethod} from './uat-protocols.mjs?v=20.46';
 export const UV32_CHANNELS=1000,UV32_RECORD_BYTES=32,UV32_BLOCK_BYTES=64,UV32_CHANNEL_BYTES=32000;
 export const UV32_BLOCKS=UV32_CHANNEL_BYTES/UV32_BLOCK_BYTES;
 export const UV32_INTER_BLOCK_MS=20; // UAT transport-pacing candidate; physical benefit unverified.

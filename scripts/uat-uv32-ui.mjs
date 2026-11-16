@@ -1,6 +1,6 @@
 // UAT-only read-only channel preview. Never loads a capture into the MINI-5 editor.
-import {uv32ReadSessionStatus,isUatPage} from './uat-protocols.mjs?v=20.45';
-import {captureUv32Channels,uv32ReadDiagnostics} from './uat-uv32-read.mjs?v=20.45';
+import {uv32ReadSessionStatus,isUatPage} from './uat-protocols.mjs?v=20.46';
+import {captureUv32Channels,uv32ReadDiagnostics} from './uat-uv32-read.mjs?v=20.46';
 export function installUv32Reader({radio,run,connect,message,refresh}){
  const page=location.href==='about:srcdoc'?document.baseURI:location.href;
  const protocolModule=new URL('./uat-protocols.mjs',import.meta.url).href;
@@ -52,7 +52,18 @@ export function installUv32Reader({radio,run,connect,message,refresh}){
    capture.uiSessionAtClick=uiSessionAtClick;
    if(capture.completed){preview=capture;pageIndex=0;output.textContent='UV-32 channel capture complete: '+capture.preview.channels.length+' populated channels · read only';message(output.textContent);open();}
    else{output.textContent='Diagnostic sweep finished: '+capture.completedBlocks+' / 500 valid blocks, '+capture.anomalies.length+' anomaly(s). Save UV-32 capture; gaps are not channel data.';message(output.textContent);}
-  }catch(error){if(error.uv32ReadReport){capture=error.uv32ReadReport;capture.uiSessionAtClick=uiSessionAtClick;}output.textContent=error.message;throw error;}
+  }catch(error){
+   if(error.uv32ReadReport){
+    capture=error.uv32ReadReport;capture.uiSessionAtClick=uiSessionAtClick;
+    if(capture.memoryReads>0){
+     const block=capture.attemptedAddress/64+1;
+     const address='0x'+capture.attemptedAddress.toString(16).padStart(4,'0').toUpperCase();
+     const errors=capture.anomalies?.length??(/cancelled/i.test(error.message)?0:1);
+     error.message+=` — block ${block}/500 (${address}) · valid ${capture.completedBlocks} · errors ${errors}`;
+    }
+   }
+   output.textContent=error.message;throw error;
+  }
   finally{controller=null;}
  });
  select.addEventListener('change',()=>{if(select.value==='uv32')mode.value='with-response';refresh();});

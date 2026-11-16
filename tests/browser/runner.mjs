@@ -1,4 +1,4 @@
-import {BROWSER_SUITE_VERSION,BROWSER_CHECK_COUNT,browserBuildError} from './revision.mjs?v=20.45';
+import {BROWSER_SUITE_VERSION,BROWSER_CHECK_COUNT,browserBuildError} from './revision.mjs?v=20.46';
 import {rdtFixture} from '../rdt-fixtures.mjs?v=20.33';
 import {readImage} from '../../image-files.mjs?v=20.31';
 import {csvFixture,csvHeads} from '../csv-fixtures.mjs?v=20.31';
@@ -11,7 +11,7 @@ async function fresh(mode='normal'){
  frame?.contentWindow.f13?.fake.close();frame?.remove();
  let html=await fetch(new URL('index.html',root),{cache:'no-store'}).then(r=>r.text());
  const match=html.match(/<script type="module" src="(app\.mjs[^\"]*)"><\/script>/);assert(match,'Actual application module exists');
- const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.45',root).href}"><\/script>`;
+ const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.46',root).href}"><\/script>`;
  html=html.replace('<head>','<head><base href="'+root.href+'">').replace(match[0],script);
  frame=document.createElement('iframe');frame.title='Isolated CPS test application';frame.setAttribute('allow',"bluetooth 'none'");frame.srcdoc=html;document.getElementById('workspace').append(frame);
  await until(()=>frame.contentWindow.f13?.ready||frame.contentWindow.f13?.failed,'application bootstrap');
@@ -341,6 +341,10 @@ document.getElementById('start').onclick=async()=>{
    assert(report.sessionAtStart.ready&&report.handshake.model==='UV32PRO'&&report.memoryReads===500,'Fresh handshake precedes all reads');
    assert(h.state.fake.sent.length===sent+504&&h.state.fake.writes===0,'One handshake, 500 reads, no retry or write');
    id('uatUv32Close').click();
+   h.state.fake.faults.badReadLength=true;
+   id('uatUv32Read').click();await until(()=>!id('uatUv32Save').disabled&&id('uatUv32Cancel').hidden,'read failure with retained block counter');
+   assert(/block 1\/500 \(0x0000\) · valid 0 · errors 1/.test(id('uatProtocolResult').textContent),'Failed read retains block and error counts');
+   h.state.fake.faults.badReadLength=false;
    const reads=h.state.fake.reads;h.state.fake.faults.modelReply=[0];
    id('uatUv32Read').click();await until(()=>!id('uatUv32Save').disabled&&id('uatUv32Cancel').hidden,'model-query failure');
    id('uatUv32Save').click();report=JSON.parse(await h.state.downloads.at(-1).text());
