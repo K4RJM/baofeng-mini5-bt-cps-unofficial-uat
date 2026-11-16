@@ -1,6 +1,8 @@
-# UV-32 read-only channel capture — UAT v20.44
+# UV-32 read-only channel capture — UAT v20.45
 
 Updated November 16, 2026. UAT only. MINI-5 programming and LIVE are unchanged.
+
+During reading, the UAT status line shows the current block and address, validated-block count, and error count. A failed identification occurs before block 1. The counter is intended to let physical testing establish whether the radio leaves Wireless CPS mode before or after the first read error. See [v20.45 release note](RELEASE-20.45.md).
 
 ## Optional diagnostic sweep in v20.44
 

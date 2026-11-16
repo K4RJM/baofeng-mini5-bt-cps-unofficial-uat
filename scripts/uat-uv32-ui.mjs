@@ -1,6 +1,6 @@
 // UAT-only read-only channel preview. Never loads a capture into the MINI-5 editor.
-import {uv32ReadSessionStatus,isUatPage} from './uat-protocols.mjs?v=20.44';
-import {captureUv32Channels,uv32ReadDiagnostics} from './uat-uv32-read.mjs?v=20.44';
+import {uv32ReadSessionStatus,isUatPage} from './uat-protocols.mjs?v=20.45';
+import {captureUv32Channels,uv32ReadDiagnostics} from './uat-uv32-read.mjs?v=20.45';
 export function installUv32Reader({radio,run,connect,message,refresh}){
  const page=location.href==='about:srcdoc'?document.baseURI:location.href;
  const protocolModule=new URL('./uat-protocols.mjs',import.meta.url).href;
@@ -44,7 +44,11 @@ export function installUv32Reader({radio,run,connect,message,refresh}){
   const uiSessionAtClick=uv32ReadSessionStatus(radio),readSendMode=readSend.value,diagnosticSweep=sweep.checked;
   controller=new AbortController();output.textContent='Reading UV-32 channels…';refresh();
   try{
-   capture=await captureUv32Channels(radio,{connect,readSendMode,diagnosticSweep,signal:controller.signal,stage:text=>{output.textContent=text;message(text);},progress:(n,total)=>{const p=$('progress');p.max=total;p.value=n;message('Reading UV-32 channels: '+n+' / '+total+' blocks');}});
+   capture=await captureUv32Channels(radio,{connect,readSendMode,diagnosticSweep,signal:controller.signal,stage:text=>{output.textContent=text;message(text);},progress:(n,total)=>{const p=$('progress');p.max=total;p.value=n;},status:state=>{
+    const address='0x'+state.address.toString(16).padStart(4,'0').toUpperCase();
+    const text=`UV-32 ${state.phase}: block ${state.block}/${state.total} (${address}) · valid ${state.valid} · errors ${state.errors}`;
+    output.textContent=text;message(text);
+   }});
    capture.uiSessionAtClick=uiSessionAtClick;
    if(capture.completed){preview=capture;pageIndex=0;output.textContent='UV-32 channel capture complete: '+capture.preview.channels.length+' populated channels · read only';message(output.textContent);open();}
    else{output.textContent='Diagnostic sweep finished: '+capture.completedBlocks+' / 500 valid blocks, '+capture.anomalies.length+' anomaly(s). Save UV-32 capture; gaps are not channel data.';message(output.textContent);}
