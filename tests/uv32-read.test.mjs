@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {Reader} from '../read-test/reader.mjs';
-import {identifyProfile,hasUv32ReadSession,uv32ReadSessionStatus} from '../scripts/uat-protocols.mjs?v=20.43';
+import {identifyProfile,hasUv32ReadSession,uv32ReadSessionStatus} from '../scripts/uat-protocols.mjs?v=20.44';
 import {readUv32Channels,captureUv32Channels,uv32ReadDiagnostics,uv32ReadCommand,uv32Payload,uv32WireDecode,decodeUv32Channels} from '../scripts/uat-uv32-read.mjs';
 import {asyncRadio} from './async-radio.mjs';
 import {bytes,plain,wire,uv32Fixture} from './uv32-fixtures.mjs';
@@ -12,7 +12,7 @@ function setup(faults={}){
  fake.characteristic.addEventListener('characteristicvaluechanged',radio.notify);
  fake.device.addEventListener('gattserverdisconnected',()=>radio.invalidate(Error('Test radio disconnected')));
  const wait=radio.wait.bind(radio);radio.wait=n=>wait(n,100);
- const pause=radio.pause.bind(radio);radio.pause=ms=>pause(ms===1020||ms===20?1:ms);
+ const pause=radio.pause.bind(radio);radio.pause=ms=>pause([1020,20,3500,500].includes(ms)?1:ms);
  return {fake,radio,async identify(mode='with-response'){return identifyProfile(radio,'uv32',{sendMode:mode});},close(){radio.disconnect();fake.close();}};
 }
 test('UV-32 read allowlist covers exactly 500 aligned channel blocks and rejects other addresses',()=>{
@@ -345,4 +345,21 @@ test('Cancellation or disconnect stops without-response reading and preserves on
    assert.equal(h.fake.reads,1);assert.equal(h.fake.writes,0);assert.equal(h.radio.receive,original);assert.equal(h.radio.busy,false);
   }finally{h.close();}
  }
+});
+
+test('Diagnostic sweep records one malformed block and continues without accepting its data',async()=>{
+ const h=setup();try{
+  await h.identify();
+  const send=h.fake.characteristic.writeValueWithResponse.bind(h.fake.characteristic);
+  h.fake.characteristic.writeValueWithResponse=bytes=>{
+   h.fake.faults.badHeader=bytes[0]===82&&bytes[1]===0&&bytes[2]===64;
+   return send(bytes);
+  };
+  const r=await readUv32Channels(h.radio,{diagnosticSweep:true});
+  assert.equal(r.completed,false);assert.equal(r.stage,'diagnostic-complete');
+  assert.equal(r.memoryReads,500);assert.equal(r.completedBlocks,499);assert.equal(r.memoryWrites,0);
+  assert.equal(r.anomalies.length,1);assert.equal(r.anomalies[0].address,64);
+  assert.equal(r.validatedBlocks.length,499);assert.equal(r.wireHex,'');
+  assert.equal(r.validatedBlocks.some(b=>b.address===64),false);
+ }finally{h.close();}
 });

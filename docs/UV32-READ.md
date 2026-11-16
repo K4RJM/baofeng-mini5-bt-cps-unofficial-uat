@@ -1,6 +1,10 @@
-# UV-32 read-only channel capture — UAT v20.43
+# UV-32 read-only channel capture — UAT v20.44
 
-Updated November 9, 2026. UAT only. MINI-5 programming and LIVE are unchanged.
+Updated November 16, 2026. UAT only. MINI-5 programming and LIVE are unchanged.
+
+## Optional diagnostic sweep in v20.44
+
+**Continue diagnostic sweep** is off by default. When enabled, a malformed, short, excess, or missing reply is recorded with its address and observed bytes. The reader pauses to let late bytes settle, discards those bytes, and continues at the next address. It never retries a failed address or treats its data as a valid channel block. A disconnect, cancelled read, failed send, unsettled stream, or ten anomalies stops the sweep. A sweep with any missing block has no complete codeplug or channel preview; its saved JSON lists individually validated blocks and anomalies. This is an evidence-gathering option, not a confirmed fix for intermittent UV-32 reads. See [v20.44 release note](RELEASE-20.44.md).
 
 ## What this adds
 
