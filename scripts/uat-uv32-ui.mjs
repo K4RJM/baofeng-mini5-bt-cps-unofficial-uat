@@ -4,7 +4,7 @@ import {uv32ReadSessionStatus,isUatPage} from './uat-protocols.mjs?v=20.46';
 import {captureUv32Channels,uv32ReadDiagnostics} from './uat-uv32-read.mjs?v=20.48';
 import {readUv32SerialImage,writeUv32SerialImage} from './uat-uv32-serial.mjs?v=20.55c';
 import {openUv32Capture} from './uat-uv32-capture.mjs?v=20.49';
-import {createUv32Workspace} from './uat-uv32-workspace.mjs?v=20.58';
+import {createUv32Workspace} from './uat-uv32-workspace.mjs?v=20.59';
 import {uv32ImageFromHex,uv32ImageToHex,uv32Preview,editUv32Channel,moveUv32Channel,insertUv32Channel,editUv32ZoneName,editUv32Dtmf,editUv32Setting,editUv32Vfo,changedUv32Blocks} from './uat-uv32-edit.mjs?v=20.56';
 
 export function installUv32Reader({radio,run,connect,message,refresh,renderMini5,workspaceStatus}){
