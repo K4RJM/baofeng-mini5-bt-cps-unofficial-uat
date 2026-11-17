@@ -1,18 +1,15 @@
 // UAT UV-32 controls live in the existing Ham-Rx header and left sidebar.
 // A UV-32 read populates its own main workspace without loading MINI-5 data.
-import {uv32ReadSessionStatus,isUatPage} from './uat-protocols.mjs?v=20.46';
-import {captureUv32Channels,uv32ReadDiagnostics} from './uat-uv32-read.mjs?v=20.69';
 import {readUv32SerialImage,writeUv32SerialImage} from './uat-uv32-serial.mjs?v=20.66';
 import {openUv32Capture} from './uat-uv32-capture.mjs?v=20.70';
 import {createUv32Workspace} from './uat-uv32-workspace.mjs?v=20.70';
 import {uv32ImageFromHex,uv32ImageToHex,uv32Preview,editUv32Channel,moveUv32Channel,insertUv32Channel,editUv32ZoneName,editUv32Dtmf,editUv32Setting,editUv32Vfo,changedUv32Blocks} from './uat-uv32-edit.mjs?v=20.56';
 
-export function installUv32Reader({radio,run,connect,message,refresh,renderMini5,workspaceStatus}){
- const page=location.href==='about:srcdoc'?document.baseURI:location.href;
- if(!isUatPage(new URL('./uat-protocols.mjs',import.meta.url).href,page))return null;
+export function installUv32Reader({radio,run,connect,message,refresh,renderMini5,workspaceStatus,bluetooth}){
  const d=document,$=id=>d.getElementById(id),select=$('uatProtocol'),mode=$('uatSendMode'),readSend=$('uatUv32ReadSend'),readPace=$('uatUv32ReadPace'),sweep=$('uatUv32Sweep');
  const read=$('uatUv32Read'),cableRead=$('uatUv32CableRead'),cableWrite=$('uatUv32CableWrite'),view=$('uatUv32View'),save=$('uatUv32Save'),cancel=$('uatUv32Cancel'),importButton=$('uatUv32Import'),importInput=$('uatUv32ImportFile'),output=$('uatProtocolResult');
- if([select,mode,readSend,readPace,sweep,read,cableRead,cableWrite,view,save,cancel,importButton,importInput,output].some(x=>!x))throw Error('UV-32 controls missing');
+ const bluetoothControls=[read,readSend,readPace,sweep,mode];
+ if([select,cableRead,cableWrite,view,save,cancel,importButton,importInput,output,...(bluetooth?bluetoothControls:[])].some(x=>!x))throw Error('UV-32 controls missing');
  const traceSave=d.createElement('button');traceSave.id='uatUv32Trace';traceSave.type='button';traceSave.textContent='↧ Save cable trace';traceSave.title='Download the raw Web Serial commands, received chunks, assembled responses, and timing from the latest cable operation.';save.insertAdjacentElement('afterend',traceSave);
  let capture=null,preview=null,editedImage=null,controller=null,undo=[],lastCableTrace=null;
  const beginCableTrace=operation=>{const started=performance.now();lastCableTrace={kind:'uv32-web-serial-trace-v1',operation,capturedAt:new Date().toISOString(),completed:false,droppedEvents:0,events:[]};return event=>{if(lastCableTrace.events.length<20000)lastCableTrace.events.push({...event,atMs:Math.round(performance.now()-started)});else lastCableTrace.droppedEvents++;};};
@@ -27,7 +24,7 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
  }});
  const note=text=>{output.textContent=text;message(text);};
  const download=(report,fileName)=>{const build=d.querySelector('.build-badge')?.textContent;
-  const payload={build,...report,selectedProtocol:select.value,requestedSendMode:mode.value,sessionAtDownload:uv32ReadSessionStatus(radio)};
+  const payload={build,...report,selectedProtocol:select.value,...(bluetooth&&{requestedSendMode:mode.value,sessionAtDownload:bluetooth.uv32ReadSessionStatus(radio)})};
   const url=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'})),a=d.createElement('a');
   a.href=url;a.download=fileName??(report.memoryReads===0?'ham-rx-uv32-read-diagnostics.json':report.kind==='uv32-cable-full-read-v1'?'ham-rx-uv32-full-read'+(report.completed?'':'-partial')+'.json':'ham-rx-uv32-channels'+(report.completed?'':'-partial')+'.json');d.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
  };
@@ -38,12 +35,16 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
   catch(error){note(error.message);refresh();}
  };
  view.onclick=()=>workspace.render();
- save.onclick=()=>{const edited=preview?.readout&&editedImage&&capture&&changedUv32Blocks(uv32ImageFromHex(capture.wireHex),editedImage).length;download(edited?{...preview,sourceWireHex:capture.wireHex}:capture??uv32ReadDiagnostics(radio,{readSendMode:readSend.value,interBlockDelayMs:Number(readPace.value)}),edited?'ham-rx-uv32-edited-capture.json':undefined);};
- cancel.onclick=()=>{controller?.abort();cancel.disabled=true;note('Stopping UV-32 read after the current request…');};
- read.onclick=()=>run(async()=>{
-  const uiSessionAtClick=uv32ReadSessionStatus(radio),readSendMode=readSend.value,diagnosticSweep=sweep.checked,interBlockDelayMs=Number(readPace.value);
+ save.onclick=()=>{
+  const edited=preview?.readout&&editedImage&&capture&&changedUv32Blocks(uv32ImageFromHex(capture.wireHex),editedImage).length;
+  const report=edited?{...preview,sourceWireHex:capture.wireHex}:capture??bluetooth?.uv32ReadDiagnostics(radio,{readSendMode:readSend?.value,interBlockDelayMs:Number(readPace?.value)});
+  if(report)download(report,edited?'ham-rx-uv32-edited-capture.json':undefined);
+ };
+ cancel.onclick=()=>{controller?.abort();cancel.disabled=true;note('Stopping UV-32 operation after the current request…');};
+ if(bluetooth)read.onclick=()=>run(async()=>{
+  const uiSessionAtClick=bluetooth.uv32ReadSessionStatus(radio),readSendMode=readSend.value,diagnosticSweep=sweep.checked,interBlockDelayMs=Number(readPace.value);
   controller=new AbortController();note('Reading UV-32 channels…');refresh();
-  try{capture=await captureUv32Channels(radio,{connect,readSendMode,diagnosticSweep,interBlockDelayMs,signal:controller.signal,
+  try{capture=await bluetooth.captureUv32Channels(radio,{connect,readSendMode,diagnosticSweep,interBlockDelayMs,signal:controller.signal,
    stage:note,progress:(n,total)=>{const p=$('progress');p.max=total;p.value=n;},status:state=>{
     const address='0x'+state.address.toString(16).padStart(4,'0').toUpperCase();note(`UV-32 ${state.phase}: block ${state.block}/${state.total} (${address}) · valid ${state.valid} · errors ${state.errors}`);
    }});capture.uiSessionAtClick=uiSessionAtClick;
@@ -85,19 +86,30 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
   finally{controller=null;refresh();}
   });
  };
- select.addEventListener('change',()=>{if(select.value==='uv32'){mode.value='with-response';workspace.reset();refresh();note('UV-32 · Ready to read or open a capture');}else{workspace.restoreBrand();renderMini5();refresh();workspaceStatus();}});
- mode.addEventListener('change',refresh);readSend.addEventListener('change',refresh);
- return {sync(busy){const uv=select.value==='uv32';
-  for(const id of ['uatUv32Read','uatUv32CableRead','uatUv32CableWrite','uatUv32View','uatUv32Save','uatUv32Import','uatUv32ReadSendControl','uatUv32ReadPaceControl','uatUv32SweepControl'])$(id).hidden=!uv;
+ select.addEventListener('change',()=>{if(select.value==='uv32'){if(bluetooth)mode.value='with-response';workspace.reset();refresh();note('UV-32 · Ready to read or open a capture');}else{workspace.restoreBrand();renderMini5();refresh();workspaceStatus();}});
+ if(bluetooth){mode.addEventListener('change',refresh);readSend.addEventListener('change',refresh);}
+ return {openHelp(){if(select.value!=='uv32')return false;workspace.openHelp();return true;},sync(busy){const uv=select.value==='uv32';
+  for(const id of ['uatUv32CableRead','uatUv32CableWrite','uatUv32View','uatUv32Save','uatUv32Import'])$(id).hidden=!uv;
+  if(bluetooth){
+   for(const id of ['uatUv32Read','uatUv32ReadSendControl','uatUv32ReadPaceControl','uatUv32SweepControl'])$(id).hidden=!uv;
+   readSend.disabled=busy;readPace.disabled=busy;sweep.disabled=busy;
+   read.disabled=busy||!navigator.bluetooth||!window.isSecureContext;
+  }
   for(const id of ['open','appendChannels','save','saveImg','readRadio','writeRadio','verify','backup'])$(id).hidden=uv;
-  readSend.disabled=busy;readPace.disabled=busy;sweep.disabled=busy;importButton.disabled=busy;
-  read.disabled=busy||!navigator.bluetooth||!window.isSecureContext;
+  select.disabled=busy;importButton.disabled=busy;
+  $('connect').hidden=uv&&!bluetooth&&!radio.connected;
+  $('linkDot').hidden=uv&&!bluetooth&&!radio.connected;
   cableRead.disabled=busy||!!radio.connected||!navigator.serial||!window.isSecureContext;
   cableWrite.disabled=busy||!!radio.connected||!navigator.serial||!window.isSecureContext||!editedImage||!capture?.readout;
-  view.disabled=busy||!preview;save.disabled=busy;
+  view.disabled=busy||!preview;save.disabled=busy||(!bluetooth&&!capture);
   traceSave.hidden=!uv;traceSave.disabled=busy||!lastCableTrace?.events.length;
-  save.textContent=capture&&capture.memoryReads>0?'↧ Save UV-32 capture':'↧ Save read diagnostics';
+  save.textContent=!bluetooth||capture?.memoryReads>0?'↧ Save UV-32 capture':'↧ Save read diagnostics';
   cancel.hidden=!controller;cancel.disabled=!controller||controller.signal.aborted;
-  if(uv){for(const id of ['readRadio','writeRadio','verify'])$(id).disabled=true;$('sourceTag').textContent=preview?(preview.readout?'UV-32 full read':'UV-32 channel read'):'Blank UV-32 workspace';$('connectionHint').textContent='UV-32 Bluetooth programming';}
+  if(uv){
+   for(const id of ['readRadio','writeRadio','verify'])$(id).disabled=true;
+   $('sourceTag').textContent=preview?(preview.readout?'UV-32 full read':'UV-32 channel read'):'Blank UV-32 workspace';
+   $('connectionHint').textContent=bluetooth?'UV-32 Bluetooth programming':radio.connected?'Disconnect MINI-5 to use the UV-32 cable':'UV-32 cable programming';
+   if(!bluetooth&&!radio.connected)$('connection').textContent=navigator.serial&&window.isSecureContext?'USB programming cable':'Cable unavailable in this browser';
+  }
  }};
 }

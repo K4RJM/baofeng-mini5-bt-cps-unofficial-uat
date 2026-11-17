@@ -1,6 +1,6 @@
 // Reopen a UV-32 cable capture from its original wire bytes. Never trust a
 // saved preview or readout as a substitute for the captured memory.
-import {UV32_CHANNEL_BYTES,decodeUv32Channels,uv32WireDecode} from './uat-uv32-read.mjs';
+import {UV32_CHANNEL_BYTES,decodeUv32Channels,uv32WireDecode} from './uv32-codec.mjs';
 import {UV32_IMAGE_BYTES,decodeUv32Image} from './uat-uv32-image.mjs?v=20.70';
 
 const REGIONS=[[0,0x8040],[0x9000,0x40],[0xa000,0x2c0],[0xd000,0x40]];

@@ -110,7 +110,6 @@ export function createUv32Workspace({document:d,select,getCapture,onEdit,onUndo,
   $('sourceTag').textContent=capture?(capture.readout?'UV-32 full read':'UV-32 channel read'):'Blank UV-32 workspace';
   $('brandTitle').textContent='Ham-Rx Baofeng UV-32';
   const image=$('brandRadioImage');image.src='assets/uv32-blue.jpg';image.alt='Baofeng UV-32 with blue accents';image.parentElement.classList.add('uv32-brand-image');
-  $('connectionHint').textContent='UV-32 Bluetooth programming';
   const nav=$('tabs');nav.replaceChildren();for(let i=0;i<sections.length;i++){
    const name=sections[i],item=button(icons[i]+' '+name,()=>{section=name;page=0;render();});item.classList.toggle('active',section===name);item.setAttribute('aria-current',section===name?'page':'false');nav.append(item);
   }
@@ -226,5 +225,5 @@ export function createUv32Workspace({document:d,select,getCapture,onEdit,onUndo,
   function renderChannelsOnly(){paint();}
   paint();
  }
- return {render,reset(){section='Channels';zone=0;search='';showEmpty=false;page=0;render();},restoreBrand(){const image=$('brandRadioImage');image.src='assets/mini5-blue.png';image.alt='Blue Baofeng MINI-5';image.parentElement.classList.remove('uv32-brand-image');$('brandTitle').textContent='Ham-Rx Baofeng Mini-5';}};
+ return {render,openHelp(){section='Radio & help';render();},reset(){section='Channels';zone=0;search='';showEmpty=false;page=0;render();},restoreBrand(){const image=$('brandRadioImage');image.src='assets/mini5-blue.png';image.alt='Blue Baofeng MINI-5';image.parentElement.classList.remove('uv32-brand-image');$('brandTitle').textContent='Ham-Rx Baofeng Mini-5';}};
 }
