@@ -1,7 +1,7 @@
 // UAT UV-32 controls live in the existing Ham-Rx header and left sidebar.
 // A UV-32 read populates its own main workspace without loading MINI-5 data.
 import {uv32ReadSessionStatus,isUatPage} from './uat-protocols.mjs?v=20.46';
-import {captureUv32Channels,uv32ReadDiagnostics} from './uat-uv32-read.mjs?v=20.68';
+import {captureUv32Channels,uv32ReadDiagnostics} from './uat-uv32-read.mjs?v=20.69';
 import {readUv32SerialImage,writeUv32SerialImage} from './uat-uv32-serial.mjs?v=20.66';
 import {openUv32Capture} from './uat-uv32-capture.mjs?v=20.49';
 import {createUv32Workspace} from './uat-uv32-workspace.mjs?v=20.66';

@@ -117,10 +117,8 @@ export async function readUv32Channels(radio,{progress=()=>{},status=()=>{},sign
     const pendingHex=hex(Uint8Array.from(radio.rx.slice(0,256)));
     if(!/^(06|0600)$/.test(pendingHex))throw Error('Unexpected buffered response before UV-32 read');
     if(report.strayStatuses.length>=8)throw Error('UV-32 response stream has too many stray status bytes');
-    const discardedHex=await settle();
-    if(!/^(06|0600)$/.test(discardedHex))throw Error('Unexpected buffered response before UV-32 read');
-    report.strayStatuses.push({afterBlock:report.completedBlocks,beforeAddress:address,hex:discardedHex});
-    report.readPhase='between-blocks';
+    radio.rx.splice(0);
+    report.strayStatuses.push({afterBlock:report.completedBlocks,beforeAddress:address,hex:pendingHex,handledAtMs:Date.now()-started});
    }
    if(radio.rx.length)throw Error('Unexpected buffered response before UV-32 read');
    if(address===0)report.firstReadAfterHandshakeMs=Date.now()-Date.parse(session.identity.capturedAt);
@@ -153,7 +151,7 @@ export async function readUv32Channels(radio,{progress=()=>{},status=()=>{},sign
   // A sweep with any invalid block is evidence only, never a complete image.
   if(diagnosticSweep&&report.completedBlocks!==500){report.stage='diagnostic-complete';report.readPhase='complete-with-gaps';return report;}
   report.preview=decodeUv32Channels(raw);report.completed=true;report.stage='complete';report.readPhase='complete';return report;
- }catch(error){if(currentRequest)currentRequest.error=error.message;report.error=error.message;if(error.uv32SessionStatus)report.sessionAtStart=error.uv32SessionStatus;report.pendingHex=hex(Uint8Array.from(radio.rx.slice(0,256)));error.uv32ReadReport=report;throw error;}
+ }catch(error){if(currentRequest)currentRequest.error=error.message;report.error=error.message;if(error.uv32SessionStatus)report.sessionAtStart=error.uv32SessionStatus;report.pendingHex=hex(Uint8Array.from(radio.rx.slice(0,256)));report.linkAtFailure={connected:radio.connected,gattConnected:!!radio.device?.gatt?.connected,generation:radio.generation};error.uv32ReadReport=report;throw error;}
  finally{if(receiver&&radio.receive===receiver){if(receiveDescriptor)Object.defineProperty(radio,'receive',receiveDescriptor);else delete radio.receive;}report.wireHex=diagnosticSweep&&!report.completed?'':hex(raw.slice(0,report.completedBlocks*64));report.bytes=report.completedBlocks*64;report.elapsedMs=Date.now()-started;if(ownsBusy)radio.busy=false;}
 }
 

@@ -245,18 +245,21 @@ test('Slower UV-32 read choices apply to every gap without changing commands',as
   }finally{h.close();}
  }
 });
-test('A stray ACK between complete blocks is drained before the next read without skipping data',async()=>{
- const h=setup();try{
-  await h.identify();const delays=[],pause=h.radio.pause.bind(h.radio);
-  h.radio.pause=ms=>{delays.push(ms);if(ms===3500)h.radio.receive(new DataView(Uint8Array.of(0).buffer));return ms===250?Promise.resolve():pause(0);};
-  const r=await readUv32Channels(h.radio,{interBlockDelayMs:250,progress:n=>{
-   if(n===120)h.radio.receive(new DataView(Uint8Array.of(6).buffer));
-  }});
-  assert.equal(r.completed,true);assert.equal(r.completedBlocks,500);assert.equal(r.bytes,32000);
-  assert.deepEqual(r.strayStatuses,[{afterBlock:120,beforeAddress:7680,hex:'0600'}]);
-  assert.equal(h.fake.reads,500);assert.equal(h.fake.writes,0);assert.ok(delays.includes(3500));
-  assert.equal(r.wireHex,Buffer.from(h.fake.raw.slice(0,32000)).toString('hex'));
- }finally{h.close();}
+test('A stray status between complete blocks is removed promptly before the next read without skipping data',async()=>{
+ for(const status of [[6],[6,0]]){
+  const h=setup();try{
+   await h.identify();const delays=[],pause=h.radio.pause.bind(h.radio);
+   h.radio.pause=ms=>{delays.push(ms);return ms===250?Promise.resolve():pause(0);};
+   const r=await readUv32Channels(h.radio,{interBlockDelayMs:250,progress:n=>{
+    if(n===120)h.radio.receive(new DataView(Uint8Array.from(status).buffer));
+   }});
+   assert.equal(r.completed,true);assert.equal(r.completedBlocks,500);assert.equal(r.bytes,32000);
+   assert.equal(r.strayStatuses.length,1);assert.equal(r.strayStatuses[0].afterBlock,120);
+   assert.equal(r.strayStatuses[0].beforeAddress,7680);assert.equal(r.strayStatuses[0].hex,Buffer.from(status).toString('hex'));
+   assert.equal(h.fake.reads,500);assert.equal(h.fake.writes,0);assert.ok(!delays.includes(3500));
+   assert.equal(r.wireHex,Buffer.from(h.fake.raw.slice(0,32000)).toString('hex'));
+  }finally{h.close();}
+ }
 });
 test('Unsupported UV-32 read pace stops before connecting',async()=>{
  const h=setup();try{
@@ -284,6 +287,7 @@ test('A later read timeout cannot mislabel the preceding valid response as the f
   await assert.rejects(readUv32Channels(h.radio,{progress:n=>{if(n===1)h.fake.characteristic.writeValueWithResponse=()=>{h.radio.receive(new DataView(Uint8Array.of(0).buffer));return Promise.resolve();};}}),error=>{
    const r=error.uv32ReadReport;assert.equal(r.completedBlocks,1);assert.equal(r.memoryReads,2);assert.equal(r.lastRequestHex,'52004040');
    assert.equal(r.lastResponseHex,null);assert.equal(r.lastResponseAddress,null);assert.equal(r.pendingHex,'00');
+   assert.equal(r.linkAtFailure.connected,true);assert.equal(r.linkAtFailure.gattConnected,true);
    assert.equal(r.packetTrace.requests[0].responseHeaderHex,'52000040');assert.equal(r.packetTrace.requests[0].validated,true);
    assert.equal(r.packetTrace.requests[1].responseHeaderHex,undefined);assert.match(r.packetTrace.requests[1].error,/expected 68 response bytes, received 1/);
    assert.equal(r.packetTrace.notifications.at(-1).hex,'00');assert.equal(r.readPhase,'waiting');return true;
