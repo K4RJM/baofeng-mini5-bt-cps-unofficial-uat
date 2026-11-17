@@ -1,4 +1,4 @@
-import {BROWSER_SUITE_VERSION,BROWSER_CHECK_COUNT,browserBuildError} from './revision.mjs?v=20.46';
+import {BROWSER_SUITE_VERSION,BROWSER_CHECK_COUNT,browserBuildError} from './revision.mjs?v=20.47';
 import {rdtFixture} from '../rdt-fixtures.mjs?v=20.33';
 import {readImage} from '../../image-files.mjs?v=20.31';
 import {csvFixture,csvHeads} from '../csv-fixtures.mjs?v=20.31';
@@ -11,7 +11,7 @@ async function fresh(mode='normal'){
  frame?.contentWindow.f13?.fake.close();frame?.remove();
  let html=await fetch(new URL('index.html',root),{cache:'no-store'}).then(r=>r.text());
  const match=html.match(/<script type="module" src="(app\.mjs[^\"]*)"><\/script>/);assert(match,'Actual application module exists');
- const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.46',root).href}"><\/script>`;
+ const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.47',root).href}"><\/script>`;
  html=html.replace('<head>','<head><base href="'+root.href+'">').replace(match[0],script);
  frame=document.createElement('iframe');frame.title='Isolated CPS test application';frame.setAttribute('allow',"bluetooth 'none'");frame.srcdoc=html;document.getElementById('workspace').append(frame);
  await until(()=>frame.contentWindow.f13?.ready||frame.contentWindow.f13?.failed,'application bootstrap');
@@ -351,6 +351,31 @@ document.getElementById('start').onclick=async()=>{
    assert(report.stage==='identifying'&&report.handshake.stage==='Model query (M)'&&report.pendingHex==='00','Model timeout remains explicit');
    assert(report.memoryReads===0&&h.state.fake.reads===reads&&h.state.fake.writes===0,'No memory access after failed identity');
    assert(!id('content').inert&&!id('tabs').inert&&!id('uatUv32View').disabled,'Controls recover and earlier preview survives');
+  });
+  await check('UV-32 cable chooser reads channels without a memory write',async()=>{
+   h=await fresh();if(!id('uatUv32CableRead'))return;
+   const replies=[],writes=[];let opened=false,closed=false;
+   const port={
+    async open(options){assert(options.baudRate===115200,'Serial speed follows CHIRP');opened=true;},
+    readable:{getReader(){return {async read(){return {done:false,value:replies.shift()};},async cancel(){},releaseLock(){}};}},
+    writable:{getWriter(){return {async write(bytes){
+     const b=Array.from(bytes);writes.push(b);
+     if(writes.length===1)replies.push(Uint8Array.of(6));
+     else if(writes.length===2)replies.push(new Uint8Array(16));
+     else if(writes.length===3)replies.push(new TextEncoder().encode('UV32PRO'));
+     else if(writes.length===4)replies.push(Uint8Array.of(6));
+     else replies.push(Uint8Array.of(0x52,b[1],b[2],64,...new Array(64).fill(255)));
+    },releaseLock(){}};}},
+    async close(){closed=true;}
+   };
+   Object.defineProperty(h.w.navigator,'serial',{configurable:true,value:{requestPort:async()=>port}});
+   id('uatProtocol').value='uv32';id('uatProtocol').dispatchEvent(new h.w.Event('change'));
+   assert(!id('uatUv32CableRead').disabled,'Cable read is offered in a secure Web Serial browser');
+   id('uatUv32CableRead').click();
+   await until(()=>id('uatUv32Results').open&&id('uatUv32Cancel').hidden,'cable read preview',30000);
+   assert(opened&&closed&&writes.length===504&&writes.slice(4).every(b=>b[0]===0x52),'Only 500 read frames follow identification');
+   assert(id('uatUv32Summary').textContent.includes('1000 channels')&&!id('uatUv32View').disabled,'Cable preview uses the existing read-only viewer');
+   id('uatUv32Close').click();
   });
   await check('Missing HTML control mutation is detected by actual app startup',async()=>{h=await fresh('missing-id');assert(h.state.failed&&h.state.errors.some(e=>/null|onclick/.test(e)),'Removing confirmWrite must break startup');});
   await check('Removed inertness mutation is caught by the same busy check',async()=>{h=await fresh('inert-mutant');await load(h);let detected=false;try{await busyCheck(h);}catch(e){detected=/inert/i.test(e.message);}assert(detected,'The busy test must reject removed inertness');});
