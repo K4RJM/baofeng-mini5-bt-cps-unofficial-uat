@@ -43,7 +43,7 @@ function simulatedPort(initial,{badAckAt=-1,alterPreflight=false}={}){
 test('UV-32 cable write checks baseline, uploads CHIRP regions, and verifies read-back',async()=>{
  const baseline=blank(),original=uv32ImageFromHex(baseline.wireHex),edited=editUv32Channel(original,1,{rx:'146.52000',tx:'Off',name:'TEST'}),radio=simulatedPort(Uint8Array.from(Buffer.from(baseline.wireHex,'hex')));
  const result=await writeUv32SerialImage(radio.port,baseline,edited);
- assert.equal(result.completed,true);assert.equal(result.readBackVerified,true);assert.equal(result.completedBlocks,526);assert.equal(radio.writeBlocks,526);assert.equal(radio.opens,3);
+ assert.equal(result.completed,true);assert.equal(result.preflightMatched,true);assert.equal(result.readBackVerified,true);assert.equal(result.completedBlocks,526);assert.equal(radio.writeBlocks,526);assert.equal(radio.opens,3);
  assert.deepEqual(Array.from(radio.writes.find(x=>x[0]===0x57).slice(0,4)),[0x57,0,0,64]);
  assert.equal(Buffer.from(radio.memory).toString('hex'),uv32ImageToHex(edited));
 });
@@ -51,7 +51,7 @@ test('UV-32 cable write checks baseline, uploads CHIRP regions, and verifies rea
 test('UV-32 refuses stale baseline and stops at rejected write ACK',async()=>{
  const baseline=openUv32Capture(blank()),edited=editUv32Channel(uv32ImageFromHex(baseline.wireHex),1,{rx:'146.52000'});
  const stale=simulatedPort(Uint8Array.from(Buffer.from(baseline.wireHex,'hex')),{alterPreflight:true});
- await assert.rejects(writeUv32SerialImage(stale.port,baseline,edited),/changed since this capture/);assert.equal(stale.writeBlocks,0);
+ await assert.rejects(writeUv32SerialImage(stale.port,baseline,edited),error=>{assert.equal(error.uv32WriteReport.preflightMatched,false);return /changed since this capture/.test(error.message);});assert.equal(stale.writeBlocks,0);
  const rejected=simulatedPort(Uint8Array.from(Buffer.from(baseline.wireHex,'hex')),{badAckAt:2});
- await assert.rejects(writeUv32SerialImage(rejected.port,baseline,edited),error=>{assert.equal(error.uv32WriteReport.completedBlocks,1);return /rejected write/.test(error.message);});assert.equal(rejected.writeBlocks,2);
+ await assert.rejects(writeUv32SerialImage(rejected.port,baseline,edited),error=>{assert.equal(error.uv32WriteReport.preflightMatched,true);assert.equal(error.uv32WriteReport.completedBlocks,1);return /rejected write/.test(error.message);});assert.equal(rejected.writeBlocks,2);
 });

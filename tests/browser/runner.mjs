@@ -1,4 +1,4 @@
-import {BROWSER_SUITE_VERSION,BROWSER_CHECK_COUNT,browserBuildError} from './revision.mjs?v=20.54';
+import {BROWSER_SUITE_VERSION,BROWSER_CHECK_COUNT,browserBuildError} from './revision.mjs?v=20.55';
 import {rdtFixture} from '../rdt-fixtures.mjs?v=20.33';
 import {readImage} from '../../image-files.mjs?v=20.31';
 import {csvFixture,csvHeads} from '../csv-fixtures.mjs?v=20.31';
@@ -11,7 +11,7 @@ async function fresh(mode='normal'){
  frame?.contentWindow.f13?.fake.close();frame?.remove();
  let html=await fetch(new URL('index.html',root),{cache:'no-store'}).then(r=>r.text());
  const match=html.match(/<script type="module" src="(app\.mjs[^\"]*)"><\/script>/);assert(match,'Actual application module exists');
- const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.54',root).href}"><\/script>`;
+ const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.55',root).href}"><\/script>`;
  html=html.replace('<head>','<head><base href="'+root.href+'">').replace(match[0],script);
  frame=document.createElement('iframe');frame.title='Isolated CPS test application';frame.setAttribute('allow',"bluetooth 'none'");frame.srcdoc=html;document.getElementById('workspace').append(frame);
  await until(()=>frame.contentWindow.f13?.ready||frame.contentWindow.f13?.failed,'application bootstrap');

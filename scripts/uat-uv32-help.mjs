@@ -47,5 +47,13 @@ export function renderUv32Help(d,target){
  const reference=el(d,'div','help-reference'),manualCard=el(d,'section','card');manualCard.append(el(d,'h3','','UV-32 manual'));
  const link=el(d,'a','','Open Baofeng UV-32 user manual ↗');link.href=manual;link.target='_blank';link.rel='noopener noreferrer';manualCard.append(link);
  manualCard.append(el(d,'p','muted','Radio firmware can change key behavior. Check the display and your assigned SK1 function on the radio.'));
- reference.append(manualCard);workspace.append(reference);target.append(workspace);
+ const testCard=el(d,'section','card');testCard.append(el(d,'h3','','20.55 cable write test'));
+ const steps=el(d,'ol');for(const instruction of [
+  'Close the stock CPS. Turn on the UV-32 and connect its programming cable.',
+  'Choose Read UV-32 by cable and wait for a complete read.',
+  'Change one channel name, then choose Write UV-32 by cable and select the same port.',
+  'Leave the cable connected until the app reports read-back verification. Keep the downloaded backup and write report.'
+ ])steps.append(el(d,'li','',instruction));testCard.append(steps);
+ testCard.append(el(d,'p','muted','If writing stops or verification fails, send the downloaded write-failure report and read the radio again before another write.'));
+ reference.append(manualCard,testCard);workspace.append(reference);target.append(workspace);
 }

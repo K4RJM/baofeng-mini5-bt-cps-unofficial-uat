@@ -2,10 +2,10 @@
 // A UV-32 read populates its own main workspace without loading MINI-5 data.
 import {uv32ReadSessionStatus,isUatPage} from './uat-protocols.mjs?v=20.46';
 import {captureUv32Channels,uv32ReadDiagnostics} from './uat-uv32-read.mjs?v=20.48';
-import {readUv32SerialImage,writeUv32SerialImage} from './uat-uv32-serial.mjs?v=20.54c';
+import {readUv32SerialImage,writeUv32SerialImage} from './uat-uv32-serial.mjs?v=20.55c';
 import {openUv32Capture} from './uat-uv32-capture.mjs?v=20.49';
-import {createUv32Workspace} from './uat-uv32-workspace.mjs?v=20.54c';
-import {uv32ImageFromHex,uv32ImageToHex,uv32Preview,editUv32Channel,editUv32ZoneName,editUv32Dtmf,editUv32Setting,editUv32Vfo,changedUv32Blocks} from './uat-uv32-edit.mjs?v=20.54c';
+import {createUv32Workspace} from './uat-uv32-workspace.mjs?v=20.55c';
+import {uv32ImageFromHex,uv32ImageToHex,uv32Preview,editUv32Channel,editUv32ZoneName,editUv32Dtmf,editUv32Setting,editUv32Vfo,changedUv32Blocks} from './uat-uv32-edit.mjs?v=20.55c';
 
 export function installUv32Reader({radio,run,connect,message,refresh,renderMini5,workspaceStatus}){
  const page=location.href==='about:srcdoc'?document.baseURI:location.href;
@@ -71,7 +71,10 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
   controller=new AbortController();note('Choose the UV-32 programming cable for write and verification…');refresh();
   try{const port=await navigator.serial.requestPort();const result=await writeUv32SerialImage(port,capture,editedImage,{signal:controller.signal,progress:(stage,n,total)=>{const p=$('progress');p.max=total;p.value=n;note(`UV-32 ${stage}: block ${n}/${total}`);}});
    capture=openUv32Capture({...capture,wireHex:uv32ImageToHex(editedImage)});preview=capture;note('UV-32 cable write completed and read-back verified');workspace.render();download({...result,originalCapturedAt:capture.capturedAt},'ham-rx-uv32-write-report.json');
-  }catch(error){note(error.message+' · The radio state may be uncertain; read it again before another write.');throw error;}
+  }catch(error){
+   if(error.uv32WriteReport)download({...error.uv32WriteReport,build:'20.55'},'ham-rx-uv32-write-failure.json');
+   note(error.message+' · The radio state may be uncertain; read it again before another write.');throw error;
+  }
   finally{controller=null;refresh();}
  });
  select.addEventListener('change',()=>{if(select.value==='uv32'){mode.value='with-response';workspace.reset();refresh();note('UV-32 · Ready to read or open a capture');}else{workspace.restoreBrand();renderMini5();refresh();workspaceStatus();}});

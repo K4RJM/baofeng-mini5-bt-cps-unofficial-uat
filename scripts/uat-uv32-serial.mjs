@@ -1,9 +1,9 @@
-// UAT-only UV-32 cable read. No memory-write command is exposed here.
+// UAT-only UV-32 cable read and verified write.
 // Protocol reference: CHIRP baofeng_uv17Pro.py (UV32 -> UV17ProGPS).
-import {UV32_BLOCKS,UV32_CHANNEL_BYTES,uv32ReadCommand,uv32Payload,decodeUv32Channels,uv32WireDecode} from './uat-uv32-read.mjs?v=20.54c';
+import {UV32_BLOCKS,UV32_CHANNEL_BYTES,uv32ReadCommand,uv32Payload,decodeUv32Channels,uv32WireDecode} from './uat-uv32-read.mjs?v=20.55c';
 import {decodeUv32Image} from './uat-uv32-image.mjs';
 import {openUv32Capture} from './uat-uv32-capture.mjs';
-import {uv32ImageFromHex,uv32ImageToHex,changedUv32Blocks} from './uat-uv32-edit.mjs?v=20.54c';
+import {uv32ImageFromHex,uv32ImageToHex,changedUv32Blocks} from './uat-uv32-edit.mjs?v=20.55c';
 
 export const UV32_SERIAL_BAUD=115200;
 // CHIRP UV32 inherits these four discontiguous UV17ProGPS read regions.
@@ -64,8 +64,7 @@ export async function readUv32Serial(port,{signal,progress=()=>{},timeoutMs=4000
  }
 }
 
-// Complete CHIRP-region capture. This is still a read-only evidence artifact;
-// individual settings must be decoded and checked against factory CPS.
+// Complete CHIRP-region capture. Individual settings are decoded separately.
 export async function readUv32SerialImage(port,options={}){
  const regions=UV32_SERIAL_REGIONS;
  return readUv32SerialRegions(port,regions,options);
@@ -116,7 +115,7 @@ export async function writeUv32SerialImage(port,baseline,editedImage,{signal,pro
  const source=openUv32Capture(baseline),original=uv32ImageFromHex(source.wireHex);
  const editedHex=uv32ImageToHex(editedImage),changes=changedUv32Blocks(original,editedImage);
  if(!changes.length)throw Error('No UV-32 edits to write');
- const report={kind:'uv32-cable-write-v1',stage:'preflight',completed:false,identity:null,changedBlocks:changes.length,completedBlocks:0,totalBlocks:526,readBackVerified:false};
+ const report={kind:'uv32-cable-write-v1',stage:'preflight',completed:false,identity:null,changedBlocks:changes.length,completedBlocks:0,totalBlocks:526,preflightMatched:false,readBackVerified:false};
  const check=()=>{if(signal?.aborted)throw Error('UV-32 write cancelled');};
  let reader,writer,opened=false,pending=[];
  const exact=async count=>{const out=[];const end=Date.now()+timeoutMs;while(out.length<count){check();while(pending.length&&out.length<count)out.push(pending.shift());if(out.length===count)break;const remaining=end-Date.now();if(remaining<=0)throw Error(`Cable timeout: expected ${count} bytes, received ${out.length}`);let timer;try{const r=await Promise.race([reader.read(),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error(`Cable timeout: expected ${count} bytes, received ${out.length}`)),remaining);})]);if(r.done)throw Error('Cable disconnected during UV-32 write');pending.push(...r.value);}finally{clearTimeout(timer);}}return Uint8Array.from(out);};
@@ -124,6 +123,7 @@ export async function writeUv32SerialImage(port,baseline,editedImage,{signal,pro
  try{
   const fresh=await readUv32SerialImage(port,{signal,timeoutMs,progress:(n,total)=>progress('preflight',n,total)});
   if(fresh.wireHex!==source.wireHex)throw Error('Radio changed since this capture. Read it again before writing.');
+  report.preflightMatched=true;report.preflightCapturedAt=fresh.capturedAt;
   report.stage='identifying';
   await port.open({baudRate:UV32_SERIAL_BAUD,dataBits:8,stopBits:1,parity:'none',flowControl:'none'});opened=true;
   reader=port.readable.getReader();writer=port.writable.getWriter();

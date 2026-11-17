@@ -1,6 +1,6 @@
 // UAT UV-32 views use Ham-Rx's existing navigation, card, and channel table.
-import {renderUv32Help} from './uat-uv32-help.mjs?v=20.54';
-import {UV32_SETTING_OPTIONS} from './uat-uv32-edit.mjs?v=20.54c';
+import {renderUv32Help} from './uat-uv32-help.mjs?v=20.55';
+import {UV32_SETTING_OPTIONS} from './uat-uv32-edit.mjs?v=20.55c';
 export function createUv32Workspace({document:d,select,getCapture,onEdit,onError}){
  const $=id=>d.getElementById(id),sections=['Channels','Optional settings','VFO A / B','DTMF','Zones','Radio & help'];
  const icons=['☷','⚙','⇄','▦','▤','ⓘ'];
