@@ -3,10 +3,21 @@ import assert from 'node:assert/strict';
 import {openUv32Capture} from '../scripts/uat-uv32-capture.mjs';
 import {uv32ImageFromHex,uv32ImageToHex,uv32Preview,editUv32Channel,moveUv32Channel,insertUv32Channel,editUv32Dtmf,editUv32Setting,editUv32ZoneName,changedUv32Blocks} from '../scripts/uat-uv32-edit.mjs';
 import {writeUv32SerialImage,UV32_SERIAL_REGIONS} from '../scripts/uat-uv32-serial.mjs';
+import {UV32_TONES} from '../scripts/uat-uv32-tones.mjs';
 
 const regionList=UV32_SERIAL_REGIONS.map(x=>[...x]);
 const blank=()=>({kind:'uv32-cable-full-read-v1',completed:true,identity:'UV32PRO',regions:regionList,completedBlocks:526,totalBlocks:526,memoryReads:526,memoryWrites:0,wireHex:'ff'.repeat(0x8380)});
 const image=()=>uv32ImageFromHex(blank().wireHex);
+
+test('UV-32 tone choices round-trip through channel encoding',()=>{
+ for(const value of ['Off','62.5','110.9','D023N','D754R']){
+  assert.ok(UV32_TONES.includes(value));
+  const edited=editUv32Channel(image(),1,{rx:'146.52000',rxTone:value,txTone:value});
+  const channel=uv32Preview(edited).preview.channels[0];
+  assert.equal(channel.rxTone,value);
+  assert.equal(channel.txTone,value);
+ }
+});
 
 test('UV-32 edits preserve unrelated bytes and survive wire re-encoding',()=>{
  const original=image();let edited=editUv32Channel(original,354,{rx:'146.52000',tx:'Off',rxTone:'Off',txTone:'123.0',power:'Medium',bandwidth:'Narrow',scan:'Add',name:'TEST 354'});
