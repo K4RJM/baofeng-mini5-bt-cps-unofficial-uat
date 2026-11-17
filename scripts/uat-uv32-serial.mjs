@@ -2,6 +2,8 @@
 // Protocol reference: CHIRP baofeng_uv17Pro.py (UV32 -> UV17ProGPS).
 import {UV32_BLOCKS,UV32_CHANNEL_BYTES,uv32ReadCommand,uv32Payload,decodeUv32Channels,uv32WireDecode} from './uat-uv32-read.mjs';
 import {decodeUv32Image} from './uat-uv32-image.mjs';
+import {openUv32Capture} from './uat-uv32-capture.mjs';
+import {uv32ImageFromHex,uv32ImageToHex,changedUv32Blocks} from './uat-uv32-edit.mjs';
 
 export const UV32_SERIAL_BAUD=115200;
 // CHIRP UV32 inherits these four discontiguous UV17ProGPS read regions.
@@ -106,4 +108,42 @@ async function readUv32SerialRegions(port,regions,{signal,progress=()=>{},timeou
   report.completed=true;report.stage='complete';return report;
  }catch(error){report.error=error.message;error.uv32ReadReport=report;throw error;}
  finally{try{await reader?.cancel();}catch{}try{reader?.releaseLock();}catch{}try{writer?.releaseLock();}catch{}if(opened)try{await port.close();}catch{}}
+}
+
+// CHIRP's UV-32 upload sends every 64-byte block in the four image regions.
+// A fresh, exact read prevents a stale capture from overwriting a changed radio.
+export async function writeUv32SerialImage(port,baseline,editedImage,{signal,progress=()=>{},timeoutMs=4000}={}){
+ const source=openUv32Capture(baseline),original=uv32ImageFromHex(source.wireHex);
+ const editedHex=uv32ImageToHex(editedImage),changes=changedUv32Blocks(original,editedImage);
+ if(!changes.length)throw Error('No UV-32 edits to write');
+ const report={kind:'uv32-cable-write-v1',stage:'preflight',completed:false,identity:null,changedBlocks:changes.length,completedBlocks:0,totalBlocks:526,readBackVerified:false};
+ const check=()=>{if(signal?.aborted)throw Error('UV-32 write cancelled');};
+ let reader,writer,opened=false,pending=[];
+ const exact=async count=>{const out=[];const end=Date.now()+timeoutMs;while(out.length<count){check();while(pending.length&&out.length<count)out.push(pending.shift());if(out.length===count)break;const remaining=end-Date.now();if(remaining<=0)throw Error(`Cable timeout: expected ${count} bytes, received ${out.length}`);let timer;try{const r=await Promise.race([reader.read(),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error(`Cable timeout: expected ${count} bytes, received ${out.length}`)),remaining);})]);if(r.done)throw Error('Cable disconnected during UV-32 write');pending.push(...r.value);}finally{clearTimeout(timer);}}return Uint8Array.from(out);};
+ const send=async bytes=>{check();await writer.write(bytes);check();};
+ try{
+  const fresh=await readUv32SerialImage(port,{signal,timeoutMs,progress:(n,total)=>progress('preflight',n,total)});
+  if(fresh.wireHex!==source.wireHex)throw Error('Radio changed since this capture. Read it again before writing.');
+  report.stage='identifying';
+  await port.open({baudRate:UV32_SERIAL_BAUD,dataBits:8,stopBits:1,parity:'none',flowControl:'none'});opened=true;
+  reader=port.readable.getReader();writer=port.writable.getWriter();
+  await send(magic);if((await exact(1))[0]!==6)throw Error('UV-32 cable identification not acknowledged');
+  await send(Uint8Array.of(0x46));await exact(16);
+  await send(Uint8Array.of(0x4d));report.identity=new TextDecoder('ascii').decode(await exact(7));
+  if(report.identity!=='UV32PRO')throw Error('UV-32 cable model mismatch: '+report.identity);
+  await send(init);if((await exact(1))[0]!==6)throw Error('UV-32 cable initialization not acknowledged');
+  report.stage='writing';const wire=Uint8Array.from(editedHex.match(/../g),x=>parseInt(x,16));let offset=0;
+  for(const [start,size] of UV32_SERIAL_REGIONS)for(let address=start;address<start+size;address+=64){
+   check();report.attemptedAddress=address;
+   const frame=new Uint8Array(68);frame.set([0x57,address>>8,address&255,64]);frame.set(wire.slice(offset,offset+64),4);
+   await send(frame);if((await exact(1))[0]!==6)throw Error('UV-32 rejected write at 0x'+address.toString(16).padStart(4,'0'));
+   offset+=64;report.completedBlocks++;progress('write',report.completedBlocks,526,address);
+  }
+ }catch(error){report.error=error.message;error.uv32WriteReport=report;throw error;}
+ finally{try{await reader?.cancel();}catch{}try{reader?.releaseLock();}catch{}try{writer?.releaseLock();}catch{}if(opened)try{await port.close();}catch{}}
+ try{
+  report.stage='verifying';const readBack=await readUv32SerialImage(port,{signal,timeoutMs,progress:(n,total)=>progress('verify',n,total)});
+  if(readBack.wireHex!==editedHex)throw Error('UV-32 read-back differs from the edited image');
+  report.completed=true;report.readBackVerified=true;report.stage='complete';return report;
+ }catch(error){report.error=error.message;error.uv32WriteReport=report;throw error;}
 }
