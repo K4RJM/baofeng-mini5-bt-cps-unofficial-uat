@@ -1,5 +1,5 @@
 // UAT-only read-only channel preview. Never loads a capture into the MINI-5 editor.
-import {uv32ReadSessionStatus,isUatPage} from './uat-protocols.mjs?v=20.47';
+import {uv32ReadSessionStatus,isUatPage} from './uat-protocols.mjs?v=20.46';
 import {captureUv32Channels,uv32ReadDiagnostics} from './uat-uv32-read.mjs?v=20.47';
 import {readUv32Serial} from './uat-uv32-serial.mjs?v=20.47';
 export function installUv32Reader({radio,run,connect,message,refresh}){
