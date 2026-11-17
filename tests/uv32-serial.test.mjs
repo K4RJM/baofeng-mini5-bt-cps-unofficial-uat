@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {readUv32Serial,UV32_SERIAL_BAUD} from '../scripts/uat-uv32-serial.mjs';
+import {readUv32Serial,readUv32SerialImage,UV32_SERIAL_BAUD} from '../scripts/uat-uv32-serial.mjs';
 
 function fakePort({badAt=-1,identity='UV32PRO'}={}){
  const replies=[],writes=[];let closed=false,locked=false;
@@ -40,4 +40,18 @@ test('UV-32 cable rejects a malformed block and never continues reading',async()
  const f=fakePort({badAt:3});
  await assert.rejects(readUv32Serial(f.port),error=>{assert.match(error.message,/header/);assert.equal(error.uv32ReadReport.completedBlocks,3);assert.equal(error.uv32ReadReport.memoryReads,4);return true;});
  assert.equal(f.writes.length,8);assert.equal(f.closed,true);
+});
+
+test('UV-32 full cable read covers all CHIRP regions without writes',async()=>{
+ const f=fakePort(),report=await readUv32SerialImage(f.port);
+ assert.equal(report.completedBlocks,526);assert.equal(report.bytes,0x8380);
+ assert.equal(report.memoryWrites,0);assert.deepEqual(Array.from(f.writes.slice(-1)[0]),[0x52,0xd0,0,64]);
+ assert.deepEqual(Array.from(f.writes[4]),[0x52,0,0,64]);
+ assert.deepEqual(Array.from(f.writes[516]),[0x52,0x80,0,64]);
+ assert.deepEqual(Array.from(f.writes[517]),[0x52,0x90,0,64]);
+ assert.deepEqual(Array.from(f.writes[518]),[0x52,0xa0,0,64]);
+ assert.deepEqual(Array.from(f.writes[529]),[0x52,0xd0,0,64]);
+ assert.equal(report.readout.dtmf.entries.length,20);
+ assert.equal(report.readout.zones.length,10);
+ assert.equal(f.closed,true);
 });

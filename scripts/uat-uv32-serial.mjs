@@ -1,8 +1,11 @@
 // UAT-only UV-32 cable read. No memory-write command is exposed here.
 // Protocol reference: CHIRP baofeng_uv17Pro.py (UV32 -> UV17ProGPS).
-import {UV32_BLOCKS,UV32_CHANNEL_BYTES,uv32ReadCommand,uv32Payload,decodeUv32Channels} from './uat-uv32-read.mjs';
+import {UV32_BLOCKS,UV32_CHANNEL_BYTES,uv32ReadCommand,uv32Payload,decodeUv32Channels,uv32WireDecode} from './uat-uv32-read.mjs';
+import {decodeUv32Image} from './uat-uv32-image.mjs';
 
 export const UV32_SERIAL_BAUD=115200;
+// CHIRP UV32 inherits these four discontiguous UV17ProGPS read regions.
+export const UV32_SERIAL_REGIONS=Object.freeze([[0x0000,0x8040],[0x9000,0x0040],[0xa000,0x02c0],[0xd000,0x0040]]);
 const magic=new TextEncoder().encode('PROGRAMCOLORPROU');
 const init=Uint8Array.of(0x53,0x45,0x4e,0x44,0x21,0x05,0x0d,0x01,0x01,0x01,0x04,0x11,0x08,0x05,0x0d,0x0d,0x01,0x11,0x0f,0x09,0x12,0x09,0x10,0x04,0x00);
 const hex=bytes=>Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
@@ -57,4 +60,50 @@ export async function readUv32Serial(port,{signal,progress=()=>{},timeoutMs=4000
   try{await reader?.cancel();}catch{}try{reader?.releaseLock();}catch{}
   try{writer?.releaseLock();}catch{}try{await port.close();}catch(error){if(!readError)throw error;}
  }
+}
+
+// Complete CHIRP-region capture. This is still a read-only evidence artifact;
+// individual settings must be decoded and checked against factory CPS.
+export async function readUv32SerialImage(port,options={}){
+ const regions=UV32_SERIAL_REGIONS;
+ return readUv32SerialRegions(port,regions,options);
+}
+
+async function readUv32SerialRegions(port,regions,{signal,progress=()=>{},timeoutMs=4000}={}){
+ if(!port||!Number.isFinite(timeoutMs)||timeoutMs<1)throw Error('A serial port and positive timeout are required');
+ const totalBlocks=regions.reduce((n,[,size])=>n+size/64,0),parts=[];
+ const report={kind:'uv32-cable-full-read-v1',transport:'Web Serial',baudRate:UV32_SERIAL_BAUD,
+  completed:false,stage:'before-read',regions,completedBlocks:0,totalBlocks,memoryReads:0,memoryWrites:0,
+  capturedAt:new Date().toISOString(),wireHex:''};
+ let reader,writer,opened=false,pending=[];
+ const check=()=>{if(signal?.aborted)throw Error('UV-32 cable read cancelled');};
+ const exact=async count=>{const out=[];const end=Date.now()+timeoutMs;
+  while(out.length<count){check();while(pending.length&&out.length<count)out.push(pending.shift());if(out.length===count)break;
+   if(Date.now()>=end)throw Error(`Cable timeout: expected ${count} bytes, received ${out.length}`);
+   let timer;try{const r=await Promise.race([reader.read(),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error(`Cable timeout: expected ${count} bytes, received ${out.length}`)),end-Date.now());})]);if(r.done)throw Error('Cable disconnected during UV-32 read');pending.push(...r.value);}finally{clearTimeout(timer);}
+  }return Uint8Array.from(out);
+ };
+ const send=async b=>{check();await writer.write(b);check();};
+ try{
+  await port.open({baudRate:UV32_SERIAL_BAUD,dataBits:8,stopBits:1,parity:'none',flowControl:'none'});opened=true;
+  reader=port.readable.getReader();writer=port.writable.getWriter();
+  report.stage='identifying';await send(magic);if((await exact(1))[0]!==6)throw Error('UV-32 cable identification not acknowledged');
+  await send(Uint8Array.of(0x46));report.frequencyResponseHex=hex(await exact(16));
+  await send(Uint8Array.of(0x4d));report.identity=new TextDecoder('ascii').decode(await exact(7));
+  if(report.identity!=='UV32PRO')throw Error('UV-32 cable model mismatch: '+report.identity);
+  await send(init);if((await exact(1))[0]!==6)throw Error('UV-32 cable initialization not acknowledged');
+  report.stage='reading';
+  for(const [start,size] of regions)for(let address=start;address<start+size;address+=64){
+   check();report.attemptedAddress=address;report.memoryReads++;
+   await send(Uint8Array.of(0x52,address>>8,address&255,64));
+   const response=await exact(68);
+   if(response[0]!==0x52||response[1]!==address>>8||response[2]!==(address&255)||response[3]!==64)throw Error('Unexpected UV-32 read header at 0x'+address.toString(16));
+   parts.push(response.slice(4));report.completedBlocks++;progress(report.completedBlocks,totalBlocks,address);
+  }
+  const wire=Uint8Array.from(parts.flatMap(b=>Array.from(b)));
+  report.wireHex=hex(wire);report.bytes=wire.length;report.preview=decodeUv32Channels(wire.slice(0,UV32_CHANNEL_BYTES));
+  report.readout=decodeUv32Image(uv32WireDecode(wire));
+  report.completed=true;report.stage='complete';return report;
+ }catch(error){report.error=error.message;error.uv32ReadReport=report;throw error;}
+ finally{try{await reader?.cancel();}catch{}try{reader?.releaseLock();}catch{}try{writer?.releaseLock();}catch{}if(opened)try{await port.close();}catch{}}
 }
