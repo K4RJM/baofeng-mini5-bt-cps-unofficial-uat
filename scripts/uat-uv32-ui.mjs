@@ -2,9 +2,9 @@
 // A UV-32 read populates its own main workspace without loading MINI-5 data.
 import {uv32ReadSessionStatus,isUatPage} from './uat-protocols.mjs?v=20.46';
 import {captureUv32Channels,uv32ReadDiagnostics} from './uat-uv32-read.mjs?v=20.48';
-import {readUv32SerialImage,writeUv32SerialImage} from './uat-uv32-serial.mjs?v=20.55c';
+import {readUv32SerialImage,writeUv32SerialImage} from './uat-uv32-serial.mjs?v=20.64';
 import {openUv32Capture} from './uat-uv32-capture.mjs?v=20.49';
-import {createUv32Workspace} from './uat-uv32-workspace.mjs?v=20.63';
+import {createUv32Workspace} from './uat-uv32-workspace.mjs?v=20.64';
 import {uv32ImageFromHex,uv32ImageToHex,uv32Preview,editUv32Channel,moveUv32Channel,insertUv32Channel,editUv32ZoneName,editUv32Dtmf,editUv32Setting,editUv32Vfo,changedUv32Blocks} from './uat-uv32-edit.mjs?v=20.56';
 
 export function installUv32Reader({radio,run,connect,message,refresh,renderMini5,workspaceStatus}){
@@ -13,7 +13,9 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
  const d=document,$=id=>d.getElementById(id),select=$('uatProtocol'),mode=$('uatSendMode'),readSend=$('uatUv32ReadSend'),sweep=$('uatUv32Sweep');
  const read=$('uatUv32Read'),cableRead=$('uatUv32CableRead'),cableWrite=$('uatUv32CableWrite'),view=$('uatUv32View'),save=$('uatUv32Save'),cancel=$('uatUv32Cancel'),importButton=$('uatUv32Import'),importInput=$('uatUv32ImportFile'),output=$('uatProtocolResult');
  if([select,mode,readSend,sweep,read,cableRead,cableWrite,view,save,cancel,importButton,importInput,output].some(x=>!x))throw Error('UV-32 controls missing');
- let capture=null,preview=null,editedImage=null,controller=null,undo=[];
+ const traceSave=d.createElement('button');traceSave.id='uatUv32Trace';traceSave.type='button';traceSave.textContent='↧ Save cable trace';traceSave.title='Download the raw Web Serial commands, received chunks, assembled responses, and timing from the latest cable operation.';save.insertAdjacentElement('afterend',traceSave);
+ let capture=null,preview=null,editedImage=null,controller=null,undo=[],lastCableTrace=null;
+ const beginCableTrace=operation=>{const started=performance.now();lastCableTrace={kind:'uv32-web-serial-trace-v1',operation,capturedAt:new Date().toISOString(),completed:false,droppedEvents:0,events:[]};return event=>{if(lastCableTrace.events.length<20000)lastCableTrace.events.push({...event,atMs:Math.round(performance.now()-started)});else lastCableTrace.droppedEvents++;};};
  const workspace=createUv32Workspace({document:d,select,getCapture:()=>preview,canUndo:()=>undo.length>0,onUndo:()=>{
   if(!undo.length)return;editedImage=undo.pop();preview={...capture,...uv32Preview(editedImage),wireHex:uv32ImageToHex(editedImage)};note(`UV-32 edits: ${changedUv32Blocks(uv32ImageFromHex(capture.wireHex),editedImage).length} memory blocks changed`);refresh();
  },onError:text=>note(text),onEdit:(kind,payload)=>{
@@ -29,6 +31,7 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
   const url=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'})),a=d.createElement('a');
   a.href=url;a.download=fileName??(report.memoryReads===0?'ham-rx-uv32-read-diagnostics.json':report.kind==='uv32-cable-full-read-v1'?'ham-rx-uv32-full-read'+(report.completed?'':'-partial')+'.json':'ham-rx-uv32-channels'+(report.completed?'':'-partial')+'.json');d.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
  };
+ traceSave.onclick=()=>{if(lastCableTrace?.events.length)download(lastCableTrace,'ham-rx-uv32-cable-trace.json');};
  importButton.onclick=()=>importInput.click();
  importInput.onchange=async()=>{const file=importInput.files?.[0];importInput.value='';if(!file)return;
   try{if(file.size>250000)throw Error('UV-32 capture is larger than expected');const loaded=openUv32Capture(await file.text());capture=loaded.sourceWireHex?openUv32Capture({...loaded,wireHex:loaded.sourceWireHex}):loaded;editedImage=uv32ImageFromHex(loaded.wireHex);undo=[];preview=loaded;workspace.reset();note('Opened full UV-32 cable capture: '+loaded.preview.channels.length+' populated channels');refresh();}
@@ -55,11 +58,12 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
  cableRead.onclick=()=>run(async()=>{
   if(!navigator.serial||!window.isSecureContext)throw Error('Cable reading requires Web Serial in a secure browser');
   if(radio.connected)throw Error('Disconnect Bluetooth before starting a cable read');
-  controller=new AbortController();note('Choose the UV-32 programming cable…');refresh();
+  controller=new AbortController();const onTrace=beginCableTrace('read');note('Choose the UV-32 programming cable…');refresh();
   try{const port=await navigator.serial.requestPort();note('Reading UV-32 through the cable…');
-   capture=await readUv32SerialImage(port,{signal:controller.signal,progress:(n,total)=>{const p=$('progress');p.max=total;p.value=n;note(`UV-32 cable: block ${n}/${total} · read only`);}});
+   capture=await readUv32SerialImage(port,{signal:controller.signal,onTrace,progress:(n,total)=>{const p=$('progress');p.max=total;p.value=n;note(`UV-32 cable: block ${n}/${total} · read only`);}});
+   lastCableTrace.completed=true;
    editedImage=uv32ImageFromHex(capture.wireHex);undo=[];preview=capture;workspace.reset();note('UV-32 cable read complete: '+capture.preview.channels.length+' populated channels');
-  }catch(error){if(error.uv32ReadReport)capture=error.uv32ReadReport;output.textContent=error.message;throw error;}
+  }catch(error){lastCableTrace.error=error.message;if(error.uv32ReadReport)capture=error.uv32ReadReport;output.textContent=error.message;throw error;}
   finally{controller=null;refresh();}
  });
  cableWrite.onclick=()=>{
@@ -69,10 +73,12 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
   // Web Serial must be requested directly in the button's user activation.
   const portPromise=navigator.serial.requestPort();
   return run(async()=>{
-  controller=new AbortController();note('Choose the UV-32 programming cable…');refresh();
-  try{const port=await portPromise;note('Writing and verifying the complete UV-32 image…');const result=await writeUv32SerialImage(port,capture,editedImage,{signal:controller.signal,progress:(stage,n,total)=>{const p=$('progress');p.max=total;p.value=n;note(`UV-32 ${stage}: block ${n}/${total}`);}});
+  controller=new AbortController();const onTrace=beginCableTrace('write');note('Choose the UV-32 programming cable…');refresh();
+  try{const port=await portPromise;note('Writing and verifying the complete UV-32 image…');const result=await writeUv32SerialImage(port,capture,editedImage,{signal:controller.signal,onTrace,progress:(stage,n,total)=>{const p=$('progress');p.max=total;p.value=n;note(`UV-32 ${stage}: block ${n}/${total}`);}});
+   lastCableTrace.completed=true;
    capture=openUv32Capture({...capture,wireHex:uv32ImageToHex(editedImage)});preview=capture;undo=[];note('UV-32 cable write completed and read-back verified');workspace.render();download({...result,originalCapturedAt:capture.capturedAt},'ham-rx-uv32-write-report.json');
   }catch(error){
+   lastCableTrace.error=error.message;
    if(error.uv32WriteReport){download({...error.uv32WriteReport,build:'20.57'},'ham-rx-uv32-write-failure.json');note(error.message+' · Read the radio again before another write.');}
    else note(error.message);throw error;
   }
@@ -89,6 +95,7 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
   cableRead.disabled=busy||!!radio.connected||!navigator.serial||!window.isSecureContext;
   cableWrite.disabled=busy||!!radio.connected||!navigator.serial||!window.isSecureContext||!editedImage||!capture?.readout;
   view.disabled=busy||!preview;save.disabled=busy;
+  traceSave.hidden=!uv;traceSave.disabled=busy||!lastCableTrace?.events.length;
   save.textContent=capture&&capture.memoryReads>0?'↧ Save UV-32 capture':'↧ Save read diagnostics';
   cancel.hidden=!controller;cancel.disabled=!controller||controller.signal.aborted;
   if(uv){for(const id of ['readRadio','writeRadio','verify'])$(id).disabled=true;$('sourceTag').textContent=preview?(preview.readout?'UV-32 full read':'UV-32 channel read'):'Blank UV-32 workspace';$('connectionHint').textContent='UV-32 Bluetooth programming';}

@@ -65,10 +65,13 @@ function simulatedPort(initial,{badAckAt=-1,alterPreflight=false}={}){
 
 test('UV-32 cable write checks baseline, uploads CHIRP regions, and verifies read-back',async()=>{
  const baseline=blank(),original=uv32ImageFromHex(baseline.wireHex),edited=editUv32Channel(original,1,{rx:'146.52000',tx:'Off',name:'TEST'}),radio=simulatedPort(Uint8Array.from(Buffer.from(baseline.wireHex,'hex')));
- const result=await writeUv32SerialImage(radio.port,baseline,edited);
+ const trace=[],result=await writeUv32SerialImage(radio.port,baseline,edited,{onTrace:event=>trace.push(event)});
  assert.equal(result.completed,true);assert.equal(result.preflightMatched,true);assert.equal(result.readBackVerified,true);assert.equal(result.completedBlocks,526);assert.equal(radio.writeBlocks,526);assert.equal(radio.opens,3);
  assert.deepEqual(Array.from(radio.writes.find(x=>x[0]===0x57).slice(0,4)),[0x57,0,0,64]);
  assert.equal(Buffer.from(radio.memory).toString('hex'),uv32ImageToHex(edited));
+ for(const phase of ['preflight','write','readback'])assert.equal(trace.filter(event=>event.phase===phase&&event.direction==='tx'&&event.hex.startsWith(phase==='write'?'57':'52')).length,526);
+ assert.equal(trace.filter(event=>event.phase==='write'&&event.direction==='rx-frame'&&event.hex==='06').length,528);
+ assert.equal(trace.find(event=>event.phase==='write'&&event.direction==='tx'&&event.hex.startsWith('57'))?.length,68);
 });
 
 test('UV-32 unchanged full image can be written and verified',async()=>{

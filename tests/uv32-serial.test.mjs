@@ -43,7 +43,7 @@ test('UV-32 cable rejects a malformed block and never continues reading',async()
 });
 
 test('UV-32 full cable read covers all CHIRP regions without writes',async()=>{
- const f=fakePort(),report=await readUv32SerialImage(f.port);
+ const f=fakePort(),trace=[],report=await readUv32SerialImage(f.port,{onTrace:event=>trace.push(event)});
  assert.equal(report.completedBlocks,526);assert.equal(report.bytes,0x8380);
  assert.equal(report.memoryWrites,0);assert.deepEqual(Array.from(f.writes.slice(-1)[0]),[0x52,0xd0,0,64]);
  assert.deepEqual(Array.from(f.writes[4]),[0x52,0,0,64]);
@@ -53,5 +53,10 @@ test('UV-32 full cable read covers all CHIRP regions without writes',async()=>{
  assert.deepEqual(Array.from(f.writes[529]),[0x52,0xd0,0,64]);
  assert.equal(report.readout.dtmf.entries.length,20);
  assert.equal(report.readout.zones.length,10);
+ assert.equal(trace.filter(event=>event.direction==='tx'&&event.hex.startsWith('52')).length,526);
+ assert.equal(trace.filter(event=>event.direction==='rx-frame'&&event.length===68).length,526);
+ assert.equal(trace[0].hex,Buffer.from('PROGRAMCOLORPROU').toString('hex'));
+ assert.equal(trace[0].phase,'read');
+ assert.equal(trace.at(-1).hex.slice(0,8),'52d00040');
  assert.equal(f.closed,true);
 });

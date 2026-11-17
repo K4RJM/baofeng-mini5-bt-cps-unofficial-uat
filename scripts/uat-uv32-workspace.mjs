@@ -1,5 +1,5 @@
 // UAT UV-32 views use Ham-Rx's existing navigation, card, and channel table.
-import {renderUv32Help} from './uat-uv32-help.mjs?v=20.55';
+import {renderUv32Help} from './uat-uv32-help.mjs?v=20.64';
 import {UV32_SETTING_OPTIONS} from './uat-uv32-edit.mjs?v=20.55c';
 import {UV32_TONES,addUv32ToneOptions} from './uat-uv32-tones.mjs?v=20.61';
 const SQ_LABELS={'Code 0':'QT/DQT','Code 1':'QT/DQT*DTMF','Code 2':'QT/DQT+DTMF','Code 3':'Unknown (code 3)'};
@@ -137,7 +137,7 @@ export function createUv32Workspace({document:d,select,getCapture,onEdit,onUndo,
    settings.append(left,right);card.append(settings);content.append(card);
   }else if(section==='Zones'){
    if(!readout){content.append(empty());return;}const card=box('UV-32 zones');for(const z of readout.zones)card.append(field('Zone '+String(z.number).padStart(2,'0'),z.name,value=>onEdit('zone',{number:z.number,value})));content.append(card);
-  }else{renderUv32Help(d,content);}
+  }else{renderUv32Help(d,content,readout);}
  };
  function renderChannels(content,capture){
   const selected=new Set(),editable=!!capture?.readout;
