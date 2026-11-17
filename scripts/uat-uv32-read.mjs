@@ -69,7 +69,7 @@ export function uv32ReadDiagnostics(radio,{readSendMode='with-response',interBlo
  return {kind:'uv32-channel-read-v1',completed:false,stage:'before-read',scope:'Channel records only; not a complete codeplug or firmware backup',
   model:'UV32PRO',requestedReadSendMode:readSendMode,handshakeSendMethod:'writeValueWithResponse',sendMethod:null,startAddress:0,endAddressExclusive:32000,
   blockBytes:64,totalBlocks:500,completedBlocks:0,memoryReads:0,memoryWrites:0,headers:[],
-  bytes:0,wireHex:'',interBlockDelayMs,sessionAtStart:uv32ReadSessionStatus(radio),capturedAt:new Date().toISOString()};
+  bytes:0,wireHex:'',interBlockDelayMs,strayStatuses:[],sessionAtStart:uv32ReadSessionStatus(radio),capturedAt:new Date().toISOString()};
 }
 export async function readUv32Channels(radio,{progress=()=>{},status=()=>{},signal,readSendMode='with-response',diagnosticSweep=false,interBlockDelayMs=UV32_INTER_BLOCK_MS}={}){
  // Only a completed, current, With-response UV32PRO handshake can issue this capability.
@@ -112,6 +112,15 @@ export async function readUv32Channels(radio,{progress=()=>{},status=()=>{},sign
     const pendingHex=hex(Uint8Array.from(radio.rx.slice(0,256)));
     const discardedHex=await settle();
     report.anomalies.push({address,kind:'unsolicited-before-request',pendingHex,discardedHex});
+   }
+   if(!diagnosticSweep&&radio.rx.length){
+    const pendingHex=hex(Uint8Array.from(radio.rx.slice(0,256)));
+    if(!/^(06|0600)$/.test(pendingHex))throw Error('Unexpected buffered response before UV-32 read');
+    if(report.strayStatuses.length>=8)throw Error('UV-32 response stream has too many stray status bytes');
+    const discardedHex=await settle();
+    if(!/^(06|0600)$/.test(discardedHex))throw Error('Unexpected buffered response before UV-32 read');
+    report.strayStatuses.push({afterBlock:report.completedBlocks,beforeAddress:address,hex:discardedHex});
+    report.readPhase='between-blocks';
    }
    if(radio.rx.length)throw Error('Unexpected buffered response before UV-32 read');
    if(address===0)report.firstReadAfterHandshakeMs=Date.now()-Date.parse(session.identity.capturedAt);

@@ -245,6 +245,19 @@ test('Slower UV-32 read choices apply to every gap without changing commands',as
   }finally{h.close();}
  }
 });
+test('A stray ACK between complete blocks is drained before the next read without skipping data',async()=>{
+ const h=setup();try{
+  await h.identify();const delays=[],pause=h.radio.pause.bind(h.radio);
+  h.radio.pause=ms=>{delays.push(ms);if(ms===3500)h.radio.receive(new DataView(Uint8Array.of(0).buffer));return ms===250?Promise.resolve():pause(0);};
+  const r=await readUv32Channels(h.radio,{interBlockDelayMs:250,progress:n=>{
+   if(n===120)h.radio.receive(new DataView(Uint8Array.of(6).buffer));
+  }});
+  assert.equal(r.completed,true);assert.equal(r.completedBlocks,500);assert.equal(r.bytes,32000);
+  assert.deepEqual(r.strayStatuses,[{afterBlock:120,beforeAddress:7680,hex:'0600'}]);
+  assert.equal(h.fake.reads,500);assert.equal(h.fake.writes,0);assert.ok(delays.includes(3500));
+  assert.equal(r.wireHex,Buffer.from(h.fake.raw.slice(0,32000)).toString('hex'));
+ }finally{h.close();}
+});
 test('Unsupported UV-32 read pace stops before connecting',async()=>{
  const h=setup();try{
   await assert.rejects(captureUv32Channels(h.radio,{connect:()=>{throw Error('Must not connect');},interBlockDelayMs:75}),/supported UV-32 Bluetooth read pace/);
