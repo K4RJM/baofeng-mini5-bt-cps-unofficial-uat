@@ -386,7 +386,7 @@ document.getElementById('start').onclick=async()=>{
    [...id('tabs').querySelectorAll('button')].find(x=>x.textContent.includes('Optional settings')).click();
    const columns=[...h.d.querySelectorAll('.uv32-cps-column')];
    assert(columns.length===3&&columns[0].querySelector('dt')?.textContent==='SQL'&&columns[1].querySelector('dt')?.textContent==='Language'&&columns[2].querySelector('dt')?.textContent==='CH.A Display Type','Radio Function follows the factory CPS three-column order');
-   assert(columns.flatMap(c=>[...c.querySelectorAll('output')]).length===35&&!h.d.querySelector('.uv32-cps-grid input, .uv32-cps-grid select'),'Captured settings have read-only value fields');
+   assert(columns.flatMap(c=>[...c.querySelectorAll('output, select')]).length===35&&h.d.querySelector('.uv32-cps-grid select[aria-label="SQL"]')&&!h.d.querySelector('.uv32-cps-grid input'),'Captured settings show editable mapped controls and retained values');
    [...id('tabs').querySelectorAll('button')].find(x=>x.textContent.includes('Radio & help')).click();
    assert(h.d.querySelector('.uv32-radio-drawing img')?.getAttribute('src')==='assets/uv32-blue.jpg'&&h.d.querySelectorAll('.uv32-radio-drawing .radio-key').length>=20,'UV-32 help uses its own graphic and interactive keys');
    h.d.querySelector('[data-radio-key="sk1"]').click();
