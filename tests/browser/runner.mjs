@@ -1,4 +1,4 @@
-import {BROWSER_SUITE_VERSION,BROWSER_CHECK_COUNT,browserBuildError} from './revision.mjs?v=20.52';
+import {BROWSER_SUITE_VERSION,BROWSER_CHECK_COUNT,browserBuildError} from './revision.mjs?v=20.53';
 import {rdtFixture} from '../rdt-fixtures.mjs?v=20.33';
 import {readImage} from '../../image-files.mjs?v=20.31';
 import {csvFixture,csvHeads} from '../csv-fixtures.mjs?v=20.31';
@@ -11,7 +11,7 @@ async function fresh(mode='normal'){
  frame?.contentWindow.f13?.fake.close();frame?.remove();
  let html=await fetch(new URL('index.html',root),{cache:'no-store'}).then(r=>r.text());
  const match=html.match(/<script type="module" src="(app\.mjs[^\"]*)"><\/script>/);assert(match,'Actual application module exists');
- const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.52',root).href}"><\/script>`;
+ const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.53',root).href}"><\/script>`;
  html=html.replace('<head>','<head><base href="'+root.href+'">').replace(match[0],script);
  frame=document.createElement('iframe');frame.title='Isolated CPS test application';frame.setAttribute('allow',"bluetooth 'none'");frame.srcdoc=html;document.getElementById('workspace').append(frame);
  await until(()=>frame.contentWindow.f13?.ready||frame.contentWindow.f13?.failed,'application bootstrap');
@@ -383,6 +383,15 @@ document.getElementById('start').onclick=async()=>{
    assert(id('channelTableWrap').textContent.includes('No UV-32 capture loaded yet.')===false&&!id('uatUv32View').disabled,'Cable read uses the main channel workspace');
    assert([...id('tabs').querySelectorAll('button')].some(x=>x.textContent.includes('Zones')),'Full cable read adds UV-32 settings navigation');
    assert(id('uv32Zone').options.length===11,'Full read offers all ten zones');
+   [...id('tabs').querySelectorAll('button')].find(x=>x.textContent.includes('Optional settings')).click();
+   const columns=[...h.d.querySelectorAll('.uv32-cps-column')];
+   assert(columns.length===3&&columns[0].querySelector('dt')?.textContent==='SQL'&&columns[1].querySelector('dt')?.textContent==='Language'&&columns[2].querySelector('dt')?.textContent==='CH.A Display Type','Radio Function follows the factory CPS three-column order');
+   assert(columns.flatMap(c=>[...c.querySelectorAll('output')]).length===35&&!h.d.querySelector('.uv32-cps-grid input, .uv32-cps-grid select'),'Captured settings have read-only value fields');
+   [...id('tabs').querySelectorAll('button')].find(x=>x.textContent.includes('Radio & help')).click();
+   assert(h.d.querySelector('.uv32-radio-drawing img')?.getAttribute('src')==='assets/uv32-blue.jpg'&&h.d.querySelectorAll('.uv32-radio-drawing .radio-key').length>=20,'UV-32 help uses its own graphic and interactive keys');
+   h.d.querySelector('[data-radio-key="sk1"]').click();
+   assert(id('uv32RadioTutorialPanel').textContent.includes('assigned shortcut')&&id('uv32RadioTutorialPanel').textContent.includes('emergency alarm'),'UV-32 help explains the side key functions');
+   [...id('tabs').querySelectorAll('button')].find(x=>x.textContent.includes('Channels')).click();
    id('uv32Zone').value='2';id('uv32Zone').dispatchEvent(new h.w.Event('change'));
    assert(id('channelTableWrap').textContent.includes('No channels in this view.'),'Zone filter keeps channel slots in their bank');
    const saved={kind:'uv32-cable-full-read-v1',identity:'UV32PRO',completed:true,regions:[[0,32832],[36864,64],[40960,704],[53248,64]],completedBlocks:526,totalBlocks:526,memoryReads:526,memoryWrites:0,wireHex:'ff'.repeat(33664),preview:{channels:[{name:'forged'}]}};

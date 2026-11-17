@@ -27,7 +27,7 @@ const maps={
  'Power On Dls Type':{0:'Logo'},'VOX Dly Time':{5:'1.0 s'},
  'Menu Quit Timer':{10:'60 s'},'TOT Alarm':{0:'Off'},'QT Save Mode':{0:'Both'},
  'GPS Mode':{2:'GPS + Beidou'},'Skey1 Short':{0:'FM'},
- 'Dual Standby':onoff,'FM':{0:'Enable'},'Key Lock':onoff,'Key Auto Lock':onoff,
+ 'Dual Standby':onoff,'FM':{0:'Enable'},'Key Lock':onoff,'Key Auto Lock':onoff,'Sound Alarm':onoff,
  'VOX Switch':onoff,'GPS Switch':onoff,'Enable Menu Rst':onoff,'Roger':onoff,
  'Scan Mode':['Time','Carrier','Search'],'Language':['English','Chinese'],
  'CH.A Display Type':['Name','Frequency','Channel Number'],'CH.B Display Type':['Name','Frequency','Channel Number'],

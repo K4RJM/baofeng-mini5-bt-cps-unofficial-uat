@@ -1,5 +1,6 @@
 // UAT UV-32 views use Ham-Rx's existing navigation, card, and channel table.
 // This module renders captured data only; it never invokes MINI-5 editors.
+import {renderUv32Help} from './uat-uv32-help.mjs?v=20.53';
 export function createUv32Workspace({document:d,select,getCapture}){
  const $=id=>d.getElementById(id),sections=['Channels','Optional settings','VFO A / B','DTMF','Zones','Radio & help'];
  const icons=['☷','⚙','⇄','▦','▤','ⓘ'];
@@ -7,6 +8,27 @@ export function createUv32Workspace({document:d,select,getCapture}){
  const el=(tag,cls,text)=>{const node=d.createElement(tag);if(cls)node.className=cls;if(text!==undefined)node.textContent=String(text);return node;};
  const button=(label,action)=>{const node=el('button','',label);node.type='button';node.onclick=action;return node;};
  const pairs=(items)=>{const list=el('dl','uv32-fields');for(const [label,value] of items){list.append(el('dt','',label),el('dd','',value));}return list;};
+ const cpsColumns=[
+  ['SQL','TOT','Save Mode','TOT Alarm','Dual Standby','Pilot Tone','Sidetone','Tail Clear','Power On Dis Type','Beep','Roger'],
+  ['Language','Scan Mode','Alarm Mode','Sound Alarm','Key Lock','FM','Key Auto Lock','Menu Quit Timer','Backlight Timer','Send ID Delay','QT Save Mode','Skey1 Short'],
+  ['CH.A Display Type','Work Mode A','CH.B Display Type','Work Mode B','Rpt Tail Clear','Rpt Tail Delay','Enable Menu Rst','Vox Switch','Vox Lv','Vox Dly Time','GPS Switch','GPS Mode']
+ ];
+ const cpsAliases={'Power On Dis Type':'Power On Dls Type','Vox Switch':'VOX Switch','Vox Lv':'VOX level','Vox Dly Time':'VOX Dly Time'};
+ const radioFunction=fields=>{
+  const values=new Map(fields),work=String(values.get('Work Modes')??'');
+  const modes=work.match(/^A (\d+), B (\d+)$/);
+  if(modes){values.set('Work Mode A',modes[1]==='1'?'Ch Mode':`Code ${modes[1]}`);values.set('Work Mode B',modes[2]==='1'?'Ch Mode':`Code ${modes[2]}`);}
+  const grid=el('div','uv32-cps-grid');
+  for(const names of cpsColumns){const column=el('dl','uv32-cps-column');for(const name of names){
+   const row=el('div','uv32-cps-field'),source=cpsAliases[name]??name,raw=values.get(source);
+   const label=el('dt','',name),cell=el('dd'),output=el('output','uv32-cps-value',raw===undefined?'Not captured':raw);
+   output.title='Read-only radio capture';cell.append(output);row.append(label,cell);column.append(row);
+  }grid.append(column);}
+  const used=new Set(cpsColumns.flat().map(name=>cpsAliases[name]??name));used.add('Work Modes');
+  const extras=fields.filter(([name])=>!used.has(name));
+  const details=el('details','uv32-cps-extras');details.append(el('summary','','Additional captured settings'),pairs(extras));
+  const wrap=el('div','uv32-cps-function');wrap.append(grid,details);return wrap;
+ };
  const box=(title)=>{const card=el('section','card');card.append(el('h3','',title));return card;};
  const empty=()=>el('p','muted','Open a complete UV-32 cable capture or read the radio to see this section.');
  const render=()=>{
@@ -25,7 +47,7 @@ export function createUv32Workspace({document:d,select,getCapture}){
   const content=$('content');content.replaceChildren();
   if(section==='Channels')renderChannels(content,capture);
   else if(section==='Optional settings'){
-   if(!readout){content.append(empty());return;}const card=box('Radio Function');card.append(pairs(readout.functionFields));content.append(card);
+   if(!readout){content.append(empty());return;}const card=box('Radio Function');card.append(radioFunction(readout.functionFields));content.append(card);
   }else if(section==='VFO A / B'){
    if(!readout){content.append(empty());return;}const wrap=el('div','uv32-vfo-grid');for(const [name,fields] of [['VFO A',readout.vfoA],['VFO B',readout.vfoB]]){const card=box(name);card.append(pairs(fields));wrap.append(card);}content.append(wrap);
   }else if(section==='DTMF'){
@@ -33,7 +55,7 @@ export function createUv32Workspace({document:d,select,getCapture}){
    for(const entry of readout.dtmf.entries){const tr=el('tr');for(const value of [entry.number,entry.code,entry.name])tr.append(el('td','',value));table.tBodies[0].append(tr);}card.append(table);content.append(card);
   }else if(section==='Zones'){
    if(!readout){content.append(empty());return;}const card=box('UV-32 zones');card.append(pairs(readout.zones.map(z=>['Zone '+String(z.number).padStart(2,'0'),z.name||'(unnamed)'])));content.append(card);
-  }else{const card=box('UV-32 readout');card.append(el('p','muted',capture?'Capture loaded from the UV-32. Channel and settings views are read only.':'Choose Read UV-32 by cable or Open UV-32 capture from File & radio.'));content.append(card);}
+  }else{renderUv32Help(d,content);}
  };
  function renderChannels(content,capture){
   const card=el('section','card channel-card'),guide=el('details','feature-guide');guide.append(el('summary','','How to browse UV-32 channels'),el('p','','Choose a zone, search channels, or show empty slots. Changes to the radio are not available in this build.'));card.append(guide);
