@@ -1,18 +1,18 @@
 // UAT UV-32 controls live in the existing Ham-Rx header and left sidebar.
 // A UV-32 read populates its own main workspace without loading MINI-5 data.
 import {uv32ReadSessionStatus,isUatPage} from './uat-protocols.mjs?v=20.46';
-import {captureUv32Channels,uv32ReadDiagnostics} from './uat-uv32-read.mjs?v=20.48';
-import {readUv32SerialImage,writeUv32SerialImage} from './uat-uv32-serial.mjs?v=20.65';
+import {captureUv32Channels,uv32ReadDiagnostics} from './uat-uv32-read.mjs?v=20.66';
+import {readUv32SerialImage,writeUv32SerialImage} from './uat-uv32-serial.mjs?v=20.66';
 import {openUv32Capture} from './uat-uv32-capture.mjs?v=20.49';
-import {createUv32Workspace} from './uat-uv32-workspace.mjs?v=20.65';
+import {createUv32Workspace} from './uat-uv32-workspace.mjs?v=20.66';
 import {uv32ImageFromHex,uv32ImageToHex,uv32Preview,editUv32Channel,moveUv32Channel,insertUv32Channel,editUv32ZoneName,editUv32Dtmf,editUv32Setting,editUv32Vfo,changedUv32Blocks} from './uat-uv32-edit.mjs?v=20.56';
 
 export function installUv32Reader({radio,run,connect,message,refresh,renderMini5,workspaceStatus}){
  const page=location.href==='about:srcdoc'?document.baseURI:location.href;
  if(!isUatPage(new URL('./uat-protocols.mjs',import.meta.url).href,page))return null;
- const d=document,$=id=>d.getElementById(id),select=$('uatProtocol'),mode=$('uatSendMode'),readSend=$('uatUv32ReadSend'),sweep=$('uatUv32Sweep');
+ const d=document,$=id=>d.getElementById(id),select=$('uatProtocol'),mode=$('uatSendMode'),readSend=$('uatUv32ReadSend'),readPace=$('uatUv32ReadPace'),sweep=$('uatUv32Sweep');
  const read=$('uatUv32Read'),cableRead=$('uatUv32CableRead'),cableWrite=$('uatUv32CableWrite'),view=$('uatUv32View'),save=$('uatUv32Save'),cancel=$('uatUv32Cancel'),importButton=$('uatUv32Import'),importInput=$('uatUv32ImportFile'),output=$('uatProtocolResult');
- if([select,mode,readSend,sweep,read,cableRead,cableWrite,view,save,cancel,importButton,importInput,output].some(x=>!x))throw Error('UV-32 controls missing');
+ if([select,mode,readSend,readPace,sweep,read,cableRead,cableWrite,view,save,cancel,importButton,importInput,output].some(x=>!x))throw Error('UV-32 controls missing');
  const traceSave=d.createElement('button');traceSave.id='uatUv32Trace';traceSave.type='button';traceSave.textContent='↧ Save cable trace';traceSave.title='Download the raw Web Serial commands, received chunks, assembled responses, and timing from the latest cable operation.';save.insertAdjacentElement('afterend',traceSave);
  let capture=null,preview=null,editedImage=null,controller=null,undo=[],lastCableTrace=null;
  const beginCableTrace=operation=>{const started=performance.now();lastCableTrace={kind:'uv32-web-serial-trace-v1',operation,capturedAt:new Date().toISOString(),completed:false,droppedEvents:0,events:[]};return event=>{if(lastCableTrace.events.length<20000)lastCableTrace.events.push({...event,atMs:Math.round(performance.now()-started)});else lastCableTrace.droppedEvents++;};};
@@ -38,12 +38,12 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
   catch(error){note(error.message);refresh();}
  };
  view.onclick=()=>workspace.render();
- save.onclick=()=>{const edited=preview?.readout&&editedImage&&capture&&changedUv32Blocks(uv32ImageFromHex(capture.wireHex),editedImage).length;download(edited?{...preview,sourceWireHex:capture.wireHex}:capture??uv32ReadDiagnostics(radio,{readSendMode:readSend.value}),edited?'ham-rx-uv32-edited-capture.json':undefined);};
+ save.onclick=()=>{const edited=preview?.readout&&editedImage&&capture&&changedUv32Blocks(uv32ImageFromHex(capture.wireHex),editedImage).length;download(edited?{...preview,sourceWireHex:capture.wireHex}:capture??uv32ReadDiagnostics(radio,{readSendMode:readSend.value,interBlockDelayMs:Number(readPace.value)}),edited?'ham-rx-uv32-edited-capture.json':undefined);};
  cancel.onclick=()=>{controller?.abort();cancel.disabled=true;note('Stopping UV-32 read after the current request…');};
  read.onclick=()=>run(async()=>{
-  const uiSessionAtClick=uv32ReadSessionStatus(radio),readSendMode=readSend.value,diagnosticSweep=sweep.checked;
+  const uiSessionAtClick=uv32ReadSessionStatus(radio),readSendMode=readSend.value,diagnosticSweep=sweep.checked,interBlockDelayMs=Number(readPace.value);
   controller=new AbortController();note('Reading UV-32 channels…');refresh();
-  try{capture=await captureUv32Channels(radio,{connect,readSendMode,diagnosticSweep,signal:controller.signal,
+  try{capture=await captureUv32Channels(radio,{connect,readSendMode,diagnosticSweep,interBlockDelayMs,signal:controller.signal,
    stage:note,progress:(n,total)=>{const p=$('progress');p.max=total;p.value=n;},status:state=>{
     const address='0x'+state.address.toString(16).padStart(4,'0').toUpperCase();note(`UV-32 ${state.phase}: block ${state.block}/${state.total} (${address}) · valid ${state.valid} · errors ${state.errors}`);
    }});capture.uiSessionAtClick=uiSessionAtClick;
@@ -88,9 +88,9 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
  select.addEventListener('change',()=>{if(select.value==='uv32'){mode.value='with-response';workspace.reset();refresh();note('UV-32 · Ready to read or open a capture');}else{workspace.restoreBrand();renderMini5();refresh();workspaceStatus();}});
  mode.addEventListener('change',refresh);readSend.addEventListener('change',refresh);
  return {sync(busy){const uv=select.value==='uv32';
-  for(const id of ['uatUv32Read','uatUv32CableRead','uatUv32CableWrite','uatUv32View','uatUv32Save','uatUv32Import','uatUv32ReadSendControl','uatUv32SweepControl'])$(id).hidden=!uv;
+  for(const id of ['uatUv32Read','uatUv32CableRead','uatUv32CableWrite','uatUv32View','uatUv32Save','uatUv32Import','uatUv32ReadSendControl','uatUv32ReadPaceControl','uatUv32SweepControl'])$(id).hidden=!uv;
   for(const id of ['open','appendChannels','save','saveImg','readRadio','writeRadio','verify','backup'])$(id).hidden=uv;
-  readSend.disabled=busy;sweep.disabled=busy;importButton.disabled=busy;
+  readSend.disabled=busy;readPace.disabled=busy;sweep.disabled=busy;importButton.disabled=busy;
   read.disabled=busy||!navigator.bluetooth||!window.isSecureContext;
   cableRead.disabled=busy||!!radio.connected||!navigator.serial||!window.isSecureContext;
   cableWrite.disabled=busy||!!radio.connected||!navigator.serial||!window.isSecureContext||!editedImage||!capture?.readout;

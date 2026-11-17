@@ -233,6 +233,24 @@ test('Paced UV-32 reads yield between blocks, retain a bounded trace and restore
   assert.equal(h.radio.receive,original);assert.equal(Object.hasOwn(h.radio,'receive'),own);
  }finally{h.close();}
 });
+test('Slower UV-32 read choices apply to every gap without changing commands',async()=>{
+ for(const ms of [100,250]){
+  const h=setup();try{
+   await h.identify();const delays=[];
+   h.radio.pause=delay=>{delays.push(delay);return Promise.resolve();};
+   const r=await readUv32Channels(h.radio,{interBlockDelayMs:ms});
+   assert.equal(r.completed,true);assert.equal(r.interBlockDelayMs,ms);
+   assert.equal(delays.length,499);assert.ok(delays.every(delay=>delay===ms));
+   assert.equal(h.fake.reads,500);assert.equal(h.fake.writes,0);
+  }finally{h.close();}
+ }
+});
+test('Unsupported UV-32 read pace stops before connecting',async()=>{
+ const h=setup();try{
+  await assert.rejects(captureUv32Channels(h.radio,{connect:()=>{throw Error('Must not connect');},interBlockDelayMs:75}),/supported UV-32 Bluetooth read pace/);
+  assert.equal(h.fake.sent.length,0);assert.equal(h.fake.reads,0);
+ }finally{h.close();}
+});
 test('The physical malformed 52470680 header remains rejected and its received bytes are traced',async()=>{
  const h=setup();try{
   await h.identify();const original=h.radio.receive;let attempts=0;
