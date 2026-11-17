@@ -2,10 +2,10 @@
 // A UV-32 read populates its own main workspace without loading MINI-5 data.
 import {uv32ReadSessionStatus,isUatPage} from './uat-protocols.mjs?v=20.46';
 import {captureUv32Channels,uv32ReadDiagnostics} from './uat-uv32-read.mjs?v=20.48';
-import {readUv32SerialImage,writeUv32SerialImage} from './uat-uv32-serial.mjs?v=20.54b';
+import {readUv32SerialImage,writeUv32SerialImage} from './uat-uv32-serial.mjs?v=20.54c';
 import {openUv32Capture} from './uat-uv32-capture.mjs?v=20.49';
-import {createUv32Workspace} from './uat-uv32-workspace.mjs?v=20.54b';
-import {uv32ImageFromHex,uv32ImageToHex,uv32Preview,editUv32Channel,editUv32ZoneName,editUv32Dtmf,editUv32Setting,editUv32Vfo,changedUv32Blocks} from './uat-uv32-edit.mjs?v=20.54b';
+import {createUv32Workspace} from './uat-uv32-workspace.mjs?v=20.54c';
+import {uv32ImageFromHex,uv32ImageToHex,uv32Preview,editUv32Channel,editUv32ZoneName,editUv32Dtmf,editUv32Setting,editUv32Vfo,changedUv32Blocks} from './uat-uv32-edit.mjs?v=20.54c';
 
 export function installUv32Reader({radio,run,connect,message,refresh,renderMini5,workspaceStatus}){
  const page=location.href==='about:srcdoc'?document.baseURI:location.href;

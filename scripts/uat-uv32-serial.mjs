@@ -1,9 +1,9 @@
 // UAT-only UV-32 cable read. No memory-write command is exposed here.
 // Protocol reference: CHIRP baofeng_uv17Pro.py (UV32 -> UV17ProGPS).
-import {UV32_BLOCKS,UV32_CHANNEL_BYTES,uv32ReadCommand,uv32Payload,decodeUv32Channels,uv32WireDecode} from './uat-uv32-read.mjs?v=20.54b';
+import {UV32_BLOCKS,UV32_CHANNEL_BYTES,uv32ReadCommand,uv32Payload,decodeUv32Channels,uv32WireDecode} from './uat-uv32-read.mjs?v=20.54c';
 import {decodeUv32Image} from './uat-uv32-image.mjs';
 import {openUv32Capture} from './uat-uv32-capture.mjs';
-import {uv32ImageFromHex,uv32ImageToHex,changedUv32Blocks} from './uat-uv32-edit.mjs';
+import {uv32ImageFromHex,uv32ImageToHex,changedUv32Blocks} from './uat-uv32-edit.mjs?v=20.54c';
 
 export const UV32_SERIAL_BAUD=115200;
 // CHIRP UV32 inherits these four discontiguous UV17ProGPS read regions.

@@ -1,6 +1,6 @@
 // UV-32 edits operate on a copy of a complete, decoded CHIRP-region image.
 // All offsets are in image order, not physical radio addresses.
-import {DCS,decodeUv32Channels,uv32WireDecode} from './uat-uv32-read.mjs?v=20.54b';
+import {DCS,decodeUv32Channels,uv32WireDecode} from './uat-uv32-read.mjs?v=20.54c';
 import {UV32_IMAGE_BYTES,decodeUv32Image} from './uat-uv32-image.mjs';
 
 const assertImage=image=>{if(!(image instanceof Uint8Array)||image.length!==UV32_IMAGE_BYTES)throw Error('A complete UV-32 image is required');};
