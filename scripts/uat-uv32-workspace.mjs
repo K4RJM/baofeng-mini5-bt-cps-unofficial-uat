@@ -1,5 +1,5 @@
 // UAT UV-32 views use Ham-Rx's existing navigation, card, and channel table.
-import {renderUv32Help} from './uat-uv32-help.mjs?v=20.65';
+import {renderUv32Help} from './uat-uv32-help.mjs?v=20.70';
 import {UV32_SETTING_OPTIONS} from './uat-uv32-edit.mjs?v=20.55c';
 import {UV32_TONES,addUv32ToneOptions} from './uat-uv32-tones.mjs?v=20.61';
 const SQ_LABELS={'Code 0':'QT/DQT','Code 1':'QT/DQT*DTMF','Code 2':'QT/DQT+DTMF','Code 3':'Unknown (code 3)'};
