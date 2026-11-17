@@ -4,8 +4,8 @@ import {uv32ReadSessionStatus,isUatPage} from './uat-protocols.mjs?v=20.46';
 import {captureUv32Channels,uv32ReadDiagnostics} from './uat-uv32-read.mjs?v=20.48';
 import {readUv32SerialImage,writeUv32SerialImage} from './uat-uv32-serial.mjs?v=20.55c';
 import {openUv32Capture} from './uat-uv32-capture.mjs?v=20.49';
-import {createUv32Workspace} from './uat-uv32-workspace.mjs?v=20.55c';
-import {uv32ImageFromHex,uv32ImageToHex,uv32Preview,editUv32Channel,editUv32ZoneName,editUv32Dtmf,editUv32Setting,editUv32Vfo,changedUv32Blocks} from './uat-uv32-edit.mjs?v=20.55c';
+import {createUv32Workspace} from './uat-uv32-workspace.mjs?v=20.56';
+import {uv32ImageFromHex,uv32ImageToHex,uv32Preview,editUv32Channel,moveUv32Channel,insertUv32Channel,editUv32ZoneName,editUv32Dtmf,editUv32Setting,editUv32Vfo,changedUv32Blocks} from './uat-uv32-edit.mjs?v=20.56';
 
 export function installUv32Reader({radio,run,connect,message,refresh,renderMini5,workspaceStatus}){
  const page=location.href==='about:srcdoc'?document.baseURI:location.href;
@@ -13,11 +13,13 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
  const d=document,$=id=>d.getElementById(id),select=$('uatProtocol'),mode=$('uatSendMode'),readSend=$('uatUv32ReadSend'),sweep=$('uatUv32Sweep');
  const read=$('uatUv32Read'),cableRead=$('uatUv32CableRead'),cableWrite=$('uatUv32CableWrite'),view=$('uatUv32View'),save=$('uatUv32Save'),cancel=$('uatUv32Cancel'),importButton=$('uatUv32Import'),importInput=$('uatUv32ImportFile'),output=$('uatProtocolResult');
  if([select,mode,readSend,sweep,read,cableRead,cableWrite,view,save,cancel,importButton,importInput,output].some(x=>!x))throw Error('UV-32 controls missing');
- let capture=null,preview=null,editedImage=null,controller=null;
- const workspace=createUv32Workspace({document:d,select,getCapture:()=>preview,onError:text=>note(text),onEdit:(kind,payload)=>{
+ let capture=null,preview=null,editedImage=null,controller=null,undo=[];
+ const workspace=createUv32Workspace({document:d,select,getCapture:()=>preview,canUndo:()=>undo.length>0,onUndo:()=>{
+  if(!undo.length)return;editedImage=undo.pop();preview={...capture,...uv32Preview(editedImage),wireHex:uv32ImageToHex(editedImage)};note(`UV-32 edits: ${changedUv32Blocks(uv32ImageFromHex(capture.wireHex),editedImage).length} memory blocks changed`);refresh();
+ },onError:text=>note(text),onEdit:(kind,payload)=>{
   if(!editedImage||!capture?.readout)throw Error('Open or read a complete UV-32 image before editing');
-  const actions={channel:()=>editUv32Channel(editedImage,payload.number,payload.patch),zone:()=>editUv32ZoneName(editedImage,payload.number,payload.value),dtmf:()=>editUv32Dtmf(editedImage,payload),setting:()=>editUv32Setting(editedImage,payload.name,payload.value),vfo:()=>editUv32Vfo(editedImage,payload.side,payload.field,payload.value)};
-  if(!actions[kind])throw Error('Unknown UV-32 edit');editedImage=actions[kind]();
+  const actions={channel:()=>editUv32Channel(editedImage,payload.number,payload.patch),deleteMany:()=>payload.numbers.reduce((image,number)=>editUv32Channel(image,number,{delete:true}),editedImage),move:()=>moveUv32Channel(editedImage,payload.from,payload.to),insert:()=>insertUv32Channel(editedImage,payload.number),zone:()=>editUv32ZoneName(editedImage,payload.number,payload.value),dtmf:()=>editUv32Dtmf(editedImage,payload),setting:()=>editUv32Setting(editedImage,payload.name,payload.value),vfo:()=>editUv32Vfo(editedImage,payload.side,payload.field,payload.value)};
+  if(!actions[kind])throw Error('Unknown UV-32 edit');const next=actions[kind]();if(next.some((value,index)=>value!==editedImage[index])){undo.push(editedImage);if(undo.length>30)undo.shift();}editedImage=next;
   const decoded=uv32Preview(editedImage);preview={...capture,...decoded,wireHex:uv32ImageToHex(editedImage)};
   note(`UV-32 edits: ${changedUv32Blocks(uv32ImageFromHex(capture.wireHex),editedImage).length} memory blocks changed`);refresh();
  }});
@@ -29,7 +31,7 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
  };
  importButton.onclick=()=>importInput.click();
  importInput.onchange=async()=>{const file=importInput.files?.[0];importInput.value='';if(!file)return;
-  try{if(file.size>250000)throw Error('UV-32 capture is larger than expected');const loaded=openUv32Capture(await file.text());capture=loaded.sourceWireHex?openUv32Capture({...loaded,wireHex:loaded.sourceWireHex}):loaded;editedImage=uv32ImageFromHex(loaded.wireHex);preview=loaded;workspace.reset();note('Opened full UV-32 cable capture: '+loaded.preview.channels.length+' populated channels');refresh();}
+  try{if(file.size>250000)throw Error('UV-32 capture is larger than expected');const loaded=openUv32Capture(await file.text());capture=loaded.sourceWireHex?openUv32Capture({...loaded,wireHex:loaded.sourceWireHex}):loaded;editedImage=uv32ImageFromHex(loaded.wireHex);undo=[];preview=loaded;workspace.reset();note('Opened full UV-32 cable capture: '+loaded.preview.channels.length+' populated channels');refresh();}
   catch(error){note(error.message);refresh();}
  };
  view.onclick=()=>workspace.render();
@@ -56,7 +58,7 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
   controller=new AbortController();note('Choose the UV-32 programming cable…');refresh();
   try{const port=await navigator.serial.requestPort();note('Reading UV-32 through the cable…');
    capture=await readUv32SerialImage(port,{signal:controller.signal,progress:(n,total)=>{const p=$('progress');p.max=total;p.value=n;note(`UV-32 cable: block ${n}/${total} · read only`);}});
-   editedImage=uv32ImageFromHex(capture.wireHex);preview=capture;workspace.reset();note('UV-32 cable read complete: '+capture.preview.channels.length+' populated channels');
+   editedImage=uv32ImageFromHex(capture.wireHex);undo=[];preview=capture;workspace.reset();note('UV-32 cable read complete: '+capture.preview.channels.length+' populated channels');
   }catch(error){if(error.uv32ReadReport)capture=error.uv32ReadReport;output.textContent=error.message;throw error;}
   finally{controller=null;refresh();}
  });
@@ -65,12 +67,11 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
   if(radio.connected)throw Error('Disconnect Bluetooth before starting a cable write');
   if(!capture?.readout||!editedImage)throw Error('Open a complete UV-32 capture first');
   const changed=changedUv32Blocks(uv32ImageFromHex(capture.wireHex),editedImage).length;
-  if(!changed)throw Error('No UV-32 edits to write');
   download(capture,'ham-rx-uv32-before-write-backup.json');
-  if(!window.confirm(`Write ${changed} changed UV-32 memory blocks? The original capture has been downloaded as a backup. Keep the cable connected until read-back verification finishes.`))return;
+  if(!window.confirm(`Write the complete UV-32 image${changed?` with ${changed} changed memory blocks`:' unchanged'}? The original capture has been downloaded as a backup. Keep the cable connected until read-back verification finishes.`))return;
   controller=new AbortController();note('Choose the UV-32 programming cable for write and verification…');refresh();
   try{const port=await navigator.serial.requestPort();const result=await writeUv32SerialImage(port,capture,editedImage,{signal:controller.signal,progress:(stage,n,total)=>{const p=$('progress');p.max=total;p.value=n;note(`UV-32 ${stage}: block ${n}/${total}`);}});
-   capture=openUv32Capture({...capture,wireHex:uv32ImageToHex(editedImage)});preview=capture;note('UV-32 cable write completed and read-back verified');workspace.render();download({...result,originalCapturedAt:capture.capturedAt},'ham-rx-uv32-write-report.json');
+   capture=openUv32Capture({...capture,wireHex:uv32ImageToHex(editedImage)});preview=capture;undo=[];note('UV-32 cable write completed and read-back verified');workspace.render();download({...result,originalCapturedAt:capture.capturedAt},'ham-rx-uv32-write-report.json');
   }catch(error){
    if(error.uv32WriteReport)download({...error.uv32WriteReport,build:'20.55'},'ham-rx-uv32-write-failure.json');
    note(error.message+' · The radio state may be uncertain; read it again before another write.');throw error;
@@ -85,7 +86,7 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
   readSend.disabled=busy;sweep.disabled=busy;importButton.disabled=busy;
   read.disabled=busy||!navigator.bluetooth||!window.isSecureContext;
   cableRead.disabled=busy||!!radio.connected||!navigator.serial||!window.isSecureContext;
-  cableWrite.disabled=busy||!!radio.connected||!navigator.serial||!window.isSecureContext||!editedImage||!capture?.readout||!changedUv32Blocks(uv32ImageFromHex(capture.wireHex),editedImage).length;
+  cableWrite.disabled=busy||!!radio.connected||!navigator.serial||!window.isSecureContext||!editedImage||!capture?.readout;
   view.disabled=busy||!preview;save.disabled=busy;
   save.textContent=capture&&capture.memoryReads>0?'↧ Save UV-32 capture':'↧ Save read diagnostics';
   cancel.hidden=!controller;cancel.disabled=!controller||controller.signal.aborted;

@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {openUv32Capture} from '../scripts/uat-uv32-capture.mjs';
-import {uv32ImageFromHex,uv32ImageToHex,uv32Preview,editUv32Channel,editUv32Dtmf,editUv32Setting,editUv32ZoneName,changedUv32Blocks} from '../scripts/uat-uv32-edit.mjs';
+import {uv32ImageFromHex,uv32ImageToHex,uv32Preview,editUv32Channel,moveUv32Channel,insertUv32Channel,editUv32Dtmf,editUv32Setting,editUv32ZoneName,changedUv32Blocks} from '../scripts/uat-uv32-edit.mjs';
 import {writeUv32SerialImage,UV32_SERIAL_REGIONS} from '../scripts/uat-uv32-serial.mjs';
 
 const regionList=UV32_SERIAL_REGIONS.map(x=>[...x]);
@@ -28,6 +28,18 @@ test('UV-32 rejects invalid edits before memory can change',()=>{
  assert.equal(uv32ImageToHex(original),blank().wireHex);
 });
 
+test('UV-32 insert and move preserve entire records and stay within a zone',()=>{
+ let source=editUv32Channel(image(),1,{rx:'146.52000',name:'ONE'});
+ source=editUv32Channel(source,2,{rx:'446.00000',name:'TWO'});
+ const inserted=insertUv32Channel(source,1),shifted=uv32Preview(inserted).preview.channels;
+ assert.deepEqual(shifted.map(c=>[c.number,c.name]),[[2,'ONE'],[3,'TWO']]);
+ const moved=moveUv32Channel(inserted,3,1),channels=uv32Preview(moved).preview.channels;
+ assert.deepEqual(channels.map(c=>[c.number,c.name]),[[1,'TWO'],[3,'ONE']]);
+ assert.throws(()=>moveUv32Channel(source,1,101),/same zone/);
+ const full=new Uint8Array(image());for(let n=1;n<=100;n++)full.set(source.slice(0,32),(n-1)*32);
+ assert.throws(()=>insertUv32Channel(full,1),/no empty/);
+});
+
 function simulatedPort(initial,{badAckAt=-1,alterPreflight=false}={}){
  const memory=new Uint8Array(initial),replies=[],writes=[];let opens=0,writeBlocks=0;
  const offsets=new Map();let offset=0;for(const [start,size] of UV32_SERIAL_REGIONS)for(let address=start;address<start+size;address+=64){offsets.set(address,offset);offset+=64;}
@@ -46,6 +58,12 @@ test('UV-32 cable write checks baseline, uploads CHIRP regions, and verifies rea
  assert.equal(result.completed,true);assert.equal(result.preflightMatched,true);assert.equal(result.readBackVerified,true);assert.equal(result.completedBlocks,526);assert.equal(radio.writeBlocks,526);assert.equal(radio.opens,3);
  assert.deepEqual(Array.from(radio.writes.find(x=>x[0]===0x57).slice(0,4)),[0x57,0,0,64]);
  assert.equal(Buffer.from(radio.memory).toString('hex'),uv32ImageToHex(edited));
+});
+
+test('UV-32 unchanged full image can be written and verified',async()=>{
+ const baseline=blank(),original=uv32ImageFromHex(baseline.wireHex),radio=simulatedPort(Uint8Array.from(Buffer.from(baseline.wireHex,'hex')));
+ const result=await writeUv32SerialImage(radio.port,baseline,original);
+ assert.equal(result.changedBlocks,0);assert.equal(result.readBackVerified,true);assert.equal(radio.writeBlocks,526);
 });
 
 test('UV-32 refuses stale baseline and stops at rejected write ACK',async()=>{

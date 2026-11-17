@@ -3,7 +3,7 @@
 import {UV32_BLOCKS,UV32_CHANNEL_BYTES,uv32ReadCommand,uv32Payload,decodeUv32Channels,uv32WireDecode} from './uat-uv32-read.mjs?v=20.55c';
 import {decodeUv32Image} from './uat-uv32-image.mjs';
 import {openUv32Capture} from './uat-uv32-capture.mjs';
-import {uv32ImageFromHex,uv32ImageToHex,changedUv32Blocks} from './uat-uv32-edit.mjs?v=20.55c';
+import {uv32ImageFromHex,uv32ImageToHex,changedUv32Blocks} from './uat-uv32-edit.mjs?v=20.56';
 
 export const UV32_SERIAL_BAUD=115200;
 // CHIRP UV32 inherits these four discontiguous UV17ProGPS read regions.
@@ -114,7 +114,6 @@ async function readUv32SerialRegions(port,regions,{signal,progress=()=>{},timeou
 export async function writeUv32SerialImage(port,baseline,editedImage,{signal,progress=()=>{},timeoutMs=4000}={}){
  const source=openUv32Capture(baseline),original=uv32ImageFromHex(source.wireHex);
  const editedHex=uv32ImageToHex(editedImage),changes=changedUv32Blocks(original,editedImage);
- if(!changes.length)throw Error('No UV-32 edits to write');
  const report={kind:'uv32-cable-write-v1',stage:'preflight',completed:false,identity:null,changedBlocks:changes.length,completedBlocks:0,totalBlocks:526,preflightMatched:false,readBackVerified:false};
  const check=()=>{if(signal?.aborted)throw Error('UV-32 write cancelled');};
  let reader,writer,opened=false,pending=[];

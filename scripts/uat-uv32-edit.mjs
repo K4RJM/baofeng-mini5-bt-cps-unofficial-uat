@@ -41,6 +41,25 @@ export function editUv32Channel(source,number,patch){
  return b;
 }
 
+// Move channel records within a zone. Zone boundaries are fixed in the UV-32 image.
+export function moveUv32Channel(source,from,to){
+ assertImage(source);integer(from,1,1000,'Source channel');integer(to,1,1000,'Destination channel');
+ if(Math.floor((from-1)/100)!==Math.floor((to-1)/100))throw Error('Move channels within the same zone');
+ const b=new Uint8Array(source),start=(from-1)*32,end=(to-1)*32,record=b.slice(start,start+32);
+ if(record[0]===255)throw Error('Choose a populated channel to move');
+ if(from<to)for(let at=start;at<end;at+=32)b.copyWithin(at,at+32,at+64);
+ else for(let at=start;at>end;at-=32)b.copyWithin(at,at-32,at);
+ b.set(record,end);return b;
+}
+
+export function insertUv32Channel(source,number){
+ assertImage(source);integer(number,1,1000,'Channel');const b=new Uint8Array(source),at=(number-1)*32,zoneEnd=(Math.floor((number-1)/100)+1)*100;
+ let empty=number;while(empty<=zoneEnd&&b[(empty-1)*32]!==255)empty++;
+ if(empty>zoneEnd)throw Error('This zone has no empty channel slot for insertion');
+ for(let n=empty;n>number;n--)b.copyWithin((n-1)*32,(n-2)*32,(n-1)*32);
+ b.fill(255,at,at+32);return b;
+}
+
 export function editUv32ZoneName(source,number,value){assertImage(source);integer(number,1,10,'Zone');const b=new Uint8Array(source);setName(b,0x8280+(number-1)*16,16,value);return b;}
 const DTMF='0123456789ABCD*#';
 const setDtmf=(b,at,length,value)=>{const s=String(value??'').toUpperCase();if(s.length>length||[...s].some(c=>!DTMF.includes(c)))throw Error(`DTMF code must use 0-9, A-D, * or # and fit ${length} characters`);b.fill(255,at,at+length);for(let i=0;i<s.length;i++)b[at+i]=DTMF.indexOf(s[i]);};
