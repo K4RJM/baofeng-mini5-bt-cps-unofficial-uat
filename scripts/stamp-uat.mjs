@@ -1,5 +1,6 @@
 // Assemble either the UAT diagnostics build or the cable-only UV-32 LIVE build.
 import {readFile,readdir,rm,writeFile} from 'node:fs/promises';
+import {execFileSync} from 'node:child_process';
 const replaceOnce=(s,a,b)=>{if(s.split(a).length!==2)throw Error('UAT protocol anchor changed: '+a.slice(0,80));return s.replace(a,b);};
 const live=process.argv.includes('--live');
 const environment=live?'LIVE':'UAT';
@@ -46,8 +47,9 @@ app=replaceOnce(app,'function sync(){','function sync(){\n uatProtocolTools?.syn
 
 app=replaceOnce(app,"$('content').inert=busy;$('tabs').inert=busy;","$('content').inert=busy;$('tabs').inert=busy;uatUv32Reader?.sync(busy);");
 app=replaceOnce(app,"$('help').onclick=()=>{tab='Radio & help';render();};","$('help').onclick=()=>{if(uatUv32Reader?.openHelp())return;tab='Radio & help';render();};");
-if(!live)app+="\nconst page=location.href==='about:srcdoc'?document.baseURI:location.href;\nconst bluetooth=isUatPage(new URL('./uat-protocols.mjs',import.meta.url).href,page)?{uv32ReadSessionStatus,captureUv32Channels,uv32ReadDiagnostics}:null;\nif(bluetooth)uatProtocolTools=installProtocolTools({radio,run,connect,message});\n";
-app+="\nuatUv32Reader=installUv32Reader({radio,run,connect,message,refresh:sync,renderMini5:render,workspaceStatus"+(live?'':',bluetooth')+"});sync();\n";
+app+="\n{\n";
+if(!live)app+="const page=location.href==='about:srcdoc'?document.baseURI:location.href;\nconst bluetooth=isUatPage(new URL('./uat-protocols.mjs',import.meta.url).href,page)?{uv32ReadSessionStatus,captureUv32Channels,uv32ReadDiagnostics}:null;\nif(bluetooth)uatProtocolTools=installProtocolTools({radio,run,connect,message});\n";
+app+="uatUv32Reader=installUv32Reader({radio,run,connect,message,refresh:sync,renderMini5:render,workspaceStatus"+(live?'':',bluetooth')+"});sync();\n}\n";
 if(!app.includes("build:'"+base+"'"))throw Error('Diagnostic version anchor missing');
 await writeFile('dist/app.mjs',app.replace("build:'"+base+"'","environment:'"+environment+"',build:'"+version+"'"));
 const bluetoothModules=['uat-protocols.mjs','uat-uv32-read.mjs'];
@@ -60,6 +62,7 @@ for(const file of [...(await readdir('dist')).filter(name=>name.endsWith('.mjs')
  const updated=source.replace(/\bfrom (['"])(\.{1,2}\/[^'"?]+\.mjs)(?:\?[^'"]*)?\1/g,(_match,quote,url)=>`from ${quote}${url}?v=${revision}${quote}`);
  if(updated!==source)await writeFile(path,updated);
 }
+execFileSync(process.execPath,['--check','dist/app.mjs'],{stdio:'inherit'});
 if(!live){
 await writeFile('dist/docs/UAT-RADIO-PROTOCOLS.md',await readFile('docs/UAT-RADIO-PROTOCOLS.md','utf8'));
 for(const file of ['UV32-FACTORY-CPS-REFERENCE.md','RELEASE-20.48.md','RELEASE-20.49.md'])await writeFile('dist/docs/'+file,await readFile('docs/'+file,'utf8'));
