@@ -38,7 +38,8 @@ export function renderUv32Help(d,target){
  const buttons=[];
  const show=key=>{const [title,body]=instructions[key];panel.replaceChildren(el(d,'h3','tutorial-key-title',`Key: ${title}`),el(d,'h4','tutorial-action-title','How to use it'),el(d,'p','',body));for(const b of buttons)b.classList.toggle('tutorial-active',b.dataset.radioKey===key);};
  const add=(key,label,x,y,w,h,side=false)=>{const b=el(d,'button','radio-key'+(side?' radio-side-key':''),label);b.type='button';b.dataset.radioKey=key;b.style.cssText=`left:${x}%;top:${y}%;width:${w}%;height:${h}%;`;b.setAttribute('aria-label',`Key: ${instructions[key][0]}`);b.setAttribute('aria-controls',panel.id);b.onmouseenter=()=>show(key);b.onfocus=()=>show(key);b.onclick=()=>show(key);drawing.append(b);buttons.push(b);};
- for(const [key,x,y,w,h] of hotspots)add(key,key,x,y,w,h);
+ // The square supplied photo is enlarged and centered inside the tall guide frame.
+ for(const [key,x,y,w,h] of hotspots)add(key,key,x*1.5-25,y*450/460,w*1.5,h*450/460);
  add('ptt','PTT',0,34,23,7,true);add('sk1','SK1',0,43,23,7,true);add('sk2','SK2',0,52,23,7,true);
  panel.append(el(d,'span','tag','Interactive guide'),el(d,'h3','','Choose a radio button'),el(d,'p','','Choose a control on the graphic to see its function.'));
  layout.append(drawing,panel);card.append(layout);

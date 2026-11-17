@@ -4,7 +4,7 @@ import {uv32ReadSessionStatus,isUatPage} from './uat-protocols.mjs?v=20.46';
 import {captureUv32Channels,uv32ReadDiagnostics} from './uat-uv32-read.mjs?v=20.48';
 import {readUv32SerialImage} from './uat-uv32-serial.mjs?v=20.48';
 import {openUv32Capture} from './uat-uv32-capture.mjs?v=20.49';
-import {createUv32Workspace} from './uat-uv32-workspace.mjs?v=20.53a';
+import {createUv32Workspace} from './uat-uv32-workspace.mjs?v=20.53b';
 
 export function installUv32Reader({radio,run,connect,message,refresh,renderMini5,workspaceStatus}){
  const page=location.href==='about:srcdoc'?document.baseURI:location.href;

@@ -1,6 +1,6 @@
 // UAT UV-32 views use Ham-Rx's existing navigation, card, and channel table.
 // This module renders captured data only; it never invokes MINI-5 editors.
-import {renderUv32Help} from './uat-uv32-help.mjs?v=20.53a';
+import {renderUv32Help} from './uat-uv32-help.mjs?v=20.53b';
 export function createUv32Workspace({document:d,select,getCapture}){
  const $=id=>d.getElementById(id),sections=['Channels','Optional settings','VFO A / B','DTMF','Zones','Radio & help'];
  const icons=['☷','⚙','⇄','▦','▤','ⓘ'];
@@ -36,7 +36,7 @@ export function createUv32Workspace({document:d,select,getCapture}){
   const capture=getCapture(),readout=capture?.readout;
   d.documentElement.dataset.screen=section==='Channels'?'channels':'other';
   $('pageTitle').textContent=section;
-  $('pageDescription').textContent=section==='Channels'?'Browse UV-32 channels by zone.':'UV-32 radio settings from the full cable capture.';
+  $('pageDescription').textContent=section==='Channels'?'Browse UV-32 channels by zone.':section==='Radio & help'?'UV-32 controls and operating instructions.':'UV-32 radio settings from the full cable capture.';
   $('sourceTag').textContent=capture?(capture.readout?'UV-32 full read':'UV-32 channel read'):'Blank UV-32 workspace';
   $('brandTitle').textContent='Ham-Rx Baofeng UV-32';
   const image=$('brandRadioImage');image.src='assets/uv32-blue.jpg';image.alt='Baofeng UV-32 with blue accents';image.parentElement.classList.add('uv32-brand-image');
