@@ -16,7 +16,9 @@ const fields=[
  ['Selected VFO',24],['FM',25],['Work Modes',26],['Key Lock',27],['Power On Dls Type',28],['Pilot Tone',29],
  ['VOX Dly Time',32],['Menu Quit Timer',33],['Bluetooth',34],['Display ANI',36],['TOT Alarm',40],
  ['QT Save Mode',43],['VFO Scan Min',44],['VFO Scan Max',46],['GPS Switch',48],['GPS Mode',49],
- ['Skey1 Short',50],['Skey2 Short',52],['Enable Menu Rst',55],['Single Watch',56],['Hang-Up Time',57],
+ // Byte 52 was previously shown as “Skey2 Short”, but neither the UV-32 manual nor
+ // the stock CPS establishes that mapping. Do not present an unverified label.
+ ['Skey1 Short',50],['Enable Menu Rst',55],['Single Watch',56],['Hang-Up Time',57],
  ['VOX Switch',58],['GPS Timezone',59],['Input DTMF',61],['GPS Units',62],['Power On Time',63]
 ];
 const maps={

@@ -4,8 +4,13 @@ const instructions={
  power:{name:'Power / Volume',turn:'Turn clockwise until the knob clicks to switch on; continue turning to raise volume. Turn counterclockwise to lower volume or switch off.'},
  encoder:{name:'Channel selector',turn:'Turn the top encoder to select another stored channel in channel mode.'},
  ptt:{name:'PTT',hold:'Hold while speaking to transmit on the selected channel or frequency. Release to receive.'},
- sk1:{name:'Side key SK1',short:'Programmable in the radio menu and stock CPS. Available shortcuts: FM turns broadcast reception on or off; Search detects a nearby transmitter and its CTCSS/DCS tone; Scan starts or stops scanning stored channels or VFO frequencies; VOX turns voice-triggered transmission on or off.',hold:'Hold about three seconds to sound the emergency alarm and flash the light. Press SK1 again to exit.',combo:'Hold PTT and press SK1 to send the repeater access tone set by Pilot Tone.'},
- sk2:{name:'Side key SK2',short:'The UV-32 manual does not specify a short-press action. The UV32PRO stock CPS has no SK2 shortcut selector, so it lists no programmable SK2 choices.',hold:'Hold to open the squelch and listen for weak signals or signals with a mismatched receive tone. Noise is normal when no signal is present. Release to resume normal reception.'},
+ sk1:{name:'Side key SK1',short:'Choose Optional settings → Skey1 Short. This is the only UV-32 side-key action identified as customizable in the manufacturer manual.',shortOptions:[
+  ['FM broadcast radio','Turn broadcast FM reception on or off.'],
+  ['Channel scan','Start or stop scanning saved channels or VFO frequencies. Scan resume settings apply.'],
+  ['Frequency search','Detect a nearby transmitting frequency and attempt to identify its CTCSS or DCS tone.'],
+  ['VOX','Turn voice-triggered transmission on or off. VOX sensitivity and release delay are separate settings.']
+ ],hold:'Hold about three seconds to sound the emergency alarm and flash the light. Press SK1 again to exit.',combo:'Hold PTT and press SK1 to send the repeater access tone set by Pilot Tone.'},
+ sk2:{name:'Side key SK2',short:'Start the UV-32 sweep function. This action is fixed; the manufacturer manual does not identify SK2 as programmable.',hold:'Hold to monitor the frequency by opening the squelch. This lets you hear weak signals or signals with a mismatched receive tone. Noise is normal when no signal is present; release SK2 to resume normal reception.'},
  menu:{name:'MENU / OK',short:'Open the menu, select the highlighted item, or confirm a value. In broadcast FM, switch between the 65–75 MHz and 76–108 MHz bands.',hold:'In standby, switch between direct frequency entry (VFO) and stored channels (MR).'},
  home:{name:'EXIT / Back',short:'Leave the current menu or function.',hold:'Start frequency sweep to search a range for a nearby transmitter.'},
  up:{name:'Up',short:'Move to the next stored channel, raise a VFO frequency by one tuning step, or move up one menu choice. During scanning, set the direction upward.',hold:'Hold more than two seconds to move rapidly upward through channels or frequencies.'},
@@ -38,7 +43,10 @@ export function renderUv32Help(d,target){
  const panel=el(d,'section','radio-tutorial-panel');panel.id='uv32RadioTutorialPanel';panel.setAttribute('role','status');panel.setAttribute('aria-live','polite');
  const buttons=[];
  const show=key=>{const info=instructions[key];panel.replaceChildren(el(d,'h3','tutorial-key-title',`Key: ${info.name}`));panel.scrollTop=0;
-  for(const [field,heading] of [['turn','Turn'],['short','Short press'],['hold','Press and hold'],['combo','PTT + SK1']])if(info[field])panel.append(el(d,'h4','tutorial-action-title',heading),el(d,'p','',info[field]));
+  for(const [field,heading] of [['turn','Turn'],['short','Short press'],['hold','Press and hold'],['combo','PTT + SK1']])if(info[field]){
+   panel.append(el(d,'h4','tutorial-action-title',heading),el(d,'p','',info[field]));
+   if(field==='short'&&info.shortOptions){const list=el(d,'ul','tutorial-options');for(const [label,description] of info.shortOptions){const item=el(d,'li'),name=el(d,'strong','',label+' — ');item.append(name,d.createTextNode?d.createTextNode(description):el(d,'span','',description));list.append(item);}panel.append(list);}
+  }
   for(const b of buttons)b.classList.toggle('tutorial-active',b.dataset.radioKey===key);
  };
  const add=(key,label,x,y,w,h,side=false)=>{const b=el(d,'button','radio-key'+(side?' radio-side-key':''),label);b.type='button';b.dataset.radioKey=key;b.dataset.basePosition=JSON.stringify([x,y,w,h]);b.setAttribute('aria-label',`Key: ${instructions[key].name}`);b.setAttribute('aria-controls',panel.id);b.onmouseenter=()=>show(key);b.onfocus=()=>show(key);b.onclick=()=>show(key);drawing.append(b);buttons.push(b);};
@@ -57,7 +65,7 @@ export function renderUv32Help(d,target){
  const source=el(d,'p','muted radio-tutorial-source','Button functions checked against the supplied Baofeng UV-32 user manual. The graphic was supplied by K4RJM.');card.append(source);host.append(card);workspace.append(host);
  const reference=el(d,'div','help-reference'),manualCard=el(d,'section','card');manualCard.append(el(d,'h3','','UV-32 manual'));
  const link=el(d,'a','','Open Baofeng UV-32 user manual ↗');link.href=manual;link.target='_blank';link.rel='noopener noreferrer';manualCard.append(link);
- manualCard.append(el(d,'p','muted','SK1 short press is programmable; its options are listed in the button guide. Button behavior may differ with radio firmware.'));
+ manualCard.append(el(d,'p','muted','Only SK1 short press is identified as programmable. SK1 hold and both SK2 actions are fixed; the available SK1 choices are listed in the button guide. Button behavior may differ with radio firmware.'));
  const testCard=el(d,'section','card');testCard.append(el(d,'h3','','Cable programming'));
  const steps=el(d,'ol');for(const instruction of [
   'Close the stock CPS. Turn on the UV-32 and connect its programming cable.',

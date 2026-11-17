@@ -14,6 +14,7 @@ test('UV-32 full image separates function, VFO, DTMF, and zone regions',()=>{
  assert.deepEqual(result.vfoA[0],['Frequency MHz','446.00000']);
  assert.deepEqual(result.functionFields.find(x=>x[0]==='Dual Standby'),['Dual Standby','On']);
  assert.deepEqual(result.functionFields.find(x=>x[0]==='Work Modes'),['Work Modes','A 0, B 1']);
+ assert.equal(result.functionFields.some(x=>x[0]==='Skey2 Short'),false);
  assert.equal(result.dtmf.localId,'01202');
  assert.equal(result.dtmf.codeTime,'300 ms');
  assert.deepEqual(result.dtmf.entries[0],{number:1,code:'20202',name:'ABC'});
