@@ -62,22 +62,23 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
   }catch(error){if(error.uv32ReadReport)capture=error.uv32ReadReport;output.textContent=error.message;throw error;}
   finally{controller=null;refresh();}
  });
- cableWrite.onclick=()=>run(async()=>{
-  if(!navigator.serial||!window.isSecureContext)throw Error('Cable writing requires Web Serial in a secure browser');
-  if(radio.connected)throw Error('Disconnect Bluetooth before starting a cable write');
-  if(!capture?.readout||!editedImage)throw Error('Open a complete UV-32 capture first');
-  const changed=changedUv32Blocks(uv32ImageFromHex(capture.wireHex),editedImage).length;
-  download(capture,'ham-rx-uv32-before-write-backup.json');
-  if(!window.confirm(`Write the complete UV-32 image${changed?` with ${changed} changed memory blocks`:' unchanged'}? The original capture has been downloaded as a backup. Keep the cable connected until read-back verification finishes.`))return;
-  controller=new AbortController();note('Choose the UV-32 programming cable for write and verification…');refresh();
-  try{const port=await navigator.serial.requestPort();const result=await writeUv32SerialImage(port,capture,editedImage,{signal:controller.signal,progress:(stage,n,total)=>{const p=$('progress');p.max=total;p.value=n;note(`UV-32 ${stage}: block ${n}/${total}`);}});
+ cableWrite.onclick=()=>{
+  if(!navigator.serial||!window.isSecureContext){note('Cable writing requires Web Serial in a secure browser');return;}
+  if(radio.connected){note('Disconnect Bluetooth before starting a cable write');return;}
+  if(!capture?.readout||!editedImage){note('Open a complete UV-32 capture first');return;}
+  // Web Serial must be requested directly in the button's user activation.
+  const portPromise=navigator.serial.requestPort();
+  return run(async()=>{
+  controller=new AbortController();note('Choose the UV-32 programming cable…');refresh();
+  try{const port=await portPromise;note('Writing and verifying the complete UV-32 image…');const result=await writeUv32SerialImage(port,capture,editedImage,{signal:controller.signal,progress:(stage,n,total)=>{const p=$('progress');p.max=total;p.value=n;note(`UV-32 ${stage}: block ${n}/${total}`);}});
    capture=openUv32Capture({...capture,wireHex:uv32ImageToHex(editedImage)});preview=capture;undo=[];note('UV-32 cable write completed and read-back verified');workspace.render();download({...result,originalCapturedAt:capture.capturedAt},'ham-rx-uv32-write-report.json');
   }catch(error){
-   if(error.uv32WriteReport)download({...error.uv32WriteReport,build:'20.55'},'ham-rx-uv32-write-failure.json');
-   note(error.message+' · The radio state may be uncertain; read it again before another write.');throw error;
+   if(error.uv32WriteReport){download({...error.uv32WriteReport,build:'20.57'},'ham-rx-uv32-write-failure.json');note(error.message+' · Read the radio again before another write.');}
+   else note(error.message);throw error;
   }
   finally{controller=null;refresh();}
- });
+  });
+ };
  select.addEventListener('change',()=>{if(select.value==='uv32'){mode.value='with-response';workspace.reset();refresh();note('UV-32 · Ready to read or open a capture');}else{workspace.restoreBrand();renderMini5();refresh();workspaceStatus();}});
  mode.addEventListener('change',refresh);readSend.addEventListener('change',refresh);
  return {sync(busy){const uv=select.value==='uv32';

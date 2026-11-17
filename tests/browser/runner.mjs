@@ -399,6 +399,13 @@ document.getElementById('start').onclick=async()=>{
    const input=id('uatUv32ImportFile');input.files=transfer.files;input.dispatchEvent(new h.w.Event('change'));
    await until(()=>id('sourceTag').textContent==='UV-32 full read','reopened UV-32 full capture');
    assert(id('channelTableWrap').textContent.includes('No channels in this view.')&&!id('channelTableWrap').textContent.includes('forged'),'Import decodes original bytes instead of trusting JSON display data');
+   let chooserCalls=0;const downloadsBefore=h.state.downloads.length;
+   Object.defineProperty(h.w.navigator,'serial',{configurable:true,value:{requestPort:()=>{chooserCalls++;return Promise.reject(new Error('Chooser cancelled for test'));}}});
+   assert(!id('uatUv32CableWrite').disabled,'Write enables after a full read without editing');
+   id('uatUv32CableWrite').click();
+   assert(chooserCalls===1,'Write opens the serial chooser in the button click');
+   assert(h.state.downloads.length===downloadsBefore,'Write does not force a backup download before the chooser');
+   await until(()=>id('uatProtocolResult').textContent.includes('Chooser cancelled for test'),'cancelled write chooser');
   });
   await check('Missing HTML control mutation is detected by actual app startup',async()=>{h=await fresh('missing-id');assert(h.state.failed&&h.state.errors.some(e=>/null|onclick/.test(e)),'Removing confirmWrite must break startup');});
   await check('Removed inertness mutation is caught by the same busy check',async()=>{h=await fresh('inert-mutant');await load(h);let detected=false;try{await busyCheck(h);}catch(e){detected=/inert/i.test(e.message);}assert(detected,'The busy test must reject removed inertness');});
