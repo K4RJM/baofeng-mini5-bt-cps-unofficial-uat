@@ -2,6 +2,7 @@
 import {uv32ReadSessionStatus,isUatPage} from './uat-protocols.mjs?v=20.46';
 import {captureUv32Channels,uv32ReadDiagnostics} from './uat-uv32-read.mjs?v=20.48';
 import {readUv32SerialImage} from './uat-uv32-serial.mjs?v=20.48';
+import {openUv32Capture} from './uat-uv32-capture.mjs?v=20.49';
 export function installUv32Reader({radio,run,connect,message,refresh}){
  const page=location.href==='about:srcdoc'?document.baseURI:location.href;
  const protocolModule=new URL('./uat-protocols.mjs',import.meta.url).href;
@@ -11,10 +12,13 @@ export function installUv32Reader({radio,run,connect,message,refresh}){
  const sweep=$('uatUv32Sweep'),sweepControl=$('uatUv32SweepControl');
  const output=$('uatProtocolResult'),read=$('uatUv32Read'),cableRead=$('uatUv32CableRead'),view=$('uatUv32View'),save=$('uatUv32Save'),cancel=$('uatUv32Cancel');
  if(!readSend||!readSendControl||!sweep||!sweepControl||!select||!mode||!output||!read||!cableRead||!view||!save||!cancel)throw Error('UV-32 read controls missing');
- let capture=null,preview=null,controller=null,pageIndex=0;
+ let capture=null,preview=null,controller=null,pageIndex=0,zone=0;
+ const importButton=d.createElement('button');importButton.type='button';importButton.id='uatUv32Import';importButton.textContent='Open UV-32 capture';importButton.title='Open a completed UV-32 full-read JSON from this computer';
+ const importInput=d.createElement('input');importInput.type='file';importInput.accept='.json,application/json';importInput.hidden=true;
+ cableRead.after(importButton,importInput);
  const dialog=d.createElement('dialog');dialog.id='uatUv32Results';dialog.className='uat-uv32-view';
  dialog.setAttribute('aria-labelledby','uatUv32Title');
- dialog.innerHTML='<div class="uv32-head"><h2 id="uatUv32Title">UV-32 channels · Read only</h2><button type="button" id="uatUv32Close" aria-label="Close UV-32 preview">Close</button></div><p id="uatUv32Summary"></p><p class="muted">Decoded with the CHIRP UV-32 layout. Compare with the radio or factory CPS. Squelch values remain raw codes until confirmed.</p><p id="uatUv32Warnings" role="status"></p><div class="uv32-scroll" tabindex="0" aria-label="UV-32 read-only channels"><table><thead><tr></tr></thead><tbody id="uatUv32Rows"></tbody></table></div><div class="uv32-foot"><button type="button" id="uatUv32Previous">Previous</button><output id="uatUv32Page"></output><button type="button" id="uatUv32Next">Next</button><button type="button" id="uatUv32SavePreview">Save this capture</button></div>';
+ dialog.innerHTML='<div class="uv32-head"><h2 id="uatUv32Title">UV-32 channels · Read only</h2><button type="button" id="uatUv32Close" aria-label="Close UV-32 preview">Close</button></div><p id="uatUv32Summary"></p><p class="muted">Decoded with the CHIRP UV-32 layout. Compare with the radio or factory CPS. Squelch values remain raw codes until confirmed.</p><p id="uatUv32Warnings" role="status"></p><label class="uv32-zone-label" for="uatUv32Zone">Zone</label> <select id="uatUv32Zone" aria-label="UV-32 zone"><option value="0">All zones</option></select><div class="uv32-scroll" tabindex="0" aria-label="UV-32 read-only channels"><table><thead><tr></tr></thead><tbody id="uatUv32Rows"></tbody></table></div><div class="uv32-foot"><button type="button" id="uatUv32Previous">Previous</button><output id="uatUv32Page"></output><button type="button" id="uatUv32Next">Next</button><button type="button" id="uatUv32SavePreview">Save this capture</button></div>';
  d.body.append(dialog);
  const channelPane=dialog.querySelector('.uv32-scroll'),footer=dialog.querySelector('.uv32-foot');
  const tabBar=d.createElement('div');tabBar.className='uv32-tabs';tabBar.setAttribute('role','tablist');
@@ -49,22 +53,31 @@ export function installUv32Reader({radio,run,connect,message,refresh}){
   const a=d.createElement('a');a.href=url;a.download=report.memoryReads===0?'ham-rx-uv32-read-diagnostics.json':report.kind==='uv32-cable-full-read-v1'?'ham-rx-uv32-full-read'+(report.completed?'':'-partial')+'.json':'ham-rx-uv32-channels'+(report.completed?'':'-partial')+'.json';d.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
  };
  function render(){
-  if(!preview)return;const p=preview.preview,rows=p.channels,total=Math.max(1,Math.ceil(rows.length/100));pageIndex=Math.max(0,Math.min(pageIndex,total-1));
+  if(!preview)return;const p=preview.preview,rows=zone?p.channels.filter(x=>x.bank===zone):p.channels,total=Math.max(1,Math.ceil(rows.length/100));pageIndex=Math.max(0,Math.min(pageIndex,total-1));
   $('uatUv32Summary').textContent=rows.length+' populated / 1000 channels · '+preview.bytes.toLocaleString()+' captured bytes · '+(preview.readout?'full cable regions':'channel region')+' · MINI-5 workspace unchanged';
   $('uatUv32Warnings').textContent=p.warnings.length?p.warnings.length+' decoding note(s). '+p.warnings.slice(0,3).join(' '):'Physical comparison of the decoded channels is pending.';
   const body=$('uatUv32Rows');body.replaceChildren();
   for(const row of rows.slice(pageIndex*100,pageIndex*100+100)){const tr=d.createElement('tr');tr.dataset.uv32Channel=String(row.number);for(const [key] of columns){const td=d.createElement('td');td.textContent=String(row[key]);tr.append(td);}body.append(tr);}
   if(!rows.length){const tr=d.createElement('tr'),td=d.createElement('td');td.colSpan=columns.length;td.textContent='No populated channels found in this capture.';tr.append(td);body.append(tr);}
-  $('uatUv32Page').textContent='Page '+(pageIndex+1)+' / '+total;
+  $('uatUv32Page').textContent=(zone?'Zone '+String(zone).padStart(2,'0')+' · ':'')+'Page '+(pageIndex+1)+' / '+total;
   $('uatUv32Previous').disabled=pageIndex===0;$('uatUv32Next').disabled=pageIndex>=total-1;
  }
- function open(){render();renderReadout();tabs.Channels.click();if(!dialog.open)dialog.showModal();$('uatUv32Close').focus();}
+ function open(){
+  const picker=$('uatUv32Zone');picker.replaceChildren();const all=d.createElement('option');all.value='0';all.textContent='All zones';picker.append(all);
+  for(let n=1;n<=10;n++){const option=d.createElement('option');option.value=String(n);option.textContent='Zone '+String(n).padStart(2,'0')+' · '+(preview?.readout?.zones[n-1]?.name||'(unnamed)');picker.append(option);}
+  picker.value=String(zone);render();renderReadout();tabs.Channels.click();if(!dialog.open)dialog.showModal();$('uatUv32Close').focus();}
  $('uatUv32Close').onclick=()=>dialog.close();
  dialog.addEventListener('close',()=>view.focus());
  $('uatUv32Previous').onclick=()=>{pageIndex--;render();};
  $('uatUv32Next').onclick=()=>{pageIndex++;render();};
+ $('uatUv32Zone').onchange=event=>{zone=Number(event.target.value);pageIndex=0;render();};
  $('uatUv32SavePreview').onclick=()=>{if(preview)download(preview);};
  view.onclick=open;save.onclick=()=>download(capture??uv32ReadDiagnostics(radio,{readSendMode:readSend.value}));
+ importButton.onclick=()=>importInput.click();
+ importInput.onchange=async()=>{const file=importInput.files?.[0];importInput.value='';if(!file)return;
+  try{if(file.size>250000)throw Error('UV-32 capture is larger than expected');const loaded=openUv32Capture(await file.text());capture=loaded;preview=loaded;zone=0;pageIndex=0;output.textContent='Opened full UV-32 cable capture: '+loaded.preview.channels.length+' populated channels';message(output.textContent);refresh();open();}
+  catch(error){output.textContent=error.message;message(error.message);refresh();}
+ };
  cancel.onclick=()=>{controller?.abort();cancel.disabled=true;message('Stopping UV-32 read after connection/identification or the current channel request…');};
  read.onclick=()=>run(async()=>{
   const uiSessionAtClick=uv32ReadSessionStatus(radio),readSendMode=readSend.value,diagnosticSweep=sweep.checked;
@@ -104,7 +117,7 @@ export function installUv32Reader({radio,run,connect,message,refresh}){
     const text=`UV-32 cable: block ${n}/${total} · read only`;
     output.textContent=text;message(text);
    }});
-   preview=capture;pageIndex=0;
+   preview=capture;pageIndex=0;zone=0;
    output.textContent='UV-32 cable capture complete: '+capture.preview.channels.length+' populated channels · read only';
    message(output.textContent);open();
   }catch(error){if(error.uv32ReadReport)capture=error.uv32ReadReport;output.textContent=error.message;throw error;}
@@ -113,7 +126,7 @@ export function installUv32Reader({radio,run,connect,message,refresh}){
  select.addEventListener('change',()=>{if(select.value==='uv32')mode.value='with-response';refresh();});
  mode.addEventListener('change',refresh);readSend.addEventListener('change',refresh);
  return {sync(busy){
-  const uv=select.value==='uv32';for(const el of [read,cableRead,view,save,readSendControl,sweepControl])el.hidden=!uv;readSend.disabled=busy;sweep.disabled=busy;
+  const uv=select.value==='uv32';for(const el of [read,cableRead,importButton,view,save,readSendControl,sweepControl])el.hidden=!uv;readSend.disabled=busy;sweep.disabled=busy;importButton.disabled=busy;
   read.disabled=busy||!navigator.bluetooth||!window.isSecureContext;
   cableRead.disabled=busy||!!radio.connected||!navigator.serial||!window.isSecureContext;
   cableRead.title='Read UV-32 channels and settings through a USB serial programming cable. No radio memory writes.';

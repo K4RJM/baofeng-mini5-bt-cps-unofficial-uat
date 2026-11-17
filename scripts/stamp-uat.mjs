@@ -18,16 +18,16 @@ html=replaceOnce(html,'</head>','<style>.uat-protocol-tools [hidden]{display:non
 html=replaceOnce(html,'</style></head>','.uv32-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}.uv32-tabs button[aria-selected="true"]{border-color:var(--accent);font-weight:700}.uv32-readout{max-height:58dvh;overflow:auto}.uv32-fields{display:grid;grid-template-columns:minmax(130px,1fr) minmax(100px,1fr);gap:2px 12px;max-width:760px}.uv32-fields dt,.uv32-fields dd{margin:0;padding:5px 7px;border-bottom:1px solid var(--border)}.uv32-fields dd{font-weight:600}.uv32-readout table{border-collapse:collapse;width:100%}.uv32-readout th,.uv32-readout td{padding:5px 8px;text-align:left;border-bottom:1px solid var(--border)}</style></head>');
 await writeFile('dist/index.html',html);
 let app=await readFile('dist/app.mjs','utf8');
-app="import {installProtocolTools} from './uat-protocols.mjs?v=20.46';\nimport {installUv32Reader} from './uat-uv32-ui.mjs?v=20.48';\nlet uatProtocolTools,uatUv32Reader;\n"+app;
+app="import {installProtocolTools} from './uat-protocols.mjs?v=20.46';\nimport {installUv32Reader} from './uat-uv32-ui.mjs?v=20.49';\nlet uatProtocolTools,uatUv32Reader;\n"+app;
 app=replaceOnce(app,'function sync(){','function sync(){\n uatProtocolTools?.sync(busy);');
 
 app=replaceOnce(app,"$('content').inert=busy;$('tabs').inert=busy;","$('content').inert=busy;$('tabs').inert=busy;uatUv32Reader?.sync(busy);");
 app+="\nuatProtocolTools=installProtocolTools({radio,run,connect,message});uatUv32Reader=installUv32Reader({radio,run,connect,message,refresh:sync});sync();\n";
 if(!app.includes("build:'"+base+"'"))throw Error('Diagnostic version anchor missing');
 await writeFile('dist/app.mjs',app.replace("build:'"+base+"'","environment:'UAT',build:'"+version+"'"));
-for(const file of ['uat-protocols.mjs','uat-uv32-read.mjs','uat-uv32-image.mjs','uat-uv32-serial.mjs','uat-uv32-ui.mjs'])await writeFile('dist/'+file,await readFile('scripts/'+file,'utf8'));
+for(const file of ['uat-protocols.mjs','uat-uv32-read.mjs','uat-uv32-image.mjs','uat-uv32-serial.mjs','uat-uv32-capture.mjs','uat-uv32-ui.mjs'])await writeFile('dist/'+file,await readFile('scripts/'+file,'utf8'));
 await writeFile('dist/docs/UAT-RADIO-PROTOCOLS.md',await readFile('docs/UAT-RADIO-PROTOCOLS.md','utf8'));
-for(const file of ['UV32-FACTORY-CPS-REFERENCE.md','RELEASE-20.48.md'])await writeFile('dist/docs/'+file,await readFile('docs/'+file,'utf8'));
+for(const file of ['UV32-FACTORY-CPS-REFERENCE.md','RELEASE-20.48.md','RELEASE-20.49.md'])await writeFile('dist/docs/'+file,await readFile('docs/'+file,'utf8'));
 for(const file of ['BLUETOOTH-CAPTURE-2026-11-01.md','UV32-FACTORY-FIELDS.md','BROWSER-20.36.md','RELEASE-20.36.md','BROWSER-20.34.md','BROWSER-20.35.md','RELEASE-20.34.md','RELEASE-20.35.md','RELEASE-20.37.md','RELEASE-20.39.md','RELEASE-20.40.md','RELEASE-20.41.md','RELEASE-20.42.md','RELEASE-20.43.md','RELEASE-20.44.md','RELEASE-20.45.md','RELEASE-20.46.md','RELEASE-20.47.md','UV32-READ-EVIDENCE-2026-11-09.md','UV32-SESSION-EVIDENCE-2026-11-09.md','UV32-HANDSHAKE-2026-11-08.md','UV32-READ.md','RELEASE-20.38.md'])await writeFile('dist/docs/'+file,await readFile('docs/'+file,'utf8'));
 await writeFile('dist/deployment.json',JSON.stringify({environment:'UAT',version,sourceSha:sha,repository,protocolProfiles:['mini5','uv32']},null,2)+'\n');
 console.log('Packaged '+version+' for '+repository);

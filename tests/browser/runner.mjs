@@ -1,4 +1,4 @@
-import {BROWSER_SUITE_VERSION,BROWSER_CHECK_COUNT,browserBuildError} from './revision.mjs?v=20.48';
+import {BROWSER_SUITE_VERSION,BROWSER_CHECK_COUNT,browserBuildError} from './revision.mjs?v=20.49';
 import {rdtFixture} from '../rdt-fixtures.mjs?v=20.33';
 import {readImage} from '../../image-files.mjs?v=20.31';
 import {csvFixture,csvHeads} from '../csv-fixtures.mjs?v=20.31';
@@ -11,7 +11,7 @@ async function fresh(mode='normal'){
  frame?.contentWindow.f13?.fake.close();frame?.remove();
  let html=await fetch(new URL('index.html',root),{cache:'no-store'}).then(r=>r.text());
  const match=html.match(/<script type="module" src="(app\.mjs[^\"]*)"><\/script>/);assert(match,'Actual application module exists');
- const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.48',root).href}"><\/script>`;
+ const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.49',root).href}"><\/script>`;
  html=html.replace('<head>','<head><base href="'+root.href+'">').replace(match[0],script);
  frame=document.createElement('iframe');frame.title='Isolated CPS test application';frame.setAttribute('allow',"bluetooth 'none'");frame.srcdoc=html;document.getElementById('workspace').append(frame);
  await until(()=>frame.contentWindow.f13?.ready||frame.contentWindow.f13?.failed,'application bootstrap');
@@ -376,6 +376,15 @@ document.getElementById('start').onclick=async()=>{
    assert(opened&&closed&&writes.length===530&&writes.slice(4).every(b=>b[0]===0x52),'Only 526 read frames follow identification');
    assert(id('uatUv32Summary').textContent.includes('1000 channels')&&!id('uatUv32View').disabled,'Cable preview uses the existing read-only viewer');
    assert(![...id('uatUv32Results').querySelectorAll('[role="tab"]')].find(x=>x.textContent==='Radio Function').disabled,'Full cable preview includes settings tabs');
+   assert(id('uatUv32Zone').options.length===11,'Full preview offers all ten zones');
+   id('uatUv32Zone').value='2';id('uatUv32Zone').dispatchEvent(new h.w.Event('change'));
+   assert(id('uatUv32Rows').textContent.includes('No populated channels')&&id('uatUv32Page').textContent.includes('Zone 02'),'Zone filter keeps channel slots in their bank');
+   id('uatUv32Close').click();
+   const saved={kind:'uv32-cable-full-read-v1',identity:'UV32PRO',completed:true,regions:[[0,32832],[36864,64],[40960,704],[53248,64]],completedBlocks:526,totalBlocks:526,memoryReads:526,memoryWrites:0,wireHex:'ff'.repeat(33664),preview:{channels:[{name:'forged'}]}};
+   const transfer=new h.w.DataTransfer();transfer.items.add(new h.w.File([JSON.stringify(saved)],'full-read.json',{type:'application/json'}));
+   const input=id('uatUv32Import').nextElementSibling;input.files=transfer.files;input.dispatchEvent(new h.w.Event('change'));
+   await until(()=>id('uatUv32Results').open,'reopened UV-32 full capture');
+   assert(id('uatUv32Rows').textContent.includes('No populated channels')&&!id('uatUv32Rows').textContent.includes('forged'),'Import decodes original bytes instead of trusting JSON display data');
    id('uatUv32Close').click();
   });
   await check('Missing HTML control mutation is detected by actual app startup',async()=>{h=await fresh('missing-id');assert(h.state.failed&&h.state.errors.some(e=>/null|onclick/.test(e)),'Removing confirmWrite must break startup');});

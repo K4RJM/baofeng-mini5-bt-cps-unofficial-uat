@@ -20,7 +20,14 @@ const fields=[
  ['VOX Switch',58],['GPS Timezone',59],['Input DTMF',61],['GPS Units',62],['Power On Time',63]
 ];
 const maps={
- 'Dual Standby':onoff,'FM':['Disable','Enable'],'Key Lock':onoff,'Key Auto Lock':onoff,
+ 'SQL':{2:'2'},'Save Mode':{0:'Off'},'VOX level':{4:'5'},'Backlight Timer':{4:'20 s'},
+ 'TOT':{8:'120 s'},'Beep':{0:'Off'},'Sidetone':{1:'Side Key'},
+ 'Send ID Delay':{5:'500 ms'},'Tail Clear':{1:'On'},
+ 'Rpt Tail Clear':{5:'500 ms'},'Rpt Tail Delay':{5:'500 ms'},
+ 'Power On Dls Type':{0:'Logo'},'VOX Dly Time':{5:'1.0 s'},
+ 'Menu Quit Timer':{10:'60 s'},'TOT Alarm':{0:'Off'},'QT Save Mode':{0:'Both'},
+ 'GPS Mode':{2:'GPS + Beidou'},'Skey1 Short':{0:'FM'},
+ 'Dual Standby':onoff,'FM':{0:'Enable'},'Key Lock':onoff,'Key Auto Lock':onoff,
  'VOX Switch':onoff,'GPS Switch':onoff,'Enable Menu Rst':onoff,'Roger':onoff,
  'Scan Mode':['Time','Carrier','Search'],'Language':['English','Chinese'],
  'CH.A Display Type':['Name','Frequency','Channel Number'],'CH.B Display Type':['Name','Frequency','Channel Number'],
@@ -28,8 +35,9 @@ const maps={
  'Pilot Tone':['1000 Hz','1450 Hz','1750 Hz','2100 Hz'],
 };
 function decodeVfo(bytes){
- const b=bytes;return [
-  ['Frequency bytes',hex(b.slice(0,8))],['RX tone code',b[8]|b[9]<<8],['TX tone code',b[10]|b[11]<<8],
+ const b=bytes;const digits=b.slice(0,8),freq=digits.every(x=>x<=9)?Number(digits.slice(0,3).join('')+'.'+digits.slice(3).join('')):null;
+ return [
+  ['Frequency MHz',freq===null?'Unconfirmed ('+hex(digits)+')':freq.toFixed(5)],['RX tone code',b[8]|b[9]<<8],['TX tone code',b[10]|b[11]<<8],
   ['Busy Lock',value(b[13],onoff)],['Offset direction code',b[14]>>5],['Signalling code',b[14]&31],
   ['Power code',b[16]],['Bandwidth',b[17]&0x40?'Narrow':'Wide'],['FHSS',b[17]&1?'On':'Off'],
   ['Step code',b[19]],['Offset bytes',hex(b.slice(20,26))],['SQ Mode code',b[28]]

@@ -16,6 +16,6 @@ The application assembly identifies `BF_H802_CPS.Communication` with `HandShake`
 - VFO A/B: frequency, RX/TX tones, busy lock, offset direction/frequency, signalling group, power, bandwidth, squelch mode, step, FHSS, and scan range.
 - DTMF: local ID, 20 code/name pairs, code timing, idle timing, and hang-up time.
 
-These metadata names confirm *which* settings exist; they do not prove their byte offsets or value mappings. The UAT reader uses the [CHIRP UV-17Pro family driver](https://github.com/kk7ds/chirp/blob/master/chirp/drivers/baofeng_uv17Pro.py) as a separate memory-layout reference. A new 33,664-byte cable capture from this radio is still required to verify the extra settings, VFO, DTMF, and zone data against the factory CPS display. The existing 32,000-byte successful Ham-Rx capture verifies channel memory only.
+These metadata names confirm *which* settings exist; they do not prove their byte offsets or value mappings. The UAT reader uses the [CHIRP UV-17Pro family driver](https://github.com/kk7ds/chirp/blob/master/chirp/drivers/baofeng_uv17Pro.py) as a separate memory-layout reference. A 33,664-byte cable capture from this radio completed on November 17. The resulting 33 populated channels, 10 zone names, DTMF local ID/first entry, and many visible function settings match the supplied factory CPS screenshots. Unmapped codes still require separate verification.
 
 The factory `ChatGPT2.dat` is a serialized CPS document, not a raw CHIRP image. Preserve it and all original captures. No UV-32 memory write is enabled in UAT.
