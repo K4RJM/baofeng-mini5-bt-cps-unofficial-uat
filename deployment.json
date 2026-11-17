@@ -1,0 +1,10 @@
+{
+  "environment": "UAT",
+  "version": "20.63-UAT.acf8e6a",
+  "sourceSha": "acf8e6a700d3cc1b3527f165b4c90623e64e1b0a",
+  "repository": "K4RJM/baofeng-mini5-bt-cps-unofficial-uat",
+  "protocolProfiles": [
+    "mini5",
+    "uv32"
+  ]
+}
