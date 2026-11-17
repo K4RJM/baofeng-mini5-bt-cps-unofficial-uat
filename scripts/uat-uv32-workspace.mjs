@@ -1,6 +1,6 @@
 // UAT UV-32 views use Ham-Rx's existing navigation, card, and channel table.
 // This module renders captured data only; it never invokes MINI-5 editors.
-import {renderUv32Help} from './uat-uv32-help.mjs?v=20.53';
+import {renderUv32Help} from './uat-uv32-help.mjs?v=20.53a';
 export function createUv32Workspace({document:d,select,getCapture}){
  const $=id=>d.getElementById(id),sections=['Channels','Optional settings','VFO A / B','DTMF','Zones','Radio & help'];
  const icons=['☷','⚙','⇄','▦','▤','ⓘ'];

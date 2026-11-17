@@ -27,7 +27,7 @@ html=replaceOnce(html,'</style></head>','.uat-radio-choice{display:flex;flex-dir
 html=replaceOnce(html,'</style></head>','@media(min-width:1280px){.topbar{min-height:58px;padding:5px 18px}.brand>div{display:flex;align-items:center;gap:12px}.brand h1{margin:0;font-size:18px;white-space:nowrap}.uat-radio-choice{flex-direction:row;align-items:center;gap:5px;margin:0;white-space:nowrap}.uat-radio-choice select{width:118px;min-height:30px}.brand-meta .build-badge{display:none}.risk-banner{padding:5px 18px;font-size:11px;line-height:1.25}}'+'</style></head>');
 await writeFile('dist/index.html',html);
 let app=await readFile('dist/app.mjs','utf8');
-app="import {installProtocolTools} from './uat-protocols.mjs?v=20.46';\nimport {installUv32Reader} from './uat-uv32-ui.mjs?v=20.53';\nlet uatProtocolTools,uatUv32Reader;\n"+app;
+app="import {installProtocolTools} from './uat-protocols.mjs?v=20.46';\nimport {installUv32Reader} from './uat-uv32-ui.mjs?v=20.53a';\nlet uatProtocolTools,uatUv32Reader;\n"+app;
 app=replaceOnce(app,'function sync(){','function sync(){\n uatProtocolTools?.sync(busy);');
 
 app=replaceOnce(app,"$('content').inert=busy;$('tabs').inert=busy;","$('content').inert=busy;$('tabs').inert=busy;uatUv32Reader?.sync(busy);");

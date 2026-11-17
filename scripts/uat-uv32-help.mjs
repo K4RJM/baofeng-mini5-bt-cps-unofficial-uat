@@ -27,7 +27,7 @@ const hotspots=[
  ['star',40,75,5,4],['zero',47,75,5,4],['hash',54,75,5,4]
 ];
 const el=(d,tag,cls,text)=>{const node=d.createElement(tag);if(cls)node.className=cls;if(text!==undefined)node.textContent=text;return node;};
-export function renderUv32Help(document:d,target){
+export function renderUv32Help(d,target){
  const workspace=el(d,'div','help-workspace uv32-help-workspace');
  const host=el(d,'div','help-tutorial-host'),card=el(d,'section','card radio-tutorial-card');
  card.append(el(d,'h3','', 'Radio button tutorials'),el(d,'p','muted','Hover, focus or tap a button for its instructions.'));
