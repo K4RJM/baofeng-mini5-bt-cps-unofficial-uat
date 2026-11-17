@@ -4,9 +4,9 @@ import {uv32ReadSessionStatus,isUatPage} from './uat-protocols.mjs?v=20.46';
 import {captureUv32Channels,uv32ReadDiagnostics} from './uat-uv32-read.mjs?v=20.48';
 import {readUv32SerialImage} from './uat-uv32-serial.mjs?v=20.48';
 import {openUv32Capture} from './uat-uv32-capture.mjs?v=20.49';
-import {createUv32Workspace} from './uat-uv32-workspace.mjs?v=20.50';
+import {createUv32Workspace} from './uat-uv32-workspace.mjs?v=20.51';
 
-export function installUv32Reader({radio,run,connect,message,refresh,renderMini5}){
+export function installUv32Reader({radio,run,connect,message,refresh,renderMini5,workspaceStatus}){
  const page=location.href==='about:srcdoc'?document.baseURI:location.href;
  if(!isUatPage(new URL('./uat-protocols.mjs',import.meta.url).href,page))return null;
  const d=document,$=id=>d.getElementById(id),select=$('uatProtocol'),mode=$('uatSendMode'),readSend=$('uatUv32ReadSend'),sweep=$('uatUv32Sweep');
@@ -53,7 +53,7 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
   }catch(error){if(error.uv32ReadReport)capture=error.uv32ReadReport;output.textContent=error.message;throw error;}
   finally{controller=null;refresh();}
  });
- select.addEventListener('change',()=>{if(select.value==='uv32'){mode.value='with-response';workspace.reset();}else{workspace.restoreBrand();renderMini5();}refresh();});
+ select.addEventListener('change',()=>{if(select.value==='uv32'){mode.value='with-response';workspace.reset();refresh();note('UV-32 · Ready to read · read only');}else{workspace.restoreBrand();renderMini5();refresh();workspaceStatus();}});
  mode.addEventListener('change',refresh);readSend.addEventListener('change',refresh);
  return {sync(busy){const uv=select.value==='uv32';
   for(const id of ['uatUv32Read','uatUv32CableRead','uatUv32View','uatUv32Save','uatUv32Import','uatUv32ReadSendControl','uatUv32SweepControl'])$(id).hidden=!uv;
@@ -64,6 +64,6 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
   view.disabled=busy||!preview;save.disabled=busy;
   save.textContent=capture&&capture.memoryReads>0?'↧ Save UV-32 capture':'↧ Save read diagnostics';
   cancel.hidden=!controller;cancel.disabled=!controller||controller.signal.aborted;
-  if(uv){for(const id of ['readRadio','writeRadio','verify'])$(id).disabled=true;$('sourceTag').textContent=preview?(preview.readout?'UV-32 full read':'UV-32 channel read'):'Blank UV-32 workspace';}
+  if(uv){for(const id of ['readRadio','writeRadio','verify'])$(id).disabled=true;$('sourceTag').textContent=preview?(preview.readout?'UV-32 full read':'UV-32 channel read'):'Blank UV-32 workspace';$('connectionHint').textContent='UV-32 Bluetooth programming';}
  }};
 }

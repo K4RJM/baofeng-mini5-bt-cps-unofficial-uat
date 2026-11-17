@@ -1,4 +1,4 @@
-import {BROWSER_SUITE_VERSION,BROWSER_CHECK_COUNT,browserBuildError} from './revision.mjs?v=20.50';
+import {BROWSER_SUITE_VERSION,BROWSER_CHECK_COUNT,browserBuildError} from './revision.mjs?v=20.51';
 import {rdtFixture} from '../rdt-fixtures.mjs?v=20.33';
 import {readImage} from '../../image-files.mjs?v=20.31';
 import {csvFixture,csvHeads} from '../csv-fixtures.mjs?v=20.31';
@@ -11,7 +11,7 @@ async function fresh(mode='normal'){
  frame?.contentWindow.f13?.fake.close();frame?.remove();
  let html=await fetch(new URL('index.html',root),{cache:'no-store'}).then(r=>r.text());
  const match=html.match(/<script type="module" src="(app\.mjs[^\"]*)"><\/script>/);assert(match,'Actual application module exists');
- const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.50',root).href}"><\/script>`;
+ const script=`<script>window.f13Mode=${JSON.stringify(mode)};window.f13AppURL=${JSON.stringify(new URL(match[1],root).href)};<\/script><script type="module" src="${new URL('tests/browser/frame.mjs?v=20.51',root).href}"><\/script>`;
  html=html.replace('<head>','<head><base href="'+root.href+'">').replace(match[0],script);
  frame=document.createElement('iframe');frame.title='Isolated CPS test application';frame.setAttribute('allow',"bluetooth 'none'");frame.srcdoc=html;document.getElementById('workspace').append(frame);
  await until(()=>frame.contentWindow.f13?.ready||frame.contentWindow.f13?.failed,'application bootstrap');
@@ -249,8 +249,10 @@ document.getElementById('start').onclick=async()=>{
     assert(id('uatProtocolResult').textContent.startsWith('Handshake complete:'),'Handshake success shown: '+id('uatProtocolResult').textContent);
     assert(h.state.fake.sent.length===before+4,'Exactly four identification commands');
     assert(h.state.fake.writes===0&&h.state.fake.reads===0,'No channel-memory commands');
-    assert(id('connection').textContent==='Connected'&&id('sourceTag').textContent===initial,'Connection and workspace preserved');
+    assert(id('connection').textContent==='Connected'&&id('sourceTag').textContent===(profile==='uv32'?'Blank UV-32 workspace':initial),'Connection and selected radio workspace preserved');
    }
+   select.value='mini5';select.dispatchEvent(new h.w.Event('change'));
+   assert(id('sourceTag').textContent===initial&&h.d.querySelector('[data-channel-index="0"]'),'MINI-5 workspace returns with its channels');
    id('uatHandshakeReport').click();const report=JSON.parse(await h.state.downloads.at(-1).text());
    assert(report.model==='OTHER'&&report.matchesExpected===false&&report.memoryWrites===0&&report.exchanges.length===4,'Diagnostic includes mismatched identity and wire exchange');
    assert(report.exchanges[3].chunks.map(c=>c.bytes).join(',')==='20,5'&&report.exchanges[3].chunks.every(c=>Number.isFinite(c.completedAtMs)),'UV-32 initialization uses completed 20-byte and 5-byte sends');
@@ -288,6 +290,7 @@ document.getElementById('start').onclick=async()=>{
    h.state.fake.faults.identity='UV32PRO';h.state.fake.faults.bridgeSetup=true;h.state.fake.faults.maxWriteBytes=20;
    h.state.fake.characteristic.properties={write:true,writeWithoutResponse:true,notify:true};
    id('uatProtocol').value='uv32';id('uatProtocol').dispatchEvent(new h.w.Event('change'));
+   assert(id('status').textContent.includes('UV-32')&&id('connectionHint').textContent.includes('UV-32'),'Selected radio status matches UV-32');
    assert(id('uatSendMode').value==='with-response'&&!id('uatUv32Read').disabled,'One-click read available with working send default');
    assert(id('readRadio').disabled&&id('writeRadio').disabled,'MINI-5 radio actions unavailable in UV-32 mode');
    assert(!id('uatUv32ReadSendControl').hidden&&id('uatUv32ReadSend').value==='with-response','Explicit read transport defaults to existing behavior');
@@ -314,6 +317,7 @@ document.getElementById('start').onclick=async()=>{
    id('uatUv32Save').click();capture=JSON.parse(await h.state.downloads.at(-1).text());assert(!capture.completed&&capture.bytes===0&&capture.error.includes('header'),'Partial capture clearly identifies failure');
    id('uatUv32View').click();assert(id('channelTableWrap').querySelectorAll('tbody tr').length===3,'Previous successful read retained');
    id('uatProtocol').value='mini5';id('uatProtocol').dispatchEvent(new h.w.Event('change'));
+   assert(id('status').textContent.includes('mini5')&&id('connectionHint').textContent==='Bluetooth programming','MINI-5 status returns');
    assert(id('uatUv32Read').hidden&&id('uatUv32ReadSendControl').hidden&&!id('readRadio').disabled&&id('sourceTag').textContent===source&&h.d.querySelector('[data-channel-index="0"]').textContent===originalRow,'Returning to MINI-5 restores its workspace');
   });
   await check('UV-32 alternate read transport preserves initialization, renews stale sessions and retains failures',async()=>{
