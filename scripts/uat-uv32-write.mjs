@@ -5,7 +5,6 @@ import {changedUv32Blocks,uv32ChannelCaptureImage,uv32ImageFromHex,uv32ImageToHe
 import {openUv32Capture} from './uat-uv32-capture.mjs';
 import {UV32_BLOCK_BYTES,UV32_CHANNEL_BYTES,uv32WireDecode} from './uv32-codec.mjs';
 
-const CHUNK_BYTES=20;
 const ADDRESS_HEX_BYTES=UV32_CHANNEL_BYTES*2;
 const identityKey=handshake=>JSON.stringify([handshake.id,handshake.config]);
 
@@ -49,9 +48,9 @@ export async function writeUv32Bluetooth(radio,baseline,editedImage,{
 }={}){
  if(radio.busy||radio.connecting)throw Error('Another radio operation is already running');
  const channelOnly=baseline?.kind==='uv32-channel-read-v1';
- const original=channelOnly?uv32ChannelCaptureImage(baseline):uv32ImageFromHex(openUv32Capture(baseline).wireHex);
+ const original=channelOnly?uv32ChannelCaptureImage(baseline):uv32ImageFromHex(
+  baseline?.kind==='uv32-cable-full-read-v1'?openUv32Capture(baseline).wireHex:baseline?.wireHex);
  const changes=changedUv32Blocks(original,editedImage);
- if(!changes.length)throw Error('Edit a UV-32 channel before writing by Bluetooth');
  if(changes.some(block=>block.address>=UV32_CHANNEL_BYTES))throw Error('Write settings, VFO, DTMF and zone edits by cable');
  const wire=uv32WireDecode(editedImage);
  const expected=uv32ImageToHex(editedImage).slice(0,ADDRESS_HEX_BYTES);
@@ -70,7 +69,7 @@ export async function writeUv32Bluetooth(radio,baseline,editedImage,{
  try{
   checkCancelled();
   stage('Connecting to UV-32 for writing…');
-  if(radio.connected||radio.char)radio.disconnect();
+  if(baseline.handshake&&radio.connected)radio.disconnect();
   await radio.connect();
   device=radio.device;
   checkCancelled();
@@ -89,13 +88,12 @@ export async function writeUv32Bluetooth(radio,baseline,editedImage,{
   progress('Writing channels',0,totalBlocks);
   for(let address=0;address<UV32_CHANNEL_BYTES;address+=UV32_BLOCK_BYTES){
    const frame=Uint8Array.of(0x57,address>>8,address&255,UV32_BLOCK_BYTES,...wire.subarray(address,address+UV32_BLOCK_BYTES));
-   for(let offset=0;offset<frame.length;offset+=CHUNK_BYTES){
-    check();
-    if(radio.rx.length)throw Error('Unexpected response before completing the write block');
-    report.attemptedAddress=address;
-    const chunk=frame.subarray(offset,offset+CHUNK_BYTES);
-    await radio.native('Sending UV-32 write data',()=>characteristic.writeValueWithResponse(chunk),radio.deadlines.send);
-   }
+   check();
+   if(radio.rx.length)throw Error('Unexpected response before sending the write block');
+   report.attemptedAddress=address;
+   // Send the complete CPS frame as one characteristic value. Splitting it
+   // into separate characteristic writes produced 0x00 even at address zero.
+   await radio.native('Sending complete UV-32 write block',()=>characteristic.writeValueWithResponse(frame),radio.deadlines.send);
    check();
    const response=await radio.wait(1);
    if(response[0]!==0x06)throw Error('Radio rejected the write block (response 0x'+response[0].toString(16).padStart(2,'0')+')');
@@ -116,7 +114,7 @@ export async function writeUv32Bluetooth(radio,baseline,editedImage,{
   if(error.uv32ReadReport)report.read=error.uv32ReadReport;
   if(report.attemptedAddress!==null){
    const address=report.attemptedAddress.toString(16).padStart(4,'0').toUpperCase();
-   error.message+=` · ${report.acknowledged}/${report.totalBlocks} blocks acknowledged, last attempted 0x${address}. Read the radio before retrying.`;
+   error.message+=` · ${report.acknowledged}/${report.totalBlocks} blocks acknowledged, last attempted 0x${address}.`;
   }else error.message+=' · No blocks sent.';
   error.uv32BluetoothWriteReport=report;
   throw error;

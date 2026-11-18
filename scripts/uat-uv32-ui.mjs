@@ -37,14 +37,14 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
  const bluetoothWrite=bluetooth&&addFileButton('uatUv32BluetoothWrite','↑ Write UV-32 Bluetooth',cableWrite);
  const gpsWarning=bluetooth&&d.createElement('p');
  if(gpsWarning){
-  gpsWarning.className='muted';
+  gpsWarning.style.color='var(--warning-text)';
   gpsWarning.textContent='Turn GPS off on the UV-32 before reading or writing over Bluetooth.';
   gpsWarning.hidden=true;
   read.insertAdjacentElement('beforebegin',gpsWarning);
  }
  const blockedBluetoothWrite=()=>{
   if(!navigator.bluetooth||!window.isSecureContext)return 'Use a browser with Web Bluetooth.';
-  if(!(channelOnly()||capture?.readout)||!editedImage||fileOnly)return 'Read the UV-32 before writing.';
+  if(!(channelOnly()||capture?.readout)||!editedImage)return 'Open a UV-32 file or read the radio before writing.';
   const blocks=changedUv32Blocks(originalImage(),editedImage);
   if(blocks.some(block=>block.address>=32000))return 'Use the cable to write changes to settings, VFO, DTMF, or zone names.';
   return '';
@@ -136,7 +136,7 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
     }
     if(template)datTemplate=template;
     refresh();
-    note(fileOnly?'Opened UV-32 '+format+'. To program it, read the target radio first and import the file again.':'Imported UV-32 '+format+'. Write by cable to program the radio.');
+    note(fileOnly?'Opened UV-32 '+format+'. Use Bluetooth to write the channel table.':'Imported UV-32 '+format+'. Use the cable to program settings as well as channels.');
     return;
    }
    if(file.size>250000)throw Error('UV-32 capture is larger than expected');const loaded=openUv32Capture(await file.text());
@@ -175,7 +175,6 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
   bluetoothWrite.onclick=()=>run(async()=>{
    const blocked=blockedBluetoothWrite();
    if(blocked)throw Error(blocked);
-   if(!changedUv32Blocks(originalImage(),editedImage).length){note('No channel changes to write. Edit a channel first.');return;}
    const baseline=capture,staged=editedImage;
    controller=new AbortController();
    note('Starting UV-32 Bluetooth channel write…');refresh();
@@ -185,7 +184,7 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
      progress:(stage,n,total)=>{const p=$('progress');p.max=total;p.value=n;note(`UV-32 Bluetooth ${stage}: block ${n}/${total}`);}
     });
     const updated={...baseline,...uv32Preview(staged),wireHex:uv32ImageToHex(staged)};
-    capture=channelOnly()?updated:openUv32Capture(updated);preview=capture;undo=[];
+    capture=channelOnly()||fileOnly?updated:openUv32Capture(updated);preview=capture;undo=[];
     note('UV-32 Bluetooth write complete. All 500 channel blocks verified.');
     workspace.render();
    }catch(error){

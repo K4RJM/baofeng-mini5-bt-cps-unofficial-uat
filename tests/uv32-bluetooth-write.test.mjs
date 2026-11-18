@@ -18,7 +18,7 @@ const original=uv32ImageFromHex(baseline.wireHex);
 const edited=editUv32Channel(editUv32Channel(original,1,{name:'BLE TEST 1'}),3,{name:'BLE TEST 3',rx:'146.52'});
 
 async function withRadio(t,faults,check){
- const fake=asyncRadio(wire,{identity:'UV32PRO',bridgeSetup:true,withResponse:true,maxWriteBytes:20,fragmentedWrites:true,...faults});
+ const fake=asyncRadio(wire,{identity:'UV32PRO',bridgeSetup:true,withResponse:true,maxWriteBytes:68,fragmentedWrites:true,...faults});
  const radio=new Reader();
  t.mock.method(radio,'pause',()=>Promise.resolve());
  const navigatorDescriptor=Object.getOwnPropertyDescriptor(globalThis,'navigator');
@@ -51,12 +51,21 @@ test('Bluetooth starts at zero and writes the channel table even when the only e
    const address=index*64;
    const frame=Uint8Array.of(0x57,address>>8,address&255,64,...target.subarray(address,address+64));
    assert.deepEqual(frames[index],frame);
-   const start=fake.packets.findIndex(packet=>Buffer.from(packet).equals(Buffer.from(frame.subarray(0,20))));
-   assert.ok(start>=0);
-   assert.deepEqual(fake.packets.slice(start,start+4).map(packet=>packet.length),[20,20,20,8]);
+   assert.ok(fake.packets.some(packet=>Buffer.from(packet).equals(Buffer.from(frame))));
   }
   assert.deepEqual(Buffer.from(fake.raw).subarray(0,32000),target);
   assert.deepEqual(fake.raw.subarray(32000),wire.subarray(32000));
+ });
+});
+
+test('An unchanged file writes directly using an existing Bluetooth connection',async t=>{
+ await withRadio(t,{},async (radio,fake)=>{
+  await radio.connect();
+  const report=await writeUv32Bluetooth(radio,{wireHex:baseline.wireHex},original);
+  assert.equal(report.verified,true);
+  assert.equal(fake.writes,500);
+  assert.equal(fake.sent.find(command=>[0x52,0x57].includes(command[0]))[0],0x57);
+  assert.equal(fake.events.filter(event=>event==='chooser').length,1);
  });
 });
 
