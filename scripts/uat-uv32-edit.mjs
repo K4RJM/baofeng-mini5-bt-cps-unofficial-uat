@@ -14,7 +14,7 @@ const integer=(value,min,max,label)=>{const n=Number(value);if(!Number.isInteger
 export const uv32ImageFromHex=hex=>{if(typeof hex!=='string'||hex.length!==UV32_IMAGE_BYTES*2||!/^[0-9a-f]+$/i.test(hex))throw Error('A complete UV-32 capture is required');return uv32WireDecode(Uint8Array.from(hex.match(/../g),x=>parseInt(x,16)));};
 export const uv32ImageToHex=image=>{assertChannelImage(image);return Array.from(uv32WireDecode(image),x=>x.toString(16).padStart(2,'0')).join('');};
 export const uv32Preview=image=>{assertChannelImage(image);const wire=uv32WireDecode(image);return {preview:decodeUv32Channels(wire.slice(0,UV32_CHANNEL_BYTES)),readout:image.length===UV32_IMAGE_BYTES?decodeUv32Image(image):undefined};};;
-const freq=value=>{const s=String(value).trim();if(!/^\d{3}\.\d{5}$/.test(s))throw Error('Frequency must have five decimal places, for example 146.52000');const n=Number(s);if(n<108||n>520)throw Error('Frequency is outside the UV-32 range');const digits=s.replace('.','').split('').reverse();const out=new Uint8Array(4);for(let i=0;i<4;i++)out[i]=Number(digits[i*2])+Number(digits[i*2+1])*16;return out;};
+const freq=value=>{const s=String(value).trim();if(!/^\d{3}(?:\.\d{1,5})?$/.test(s))throw Error('Enter an MHz frequency with up to five decimal places, for example 146.52');const n=Number(s);if(n<108||n>520)throw Error('Frequency is outside the UV-32 range');const digits=n.toFixed(5).replace('.','').split('').reverse();const out=new Uint8Array(4);for(let i=0;i<4;i++)out[i]=Number(digits[i*2])+Number(digits[i*2+1])*16;return out;};
 const tone=value=>{const s=String(value).trim().toUpperCase();if(s==='OFF')return 0;let code;if(/^\d{2,3}\.\d$/.test(s)){code=Math.round(Number(s)*10);if(code<600||code>2600)throw Error('CTCSS tone must be 60.0–260.0 Hz');}else{const match=s.match(/^D(\d{3})([NR])$/);if(!match)throw Error('Use Off, a CTCSS tone, or D023N/D023R');const index=DCS.indexOf(Number(match[1]));if(index<0)throw Error('DCS code is not supported');code=index+(match[2]==='R'?106:1);}return code;};
 const set16=(b,offset,n)=>{b[offset]=n&255;b[offset+1]=n>>8;};
 const choice=(value,options,label)=>{const n=options.indexOf(String(value));if(n<0)throw Error(`Choose a valid ${label}`);return n;};
@@ -23,7 +23,7 @@ const setName=(image,offset,length,value)=>{const s=ascii(value,length);image.fi
 export function editUv32Channel(source,number,patch){
  assertChannelImage(source);integer(number,1,1000,'Channel');const b=new Uint8Array(source),at=(number-1)*32;
  if(patch.delete===true){b.fill(255,at,at+32);return b;}
- if(b[at]===255){b.fill(0,at,at+16);b.fill(255,at+16,at+32);b[at+12]=0;b[at+13]=0;b[at+15]=4;}
+ if(b[at]===255){b.fill(0,at,at+16);b.fill(255,at+4,at+8);b.fill(255,at+16,at+32);b[at+12]=0;b[at+13]=0;b[at+15]=4;}
  for(const [key,value] of Object.entries(patch)){
   switch(key){
    case 'rx': b.set(freq(value),at);break;

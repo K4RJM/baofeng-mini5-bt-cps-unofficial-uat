@@ -55,7 +55,7 @@ export async function writeUv32Bluetooth(radio,baseline,editedImage,{
  if(changes.some(block=>block.address>=UV32_CHANNEL_BYTES))throw Error('Write settings, VFO, DTMF and zone edits by cable');
  const wire=uv32WireDecode(editedImage);
  const expected=uv32ImageToHex(editedImage).slice(0,ADDRESS_HEX_BYTES);
- const report={kind:'uv32-bluetooth-write-v1',stage:'preflight',totalBlocks:changes.length,acknowledged:0,attemptedAddress:null,verified:false};
+ const report={kind:'uv32-bluetooth-write-v1',stage:'connecting',totalBlocks:changes.length,acknowledged:0,attemptedAddress:null,verified:false};
  let device,ownsBusy=false;
  const checkCancelled=()=>{if(signal?.aborted)throw Error('Bluetooth write cancelled');};
  const reconnect=()=>reconnectUv32(radio,device);
@@ -64,16 +64,16 @@ export async function writeUv32Bluetooth(radio,baseline,editedImage,{
   stage:text=>stage(label+' · '+text),progress:(n,total)=>progress(label,n,total)
  });
  try{
-  const before=await read('Preflight',()=>radio.connect());
-  if(before.wireHex!==baseline.wireHex.slice(0,ADDRESS_HEX_BYTES).toLowerCase())throw Error('Bluetooth channels differ from the previous read. Read the target radio again.');
+  checkCancelled();
+  stage('Connecting to UV-32 for writing…');
+  if(radio.connected||radio.char)radio.disconnect();
+  await radio.connect();
   device=radio.device;
   checkCancelled();
   report.stage='identifying';
-  stage('Reconnecting to the same UV-32 to write…');
-  radio.disconnect();
-  await reconnect();
+  stage('Identifying UV-32 for writing…');
   const identity=await identifyProfile(radio,'uv32',{sendMode:'with-response'});
-  if(identityKey(identity)!==identityKey(before.handshake))throw Error('UV-32 identification changed before writing');
+  if(baseline.handshake?.id&&identityKey(identity)!==identityKey(baseline.handshake))throw Error('UV-32 identification differs from the previous Bluetooth read');
   const session=consumeUv32ReadSession(radio);
   const {characteristic,generation}=session;
   const check=()=>{
@@ -104,7 +104,7 @@ export async function writeUv32Bluetooth(radio,baseline,editedImage,{
   radio.busy=false;ownsBusy=false;
   report.stage='read-back';
   const after=await read('Read-back',reconnect);
-  if(identityKey(after.handshake)!==identityKey(before.handshake)||after.wireHex!==expected)throw Error('Bluetooth read-back differs from the edited channel data');
+  if(identityKey(after.handshake)!==identityKey(identity)||after.wireHex!==expected)throw Error('Bluetooth read-back differs from the edited channel data');
   report.verified=true;report.stage='complete';
   return report;
  }catch(error){

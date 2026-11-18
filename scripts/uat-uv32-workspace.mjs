@@ -172,8 +172,7 @@ export function createUv32Workspace({document:d,select,getCapture,onEdit,onUndo,
     close.setAttribute('aria-label','Close channel editor');head.append(title,close);editor.append(head);
     editor.append(el('p','','Previous / Next applies edits to this workspace. Radio programming is a separate action.'));
     error=el('div','error');error.setAttribute('role','alert');editor.append(error);
-    const form=el('form','grid uv32-channel-fields');inputs={};initial={};
-    form.onsubmit=event=>event.preventDefault();
+    const form=el('form','grid uv32-channel-fields');form.id='uv32ChannelFields';inputs={};initial={};
     for(const [key,label] of [...cols.slice(2),cols[1]]){
      const wrap=el('label'),caption=el('span','',label),input=choices[key]?el('select'):el('input');
      const value=String(current[key]??defaults[key]);
@@ -185,15 +184,21 @@ export function createUv32Workspace({document:d,select,getCapture,onEdit,onUndo,
     }
     editor.append(form);
     const actions=el('div','dialog-actions channel-editor-actions'),navigation=el('div','editor-navigation');
-    for(const [label,step] of [['← Previous',-1],['Next →',1]]){const buttonNode=button(label,()=>{const next=adjacent(step);if(next===null||!save())return;number=next;populate();});buttonNode.disabled=adjacent(step)===null;navigation.append(buttonNode);}
-    const commit=button('Apply channel edits',()=>{if(save())editor.close();});commit.classList.add('primary');
+    for(const [label,step] of [['← Previous',-1],['Next →',1]]){const buttonNode=button(label,()=>{const next=adjacent(step);if(next===null||!save())return;render();number=next;populate();});buttonNode.disabled=adjacent(step)===null;navigation.append(buttonNode);}
+    const commitEdits=()=>{
+     if(!inputs.rx.value.trim()){error.textContent='Enter an RX frequency for this channel';inputs.rx.focus();return;}
+     if(save()){editor.close();render();}
+    };
+    form.onsubmit=event=>{event.preventDefault();commitEdits();};
+    const commit=el('button','primary','Apply channel edits');
+    commit.type='submit';commit.setAttribute('form',form.id);
     actions.append(navigation,commit);editor.append(actions);
    };
-   populate();editor.showModal();
+   populate();editor.showModal();if(!row.rx)inputs.rx.focus();
   };
   const inlineEdit=(tr,row,cellIndex=3)=>{
    if(!editable||tr.dataset.editing)return;
-   const index=Math.max(2,Math.min(14,cellIndex)),[key,label]=cols[index-1],cell=tr.cells[index];
+   const index=row.rx===undefined?3:Math.max(2,Math.min(14,cellIndex)),[key,label]=cols[index-1],cell=tr.cells[index];
    const choices={power:['High','Low','Medium'],bandwidth:['Wide','Narrow'],scan:['Add','Skip'],squelch:['Code 0','Code 1','Code 2'],pttId:['Off','BOT','EOT','Both'],signal:Array.from({length:20},(_,i)=>String(i+1)),busyLock:['Off','On'],fhss:['Off','On']};
    const defaults={rx:'',tx:'Off',rxTone:'Off',txTone:'Off',power:'High',bandwidth:'Wide',scan:'Add',squelch:'Code 0',pttId:'Off',signal:'1',busyLock:'Off',fhss:'Off',name:''};
    const initial=String(row[key]??defaults[key]),tone=key==='rxTone'||key==='txTone';
@@ -204,12 +209,18 @@ export function createUv32Workspace({document:d,select,getCapture,onEdit,onUndo,
    control.setAttribute('aria-label',`Channel ${row.number} ${label}`);control.title=key==='squelch'?sqHelp(initial):COL_HELP[key];
    tr.dataset.editing='true';tr.onclick=null;tr.onkeydown=null;cell.replaceChildren(control);
    let finished=false;
-   const finish=cancel=>{if(finished)return;finished=true;const value=control.value;
-    if(cancel||value===initial){paint();return;}
-    if(key!=='rx'&&row.rx===undefined){onError('Enter an RX frequency for this channel first');paint();return;}
-    apply(()=>onEdit('channel',{number:row.number,patch:{[key]:value}}));
+   const finish=(cancel,keepInvalid=false)=>{
+    if(finished)return false;
+    if(cancel||control.value===initial){finished=true;paint();return true;}
+    try{onEdit('channel',{number:row.number,patch:{[key]:control.value}});}
+    catch(error){
+     onError(error.message);
+     if(!keepInvalid){finished=true;paint();}
+     return false;
+    }
+    finished=true;render();return true;
    };
-   control.onkeydown=e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();finish(true);}else if(e.key==='Enter'){e.preventDefault();e.stopPropagation();finish(false);}else if(e.key==='Tab'){e.preventDefault();e.stopPropagation();finish(false);const next=index+(e.shiftKey?-1:1);if(next>=2&&next<=14)d.querySelector(`[data-uv32-channel="${row.number}"]`)?.cells[next]?.click();}};
+   control.onkeydown=e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();finish(true);}else if(e.key==='Enter'){e.preventDefault();e.stopPropagation();finish(false,true);}else if(e.key==='Tab'){e.preventDefault();e.stopPropagation();if(!finish(false,true))return;const next=index+(e.shiftKey?-1:1);if(next>=2&&next<=14)d.querySelector(`[data-uv32-channel="${row.number}"]`)?.cells[next]?.click();}};
    control.onblur=()=>finish(false);
    if(tone||choices[key])control.onchange=()=>finish(false);
    control.focus({preventScroll:true});if(control.tagName==='INPUT')control.select();
