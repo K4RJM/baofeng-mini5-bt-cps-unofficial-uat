@@ -49,6 +49,12 @@ app=replaceOnce(app,"$('help').onclick=()=>{tab='Radio & help';render();};","$('
 app+="\n{\n";
 app+="const fileTools={save,openChannelAppend,readChannelFile:(file,settings)=>/\\.rdt$/i.test(file.name)?readRdtFile(file,{options,charset,...settings}):readCsvFile(file,{options,charset,...settings})};\n";
 app+="uatUv32Reader=installUv32Reader({radio,run,connect,message,refresh:sync,renderMini5:render,workspaceStatus,fileTools,bluetooth:{captureUv32Channels,writeUv32Bluetooth}});sync();\n}\n";
+app=app.replace(/<li><strong>Save diagnostic report<\/strong>.*?<\/li>/g,'')
+ .replace(/<p><a href="docs\/testing-compatibility.html".*?<\/p>/,'')
+ .replace('<button id="report">Save diagnostic report</button>','')
+ .replace(/<details><summary>Connection log<\/summary>.*?<\/details>/,'')
+ .replace(/\$\('connectionLog'\)\.textContent=log\.join\(.*?\);/,'')
+ .replace(/\$\('report'\)\.onclick=\(\)=>save\(JSON\.stringify\(\{build:[^\r\n]*(?=\r?\n)/,'');
 await writeFile('dist/app.mjs',app);
 const bluetoothModules=['uat-protocols.mjs','uat-uv32-read.mjs','uat-uv32-write.mjs'];
 for(const file of [...bluetoothModules,'uv32-codec.mjs','uv32-files.mjs','uv32-dat.mjs','uv32-dat-image.mjs','uat-uv32-image.mjs','uat-uv32-serial.mjs','uat-uv32-capture.mjs','uat-uv32-edit.mjs','uat-uv32-help.mjs','uat-uv32-tones.mjs','uat-uv32-workspace.mjs','uat-uv32-ui.mjs'])await writeFile('dist/'+file,await readFile('scripts/'+file,'utf8'));
