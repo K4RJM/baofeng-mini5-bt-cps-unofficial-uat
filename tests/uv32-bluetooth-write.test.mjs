@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {Reader} from '../read-test/reader.mjs';
 import {writeUv32Bluetooth} from '../scripts/uat-uv32-write.mjs';
-import {editUv32Channel,uv32ImageFromHex,uv32ImageToHex} from '../scripts/uat-uv32-edit.mjs';
+import {editUv32Channel,uv32ChannelCaptureImage,uv32ImageFromHex,uv32ImageToHex} from '../scripts/uat-uv32-edit.mjs';
 import {asyncRadio} from './async-radio.mjs';
 import {uv32Fixture} from './uv32-fixtures.mjs';
 
@@ -30,7 +30,11 @@ async function withRadio(t,faults,check){
 
 test('Bluetooth writes only changed channel blocks in 20-byte packets and independently reads back all channels',async t=>{
  await withRadio(t,{},async (radio,fake)=>{
-  const report=await writeUv32Bluetooth(radio,baseline,edited);
+  const bluetoothBaseline={kind:'uv32-channel-read-v1',model:'UV32PRO',completed:true,completedBlocks:500,totalBlocks:500,bytes:32000,wireHex:baseline.wireHex.slice(0,64000)};
+  const channels=uv32ChannelCaptureImage(bluetoothBaseline);
+  const changed=editUv32Channel(editUv32Channel(channels,1,{name:'BLE TEST 1'}),3,{name:'BLE TEST 3',rx:'146.52000'});
+  assert.equal(changed.length,32000);
+  const report=await writeUv32Bluetooth(radio,bluetoothBaseline,changed);
   assert.equal(report.verified,true);
   assert.equal(report.acknowledged,2);
   assert.equal(fake.reads,1000);
@@ -55,7 +59,7 @@ test('Stale cable baseline and edits outside channel memory send no Bluetooth wr
   await assert.rejects(writeUv32Bluetooth(radio,baseline,settings),/by cable/);
   assert.equal(fake.reads,0);
   fake.raw[0]^=1;
-  await assert.rejects(writeUv32Bluetooth(radio,baseline,edited),/differ from the cable capture.*No blocks sent/);
+  await assert.rejects(writeUv32Bluetooth(radio,baseline,edited),/differ from the previous read.*No blocks sent/);
   assert.equal(fake.writes,0);
  });
 });

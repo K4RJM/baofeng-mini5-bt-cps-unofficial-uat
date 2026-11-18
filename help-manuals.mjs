@@ -7,7 +7,7 @@ export function mountManuals(workspace,tutorial,references){
  const label=make('label','Manuals '),select=make('select');select.id='manualSelector';select.setAttribute('aria-label','Manuals');
  for(const [value,text,disabled]of [['','Choose a manual',false],['hamrx','Ham-Rx CPS User Guide · 20.27',false]]){const option=make('option',text);option.value=value;option.disabled=disabled;select.append(option);}label.append(select);controls.append(label);
  const official=make('a','Baofeng MINI-5 Radio Manual ↗');official.id='baofengManual';official.href=baofengManualURL;official.target='_blank';official.rel='noopener';official.title='Open the official Baofeng radio manual in a new tab';controls.append(official);
- const testing=make('a','Testing & Compatibility ↗');testing.href='docs/testing-compatibility.html';testing.target='_blank';testing.rel='noopener';controls.append(testing);references.prepend?references.prepend(controls):references.append(controls);
+ references.prepend?references.prepend(controls):references.append(controls);
  const viewer=make('section',null,'manual-viewer');viewer.hidden=true;viewer.setAttribute('aria-label','Manual viewer');
  const toolbar=make('div',null,'manual-toolbar'),title=make('strong','Ham-Rx CPS User Guide · 20.27');
  const expand=make('button','Expand left'),close=make('button','Close manual'),open=make('a','Open PDF in new tab ↗');

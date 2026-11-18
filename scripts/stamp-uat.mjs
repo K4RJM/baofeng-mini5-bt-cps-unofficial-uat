@@ -1,5 +1,5 @@
 // Assemble either the UAT diagnostics build or the cable-only UV-32 LIVE build.
-import {readFile,readdir,rm,writeFile} from 'node:fs/promises';
+import {readFile,readdir,writeFile} from 'node:fs/promises';
 import {execFileSync} from 'node:child_process';
 const replaceOnce=(s,a,b)=>{if(s.split(a).length!==2)throw Error('UAT protocol anchor changed: '+a.slice(0,80));return s.replace(a,b);};
 const live=process.argv.includes('--live');
@@ -18,15 +18,13 @@ if(!live)html=html.replace('<title>','<title>UAT · ').replace('<body>','<body>\
 if(live)html=html.replace(/<section class="release-entry"><h3>20\.(?:3[4-9]|4[0-6]|6[6-9]) ·[^<]*<\/h3><p>[^<]*<\/p><\/section>/g,'');
 html=html.replace('href="https://github.com/K4RJM/baofeng-mini5-bt-cps-unofficial" target="_blank"','href="https://github.com/'+repository+'" target="_blank"');
 const chooser='<label class="uat-radio-choice" for="uatProtocol">Choose Your Radio <select id="uatProtocol"><option value="mini5">MINI-5</option><option value="uv32">UV-32</option></select></label>';
-const diagnostics='<details class="uat-diagnostics"><summary>Bluetooth test options</summary><div class="uat-protocol-tools"><label for="uatSendMode">Bluetooth send</label><select id="uatSendMode"><option value="auto">Automatic</option><option value="with-response">With response</option><option value="without-response">Without response</option></select><button id="uatIdentify" type="button">Check radio ID</button><button id="uatHandshakeReport" type="button" disabled>Save handshake report</button><label id="uatUv32ReadSendControl" for="uatUv32ReadSend" hidden>Read requests <select id="uatUv32ReadSend"><option value="with-response">With response</option><option value="without-response">Without response (test)</option></select></label><label id="uatUv32SweepControl" hidden><input id="uatUv32Sweep" type="checkbox"> Continue diagnostic sweep</label><output id="uatProtocolResult" aria-live="polite">Connect and identify</output></div></details>';
-const actions='<div class="uat-uv32-actions"><button id="uatUv32Import" type="button" hidden>↥ Open UV-32 capture</button><input id="uatUv32ImportFile" type="file" accept=".json,application/json" hidden><button id="uatUv32Read" type="button" disabled hidden>↓ Read UV-32 Bluetooth</button><label id="uatUv32ReadPaceControl" for="uatUv32ReadPace" hidden>Read pace <select id="uatUv32ReadPace"><option value="20">Normal · 20 ms</option><option value="100">Slower · 100 ms</option><option value="250">Slowest · 250 ms</option></select></label><button id="uatUv32CableRead" type="button" disabled hidden>↓ Read UV-32 by cable</button><button id="uatUv32CableWrite" type="button" disabled hidden>↑ Write UV-32 by cable</button><button id="uatUv32View" type="button" disabled hidden>View UV-32 read</button><button id="uatUv32Save" type="button" disabled hidden>↧ Save UV-32 capture</button><button id="uatUv32Cancel" type="button" hidden>Cancel operation</button></div>';
-const fileActions=live?actions.replace(/<button id="uatUv32Read".*?<\/label>/,''):actions;
+const actions='<div class="uat-uv32-actions"><button id="uatUv32Import" type="button" hidden>↥ Open UV-32 capture</button><input id="uatUv32ImportFile" type="file" accept=".json,application/json" hidden><button id="uatUv32Read" type="button" disabled hidden>↓ Read UV-32 Bluetooth</button><button id="uatUv32CableRead" type="button" disabled hidden>↓ Read UV-32 by cable</button><button id="uatUv32CableWrite" type="button" disabled hidden>↑ Write UV-32 by cable</button><button id="uatUv32View" type="button" disabled hidden>View UV-32 read</button><button id="uatUv32Save" type="button" disabled hidden>↧ Save UV-32 capture</button><button id="uatUv32Cancel" type="button" hidden>Cancel operation</button></div>';
 html=replaceOnce(html,'<h1>Ham-Rx Baofeng Mini-5</h1>','<h1 id="brandTitle">Ham-Rx Baofeng Mini-5</h1>'+chooser);
 html=replaceOnce(html,'<img src="assets/mini5-blue.png"','<img id="brandRadioImage" src="assets/mini5-blue.png"');
-html=replaceOnce(html,'<nav id="tabs" aria-label="Workspace"></nav>','<nav id="tabs" aria-label="Workspace"></nav>'+(live?'<output id="uatProtocolResult" hidden></output>':diagnostics));
-html=replaceOnce(html,'<span class="eyebrow">FILE &amp; RADIO</span>','<span class="eyebrow">FILE &amp; RADIO</span>'+fileActions);
+html=replaceOnce(html,'<nav id="tabs" aria-label="Workspace"></nav>','<nav id="tabs" aria-label="Workspace"></nav>'+'<output id="uatProtocolResult" hidden></output>');
+html=replaceOnce(html,'<span class="eyebrow">FILE &amp; RADIO</span>','<span class="eyebrow">FILE &amp; RADIO</span>'+actions);
 html=replaceOnce(html,'</head>','<style>#linkDot[hidden]{display:none!important}</style></head>');
-if(live)html=html.replace('Choose UV-32 to open a capture, edit settings, and read or write by cable.','Choose UV-32 to edit settings and read or write by cable.');
+if(live)html=html.replace('Choose UV-32 to open a capture, edit settings, and read or write by cable.','Choose UV-32 to read or write by Bluetooth or cable.');
 html=replaceOnce(html,'</head>','<style>.uat-protocol-tools [hidden]{display:none!important}.uat-uv32-view{width:min(1250px,96vw);max-height:88dvh;padding:14px}.uv32-head,.uv32-foot{display:flex;align-items:center;gap:10px}.uv32-head h2{font-size:1.1rem;margin:0 auto 0 0}.uat-uv32-view p{margin:8px 0;font-size:.85rem}.uv32-scroll{max-height:58dvh;overflow:auto}.uv32-scroll table{width:100%;min-width:1150px;border-collapse:collapse;font-size:.82rem}.uv32-scroll th,.uv32-scroll td{padding:4px 6px;white-space:nowrap;border-bottom:1px solid var(--border)}.uv32-scroll tbody tr:nth-child(even){background:var(--panel)}.uv32-foot{margin-top:10px}.uat-protocol-tools{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;padding:8px 18px;border-bottom:1px solid var(--border)}.uat-protocol-tools select,.uat-protocol-tools button{min-height:32px;padding:4px 9px;font-size:.85rem}.uat-protocol-tools small{flex-basis:100%;opacity:.85}.uat-protocol-tools output{font-size:.85rem;overflow-wrap:anywhere}@media(max-width:600px){.uat-protocol-tools{padding:8px}.uat-protocol-tools output{flex-basis:100%}}</style></head>');
 html=replaceOnce(html,'</style></head>','.uv32-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}.uv32-tabs button[aria-selected="true"]{border-color:var(--accent);font-weight:700}.uv32-readout{max-height:58dvh;overflow:auto}.uv32-fields{display:grid;grid-template-columns:minmax(130px,1fr) minmax(100px,1fr);gap:2px 12px;max-width:760px}.uv32-fields dt,.uv32-fields dd{margin:0;padding:5px 7px;border-bottom:1px solid var(--border)}.uv32-fields dd{font-weight:600}.uv32-readout table{border-collapse:collapse;width:100%}.uv32-readout th,.uv32-readout td{padding:5px 8px;text-align:left;border-bottom:1px solid var(--border)}</style></head>');
 html=replaceOnce(html,'</style></head>','.uv32-cps-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;max-width:1450px}.uv32-cps-column{display:grid;align-content:start;gap:8px;margin:0}.uv32-cps-field{display:grid;grid-template-columns:minmax(112px,1fr) minmax(120px,1.15fr);gap:9px;align-items:center}.uv32-cps-field dt{margin:0;text-align:right;font-size:12px;line-height:1.25}.uv32-cps-field dd{margin:0;min-width:0}.uv32-cps-value{display:block;box-sizing:border-box;width:100%;min-height:32px;padding:6px 9px;border:1px solid var(--border);border-radius:5px;background:var(--panel);font-size:12px;line-height:18px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.uv32-cps-extras{max-width:760px;margin-top:28px}.uv32-cps-extras summary{cursor:pointer;font-weight:600}.uv32-cps-extras .uv32-fields{margin-top:12px}@media(max-width:1100px){.uv32-cps-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:700px){.uv32-cps-grid{grid-template-columns:1fr}.uv32-cps-field{grid-template-columns:minmax(120px,1fr) minmax(140px,1.3fr)}}'+'</style></head>');
@@ -43,21 +41,17 @@ html=replaceOnce(html,`<script type="module" src="app.mjs?v=${base}"></script>`,
  `<script type="module">import('./app.mjs?v=${revision}').catch(error=>{console.error(error);document.getElementById('status').textContent='Editor files could not load. Refresh this page to try again.';});</script>`);
 await writeFile('dist/index.html',html);
 let app=await readFile('dist/app.mjs','utf8');
-const bluetoothImports=live?'':"import {installProtocolTools,uv32ReadSessionStatus,isUatPage} from './uat-protocols.mjs';\nimport {captureUv32Channels,uv32ReadDiagnostics} from './uat-uv32-read.mjs';\nimport {writeUv32Bluetooth} from './uat-uv32-write.mjs';\n";
-app=bluetoothImports+"import {installUv32Reader} from './uat-uv32-ui.mjs';\nlet uatProtocolTools,uatUv32Reader;\n"+app;
-app=replaceOnce(app,'function sync(){','function sync(){\n uatProtocolTools?.sync(busy);');
+const bluetoothImports="import {captureUv32Channels} from './uat-uv32-read.mjs';\nimport {writeUv32Bluetooth} from './uat-uv32-write.mjs';\n";
+app=bluetoothImports+"import {installUv32Reader} from './uat-uv32-ui.mjs';\nlet uatUv32Reader;\n"+app;
 
 app=replaceOnce(app,"$('content').inert=busy;$('tabs').inert=busy;","$('content').inert=busy;$('tabs').inert=busy;uatUv32Reader?.sync(busy);");
 app=replaceOnce(app,"$('help').onclick=()=>{tab='Radio & help';render();};","$('help').onclick=()=>{if(uatUv32Reader?.openHelp())return;tab='Radio & help';render();};");
 app+="\n{\n";
-if(!live)app+="const page=location.href==='about:srcdoc'?document.baseURI:location.href;\nconst bluetooth=isUatPage(new URL('./uat-protocols.mjs',import.meta.url).href,page)?{uv32ReadSessionStatus,captureUv32Channels,uv32ReadDiagnostics,writeUv32Bluetooth}:null;\nif(bluetooth)uatProtocolTools=installProtocolTools({radio,run,connect,message});\n";
 app+="const fileTools={save,openChannelAppend,readChannelFile:(file,settings)=>/\\.rdt$/i.test(file.name)?readRdtFile(file,{options,charset,...settings}):readCsvFile(file,{options,charset,...settings})};\n";
-app+="uatUv32Reader=installUv32Reader({radio,run,connect,message,refresh:sync,renderMini5:render,workspaceStatus,fileTools"+(live?'':',bluetooth')+"});sync();\n}\n";
-if(!app.includes("build:'"+base+"'"))throw Error('Diagnostic version anchor missing');
-await writeFile('dist/app.mjs',app.replace("build:'"+base+"'","environment:'"+environment+"',build:'"+version+"'"));
+app+="uatUv32Reader=installUv32Reader({radio,run,connect,message,refresh:sync,renderMini5:render,workspaceStatus,fileTools,bluetooth:{captureUv32Channels,writeUv32Bluetooth}});sync();\n}\n";
+await writeFile('dist/app.mjs',app);
 const bluetoothModules=['uat-protocols.mjs','uat-uv32-read.mjs','uat-uv32-write.mjs'];
-if(live)for(const file of bluetoothModules)await rm('dist/'+file,{force:true});
-for(const file of [...(live?[]:bluetoothModules),'uv32-codec.mjs','uv32-files.mjs','uv32-dat.mjs','uv32-dat-image.mjs','uat-uv32-image.mjs','uat-uv32-serial.mjs','uat-uv32-capture.mjs','uat-uv32-edit.mjs','uat-uv32-help.mjs','uat-uv32-tones.mjs','uat-uv32-workspace.mjs','uat-uv32-ui.mjs'])await writeFile('dist/'+file,await readFile('scripts/'+file,'utf8'));
+for(const file of [...bluetoothModules,'uv32-codec.mjs','uv32-files.mjs','uv32-dat.mjs','uv32-dat-image.mjs','uat-uv32-image.mjs','uat-uv32-serial.mjs','uat-uv32-capture.mjs','uat-uv32-edit.mjs','uat-uv32-help.mjs','uat-uv32-tones.mjs','uat-uv32-workspace.mjs','uat-uv32-ui.mjs'])await writeFile('dist/'+file,await readFile('scripts/'+file,'utf8'));
 // A page and its dependencies must all use the same browser cache key.
 for(const file of [...(await readdir('dist')).filter(name=>name.endsWith('.mjs')),'read-test/reader.mjs','read-test/memory.mjs']){
  const path='dist/'+file;
@@ -66,10 +60,5 @@ for(const file of [...(await readdir('dist')).filter(name=>name.endsWith('.mjs')
  if(updated!==source)await writeFile(path,updated);
 }
 execFileSync(process.execPath,['--check','dist/app.mjs'],{stdio:'inherit'});
-if(!live){
-await writeFile('dist/docs/UAT-RADIO-PROTOCOLS.md',await readFile('docs/UAT-RADIO-PROTOCOLS.md','utf8'));
-for(const file of ['UV32-FACTORY-CPS-REFERENCE.md','RELEASE-20.48.md','RELEASE-20.49.md'])await writeFile('dist/docs/'+file,await readFile('docs/'+file,'utf8'));
-for(const file of ['BLUETOOTH-CAPTURE-2026-11-01.md','UV32-FACTORY-FIELDS.md','BROWSER-20.36.md','RELEASE-20.36.md','BROWSER-20.34.md','BROWSER-20.35.md','RELEASE-20.34.md','RELEASE-20.35.md','RELEASE-20.37.md','RELEASE-20.39.md','RELEASE-20.40.md','RELEASE-20.41.md','RELEASE-20.42.md','RELEASE-20.43.md','RELEASE-20.44.md','RELEASE-20.45.md','RELEASE-20.46.md','RELEASE-20.47.md','UV32-READ-EVIDENCE-2026-11-09.md','UV32-SESSION-EVIDENCE-2026-11-09.md','UV32-HANDSHAKE-2026-11-08.md','UV32-READ.md','RELEASE-20.38.md'])await writeFile('dist/docs/'+file,await readFile('docs/'+file,'utf8'));
-}
-await writeFile('dist/deployment.json',JSON.stringify({environment,version,sourceSha:sha,repository,protocolProfiles:live?['mini5']:['mini5','uv32']},null,2)+'\n');
+await writeFile('dist/deployment.json',JSON.stringify({environment,version,sourceSha:sha,repository,protocolProfiles:['mini5','uv32']},null,2)+'\n');
 console.log('Packaged '+version+' for '+repository);

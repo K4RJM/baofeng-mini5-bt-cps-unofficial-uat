@@ -1,14 +1,19 @@
 // UV-32 edits operate on a copy of a complete, decoded CHIRP-region image.
 // All offsets are in image order, not physical radio addresses.
-import {DCS,decodeUv32Channels,uv32WireDecode} from './uv32-codec.mjs';
+import {DCS,UV32_CHANNEL_BYTES,decodeUv32Channels,uv32WireDecode} from './uv32-codec.mjs';
 import {UV32_IMAGE_BYTES,decodeUv32Image} from './uat-uv32-image.mjs';
 
 const assertImage=image=>{if(!(image instanceof Uint8Array)||image.length!==UV32_IMAGE_BYTES)throw Error('A complete UV-32 image is required');};
+const assertChannelImage=image=>{if(!(image instanceof Uint8Array)||![UV32_CHANNEL_BYTES,UV32_IMAGE_BYTES].includes(image.length))throw Error('A complete UV-32 channel image is required');};
+export function uv32ChannelCaptureImage(report){
+ if(report?.kind!=='uv32-channel-read-v1'||report.model!=='UV32PRO'||report.completed!==true||report.completedBlocks!==500||report.totalBlocks!==500||report.bytes!==UV32_CHANNEL_BYTES||typeof report.wireHex!=='string'||report.wireHex.length!==UV32_CHANNEL_BYTES*2||!/^[0-9a-f]+$/i.test(report.wireHex))throw Error('A complete UV-32 Bluetooth read is required');
+ return uv32WireDecode(Uint8Array.from(report.wireHex.match(/../g),x=>parseInt(x,16)));
+}
 const ascii=(value,max)=>{const s=String(value??'');if(s.length>max||/[^\x20-\x7e]/.test(s))throw Error(`Use at most ${max} plain-text characters`);return s;};
 const integer=(value,min,max,label)=>{const n=Number(value);if(!Number.isInteger(n)||n<min||n>max)throw Error(`${label} must be ${min}–${max}`);return n;};
 export const uv32ImageFromHex=hex=>{if(typeof hex!=='string'||hex.length!==UV32_IMAGE_BYTES*2||!/^[0-9a-f]+$/i.test(hex))throw Error('A complete UV-32 capture is required');return uv32WireDecode(Uint8Array.from(hex.match(/../g),x=>parseInt(x,16)));};
-export const uv32ImageToHex=image=>{assertImage(image);return Array.from(uv32WireDecode(image),x=>x.toString(16).padStart(2,'0')).join('');};
-export const uv32Preview=image=>{assertImage(image);const wire=uv32WireDecode(image);return {preview:decodeUv32Channels(wire.slice(0,32000)),readout:decodeUv32Image(image)};};
+export const uv32ImageToHex=image=>{assertChannelImage(image);return Array.from(uv32WireDecode(image),x=>x.toString(16).padStart(2,'0')).join('');};
+export const uv32Preview=image=>{assertChannelImage(image);const wire=uv32WireDecode(image);return {preview:decodeUv32Channels(wire.slice(0,UV32_CHANNEL_BYTES)),readout:image.length===UV32_IMAGE_BYTES?decodeUv32Image(image):undefined};};;
 const freq=value=>{const s=String(value).trim();if(!/^\d{3}\.\d{5}$/.test(s))throw Error('Frequency must have five decimal places, for example 146.52000');const n=Number(s);if(n<108||n>520)throw Error('Frequency is outside the UV-32 range');const digits=s.replace('.','').split('').reverse();const out=new Uint8Array(4);for(let i=0;i<4;i++)out[i]=Number(digits[i*2])+Number(digits[i*2+1])*16;return out;};
 const tone=value=>{const s=String(value).trim().toUpperCase();if(s==='OFF')return 0;let code;if(/^\d{2,3}\.\d$/.test(s)){code=Math.round(Number(s)*10);if(code<600||code>2600)throw Error('CTCSS tone must be 60.0–260.0 Hz');}else{const match=s.match(/^D(\d{3})([NR])$/);if(!match)throw Error('Use Off, a CTCSS tone, or D023N/D023R');const index=DCS.indexOf(Number(match[1]));if(index<0)throw Error('DCS code is not supported');code=index+(match[2]==='R'?106:1);}return code;};
 const set16=(b,offset,n)=>{b[offset]=n&255;b[offset+1]=n>>8;};
@@ -16,7 +21,7 @@ const choice=(value,options,label)=>{const n=options.indexOf(String(value));if(n
 const setName=(image,offset,length,value)=>{const s=ascii(value,length);image.fill(255,offset,offset+length);for(let i=0;i<s.length;i++)image[offset+i]=s.charCodeAt(i);};
 
 export function editUv32Channel(source,number,patch){
- assertImage(source);integer(number,1,1000,'Channel');const b=new Uint8Array(source),at=(number-1)*32;
+ assertChannelImage(source);integer(number,1,1000,'Channel');const b=new Uint8Array(source),at=(number-1)*32;
  if(patch.delete===true){b.fill(255,at,at+32);return b;}
  if(b[at]===255){b.fill(0,at,at+16);b.fill(255,at+16,at+32);b[at+12]=0;b[at+13]=0;b[at+15]=4;}
  for(const [key,value] of Object.entries(patch)){
@@ -43,7 +48,7 @@ export function editUv32Channel(source,number,patch){
 
 // Move channel records within a zone. Zone boundaries are fixed in the UV-32 image.
 export function moveUv32Channel(source,from,to){
- assertImage(source);integer(from,1,1000,'Source channel');integer(to,1,1000,'Destination channel');
+ assertChannelImage(source);integer(from,1,1000,'Source channel');integer(to,1,1000,'Destination channel');
  if(Math.floor((from-1)/100)!==Math.floor((to-1)/100))throw Error('Move channels within the same zone');
  const b=new Uint8Array(source),start=(from-1)*32,end=(to-1)*32,record=b.slice(start,start+32);
  if(record[0]===255)throw Error('Choose a populated channel to move');
@@ -53,7 +58,7 @@ export function moveUv32Channel(source,from,to){
 }
 
 export function insertUv32Channel(source,number){
- assertImage(source);integer(number,1,1000,'Channel');const b=new Uint8Array(source),at=(number-1)*32,zoneEnd=(Math.floor((number-1)/100)+1)*100;
+ assertChannelImage(source);integer(number,1,1000,'Channel');const b=new Uint8Array(source),at=(number-1)*32,zoneEnd=(Math.floor((number-1)/100)+1)*100;
  let empty=number;while(empty<=zoneEnd&&b[(empty-1)*32]!==255)empty++;
  if(empty>zoneEnd)throw Error('This zone has no empty channel slot for insertion');
  for(let n=empty;n>number;n--)b.copyWithin((n-1)*32,(n-2)*32,(n-1)*32);
@@ -100,4 +105,4 @@ export function editUv32Vfo(source,side,field,value){
  return b;
 }
 
-export function changedUv32Blocks(original,edited){assertImage(original);assertImage(edited);const addresses=[];let index=0;for(const [start,size] of [[0,0x8040],[0x9000,0x40],[0xa000,0x2c0],[0xd000,0x40]])for(let at=start;at<start+size;at+=64){let changed=false;for(let i=0;i<64;i++)if(original[index+i]!==edited[index+i]){changed=true;break;}if(changed)addresses.push({address:at,imageOffset:index});index+=64;}return addresses;}
+export function changedUv32Blocks(original,edited){assertChannelImage(original);assertChannelImage(edited);if(original.length!==edited.length)throw Error('UV-32 images cover different memory regions');const addresses=[];let index=0;const regions=original.length===UV32_CHANNEL_BYTES?[[0,UV32_CHANNEL_BYTES]]:[[0,0x8040],[0x9000,0x40],[0xa000,0x2c0],[0xd000,0x40]];for(const [start,size] of regions)for(let at=start;at<start+size;at+=64){let changed=false;for(let i=0;i<64;i++)if(original[index+i]!==edited[index+i]){changed=true;break;}if(changed)addresses.push({address:at,imageOffset:index});index+=64;}return addresses;}

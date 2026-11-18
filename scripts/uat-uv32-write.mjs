@@ -1,7 +1,7 @@
 // UAT only. The cable write frame is carried over the verified UV32PRO BLE session.
 import {identifyProfile,consumeUv32ReadSession} from './uat-protocols.mjs?v=20.46';
 import {captureUv32Channels} from './uat-uv32-read.mjs';
-import {changedUv32Blocks,uv32ImageFromHex,uv32ImageToHex} from './uat-uv32-edit.mjs';
+import {changedUv32Blocks,uv32ChannelCaptureImage,uv32ImageFromHex,uv32ImageToHex} from './uat-uv32-edit.mjs';
 import {openUv32Capture} from './uat-uv32-capture.mjs';
 import {UV32_BLOCK_BYTES,UV32_CHANNEL_BYTES,uv32WireDecode} from './uv32-codec.mjs';
 
@@ -48,8 +48,9 @@ export async function writeUv32Bluetooth(radio,baseline,editedImage,{
  signal, stage=()=>{}, progress=()=>{}, interBlockDelayMs
 }={}){
  if(radio.busy||radio.connecting)throw Error('Another radio operation is already running');
- const original=openUv32Capture(baseline);
- const changes=changedUv32Blocks(uv32ImageFromHex(original.wireHex),editedImage);
+ const channelOnly=baseline?.kind==='uv32-channel-read-v1';
+ const original=channelOnly?uv32ChannelCaptureImage(baseline):uv32ImageFromHex(openUv32Capture(baseline).wireHex);
+ const changes=changedUv32Blocks(original,editedImage);
  if(!changes.length)throw Error('Edit a UV-32 channel before writing by Bluetooth');
  if(changes.some(block=>block.address>=UV32_CHANNEL_BYTES))throw Error('Write settings, VFO, DTMF and zone edits by cable');
  const wire=uv32WireDecode(editedImage);
@@ -64,7 +65,7 @@ export async function writeUv32Bluetooth(radio,baseline,editedImage,{
  });
  try{
   const before=await read('Preflight',()=>radio.connect());
-  if(before.wireHex!==original.wireHex.slice(0,ADDRESS_HEX_BYTES))throw Error('Bluetooth channels differ from the cable capture. Read the target by cable again.');
+  if(before.wireHex!==baseline.wireHex.slice(0,ADDRESS_HEX_BYTES).toLowerCase())throw Error('Bluetooth channels differ from the previous read. Read the target radio again.');
   device=radio.device;
   checkCancelled();
   report.stage='identifying';
