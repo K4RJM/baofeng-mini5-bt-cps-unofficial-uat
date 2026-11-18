@@ -208,17 +208,28 @@ export function createUv32Workspace({document:d,select,getCapture,onEdit,onUndo,
    else{control.value=initial;if(key==='rx'||key==='tx')control.inputMode='decimal';}
    control.setAttribute('aria-label',`Channel ${row.number} ${label}`);control.title=key==='squelch'?sqHelp(initial):COL_HELP[key];
    tr.dataset.editing='true';tr.onclick=null;tr.onkeydown=null;cell.replaceChildren(control);
+   const redraw=draw=>{
+    const top=wrap.scrollTop,left=wrap.scrollLeft;
+    const view=d.defaultView;
+    const pageX=view?.scrollX,pageY=view?.scrollY;
+    draw();
+    const renderedTable=$('channelTableWrap');
+    if(renderedTable){renderedTable.scrollTop=top;renderedTable.scrollLeft=left;}
+    if(view&&(view.scrollX!==pageX||view.scrollY!==pageY))view.scrollTo(pageX,pageY);
+   };
    let finished=false;
    const finish=(cancel,keepInvalid=false)=>{
     if(finished)return false;
-    if(cancel||control.value===initial){finished=true;paint();return true;}
+    if(cancel||control.value===initial){finished=true;redraw(paint);return true;}
     try{onEdit('channel',{number:row.number,patch:{[key]:control.value}});}
     catch(error){
      onError(error.message);
-     if(!keepInvalid){finished=true;paint();}
+     if(!keepInvalid){finished=true;redraw(paint);}
      return false;
     }
-    finished=true;render();return true;
+    finished=true;
+    redraw(render);
+    return true;
    };
    control.onkeydown=e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();finish(true);}else if(e.key==='Enter'){e.preventDefault();e.stopPropagation();finish(false,true);}else if(e.key==='Tab'){e.preventDefault();e.stopPropagation();if(!finish(false,true))return;const next=index+(e.shiftKey?-1:1);if(next>=2&&next<=14)d.querySelector(`[data-uv32-channel="${row.number}"]`)?.cells[next]?.click();}};
    control.onblur=()=>finish(false);

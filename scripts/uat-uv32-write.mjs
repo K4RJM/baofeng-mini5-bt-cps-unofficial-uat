@@ -55,7 +55,11 @@ export async function writeUv32Bluetooth(radio,baseline,editedImage,{
  if(changes.some(block=>block.address>=UV32_CHANNEL_BYTES))throw Error('Write settings, VFO, DTMF and zone edits by cable');
  const wire=uv32WireDecode(editedImage);
  const expected=uv32ImageToHex(editedImage).slice(0,ADDRESS_HEX_BYTES);
- const report={kind:'uv32-bluetooth-write-v1',stage:'connecting',totalBlocks:changes.length,acknowledged:0,attemptedAddress:null,verified:false};
+ // OLA's UV32PRO upload starts the channel range at zero and advances in
+ // 64-byte blocks. A sparse write beginning at the first changed block is
+ // rejected on the physical radio. Stay within the channel capture.
+ const totalBlocks=UV32_CHANNEL_BYTES/UV32_BLOCK_BYTES;
+ const report={kind:'uv32-bluetooth-write-v1',stage:'connecting',totalBlocks,acknowledged:0,attemptedAddress:null,verified:false};
  let device,ownsBusy=false;
  const checkCancelled=()=>{if(signal?.aborted)throw Error('Bluetooth write cancelled');};
  const reconnect=()=>reconnectUv32(radio,device);
@@ -82,9 +86,9 @@ export async function writeUv32Bluetooth(radio,baseline,editedImage,{
   };
   if(!characteristic.properties.write||typeof characteristic.writeValueWithResponse!=='function')throw Error('Bluetooth writing with response is unavailable');
   radio.busy=true;ownsBusy=true;report.stage='writing';
-  progress('Writing',0,changes.length);
-  for(const {address,imageOffset} of changes){
-   const frame=Uint8Array.of(0x57,address>>8,address&255,UV32_BLOCK_BYTES,...wire.subarray(imageOffset,imageOffset+UV32_BLOCK_BYTES));
+  progress('Writing channels',0,totalBlocks);
+  for(let address=0;address<UV32_CHANNEL_BYTES;address+=UV32_BLOCK_BYTES){
+   const frame=Uint8Array.of(0x57,address>>8,address&255,UV32_BLOCK_BYTES,...wire.subarray(address,address+UV32_BLOCK_BYTES));
    for(let offset=0;offset<frame.length;offset+=CHUNK_BYTES){
     check();
     if(radio.rx.length)throw Error('Unexpected response before completing the write block');
@@ -99,7 +103,7 @@ export async function writeUv32Bluetooth(radio,baseline,editedImage,{
    check();
    if(radio.rx.length)throw Error('Unexpected bytes after the write acknowledgement');
    report.acknowledged++;
-   progress('Writing',report.acknowledged,changes.length);
+  progress('Writing channels',report.acknowledged,totalBlocks);
   }
   radio.busy=false;ownsBusy=false;
   report.stage='read-back';

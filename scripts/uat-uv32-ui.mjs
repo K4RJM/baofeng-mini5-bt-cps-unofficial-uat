@@ -222,7 +222,7 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
    const writeBlocked=uv?blockedBluetoothWrite():'';
    bluetoothWrite.hidden=!uv;
    bluetoothWrite.disabled=busy||!!writeBlocked;
-   bluetoothWrite.title=writeBlocked||'Write changed channel blocks over Bluetooth and verify all channels afterward.';
+   bluetoothWrite.title=writeBlocked||'Write the channel table over Bluetooth and verify it afterward.';
   }
   for(const id of ['open','appendChannels','save','saveImg','readRadio','writeRadio','readMini5Cable','writeMini5Cable','verify','backup'])$(id).hidden=uv;
   select.disabled=busy;importButton.disabled=busy;
