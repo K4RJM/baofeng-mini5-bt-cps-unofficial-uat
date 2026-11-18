@@ -37,7 +37,7 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
  const bluetoothWrite=bluetooth&&addFileButton('uatUv32BluetoothWrite','↑ Write UV-32 Bluetooth',cableWrite);
  const gpsWarning=bluetooth&&d.createElement('p');
  if(gpsWarning){
-  gpsWarning.style.color='var(--warning-text)';
+  gpsWarning.style.color='light-dark(#d00000, #ff4545)';
   gpsWarning.textContent='Turn GPS off on the UV-32 before reading or writing over Bluetooth.';
   gpsWarning.hidden=true;
   read.insertAdjacentElement('beforebegin',gpsWarning);
