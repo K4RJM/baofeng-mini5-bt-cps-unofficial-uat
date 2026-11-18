@@ -26,22 +26,22 @@ export function datChannels(data){
  // The extra file record is never an importable radio channel.
  return structuredClone(data.channelList[0].slice(0,CAPACITY).filter(c=>c.rxFreq));
 }
-const channelKey=c=>JSON.stringify(Object.entries(c).filter(([k])=>!['id','name'].includes(k)).sort(([a],[b])=>a.localeCompare(b)));
-export function blockAvailability(data,count){
+const channelKey=c=>JSON.stringify(Object.entries(c).filter(([k])=>!['id','name','uv32Record'].includes(k)).sort(([a],[b])=>a.localeCompare(b)));
+export function blockAvailability(data,count,capacity=CAPACITY){
  const list=data.channelList[0];
- return Array.from({length:9},(_,i)=>{const start=(i+1)*100,end=Math.min(start+100,CAPACITY),occupied=list.slice(start,end).filter(c=>c.rxFreq).length;return {start:start+1,end,occupied,available:!occupied&&count<=end-start};});
+ return Array.from({length:9},(_,i)=>{const start=(i+1)*100,end=Math.min(start+100,capacity),occupied=list.slice(start,end).filter(c=>c.rxFreq).length;return {start:start+1,end,occupied,available:!occupied&&count<=end-start};});
 }
-export function planAppend(data,source,{placement='next',skipDuplicates=true}={}){
+export function planAppend(data,source,{placement='next',skipDuplicates=true,capacity=CAPACITY}={}){
  if(data?.channelList?.[0]?.length!==1000||!Array.isArray(source))throw Error('Load a radio read or native CPS configuration first.');
- const list=data.channelList[0],known=new Set(list.slice(0,CAPACITY).filter(c=>c.rxFreq).map(channelKey)),channels=[];let duplicates=0;
+ const list=data.channelList[0],known=new Set(list.slice(0,capacity).filter(c=>c.rxFreq).map(channelKey)),channels=[];let duplicates=0;
  for(const ch of source){if(!ch?.rxFreq)continue;const key=channelKey(ch);if(skipDuplicates&&known.has(key)){duplicates++;continue;}channels.push(structuredClone(ch));known.add(key);}
  const plan={channels,duplicates,start:null,end:null,error:''};
  if(!channels.length){plan.error=duplicates?'All matching channels are already present.':'No populated channels to add.';return plan;}
  let start=-1;
  if(placement==='next'){
-  let run=0;for(let i=0;i<CAPACITY;i++){run=list[i].rxFreq?0:run+1;if(run===channels.length){start=i-run+1;break;}}
+  let run=0;for(let i=0;i<capacity;i++){run=list[i].rxFreq?0:run+1;if(run===channels.length){start=i-run+1;break;}}
  }else{
-  const block=blockAvailability(data,channels.length).find(b=>String(b.start)===String(placement));
+  const block=blockAvailability(data,channels.length,capacity).find(b=>String(b.start)===String(placement));
   if(!block){plan.error='Choose a listed placement.';return plan;}
   if(block.occupied){plan.error=`Block ${block.start}–${block.end} is occupied. Choose an empty block.`;return plan;}
   if(!block.available){plan.error=`The complete set does not fit in block ${block.start}–${block.end}.`;return plan;}
@@ -53,6 +53,6 @@ export function planAppend(data,source,{placement='next',skipDuplicates=true}={}
 export function appendChannels(data,source,preferences){
  // Re-plan at Apply time; never trust an earlier preview or overwrite a slot.
  const plan=planAppend(data,source,preferences);if(plan.error)throw Error(plan.error);
- const next=structuredClone(data);plan.channels.forEach((ch,i)=>{const at=plan.start-1+i;if(at>=CAPACITY||next.channelList[0][at].rxFreq)throw Error('Placement changed. Review the empty slots again.');next.channelList[0][at]=structuredClone(ch);});
+ const next=structuredClone(data);plan.channels.forEach((ch,i)=>{const at=plan.start-1+i;if(at>=(preferences?.capacity??CAPACITY)||next.channelList[0][at].rxFreq)throw Error('Placement changed. Review the empty slots again.');next.channelList[0][at]=structuredClone(ch);});
  return {data:next,plan};
 }

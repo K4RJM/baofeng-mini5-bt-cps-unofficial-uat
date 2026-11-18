@@ -71,7 +71,7 @@ export function renderUv32Help(d,target){
   'Close the stock CPS. Turn on the UV-32 and connect its programming cable.',
   'Choose Read UV-32 by cable and wait for a complete read.',
   'Edit channels or settings, then choose Write UV-32 by cable and select the same port.',
-  'Leave the cable connected until read-back verification finishes. Use Save cable trace if you want a record of the exchange.'
+  'Leave the cable connected until read-back verification finishes.'
  ])steps.append(el(d,'li','',instruction));testCard.append(steps);
  reference.append(manualCard,testCard);workspace.append(reference);target.append(workspace);
 }

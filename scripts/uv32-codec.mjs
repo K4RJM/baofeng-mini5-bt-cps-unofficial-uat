@@ -25,7 +25,7 @@ function frequency(b){
  for(const v of b){const lo=v&15,hi=v>>4;if(lo>9||hi>9)return null;units+=(lo+10*hi)*multiplier;multiplier*=100;}
  return Math.floor(units/100000)+'.'+String(units%100000).padStart(5,'0');
 }
-function tone(code){
+export function decodeUv32Tone(code){
  if(code===0||code===65535)return 'Off';
  if(code>=600&&code<=2600)return (code/10).toFixed(1);
  const reverse=code>105,index=reverse?code-106:code-1;
@@ -43,7 +43,7 @@ export function decodeUv32Channels(wire){
   let name;try{name=new TextDecoder('gb18030',{fatal:true}).decode(nameBytes.slice(0,end)).trimEnd();}catch{name='[name bytes '+hex(nameBytes.slice(0,end))+']';warnings.push('Channel '+number+': name encoding needs verification.');}
   const flags=b[15],power=b[14]&3,signal=b[12];
   channels.push({number,bank:Math.floor((number-1)/100)+1,bankChannel:(number-1)%100+1,
-   rx:rx??'Invalid',rxTone:tone(b[8]|b[9]<<8),tx:tx??'Invalid',txTone:tone(b[10]|b[11]<<8),
+   rx:rx??'Invalid',rxTone:decodeUv32Tone(b[8]|b[9]<<8),tx:tx??'Invalid',txTone:decodeUv32Tone(b[10]|b[11]<<8),
    power:['High','Low','Medium'][power]??'Unknown ('+power+')',bandwidth:flags&64?'Narrow':'Wide',
    scan:flags&4?'Add':'Skip',squelch:'Code '+((flags>>4)&3),pttId:['Off','BOT','EOT','Both'][b[13]]??'Unknown ('+b[13]+')',
    signal:signal<20?String(signal+1):'Unknown ('+signal+')',busyLock:flags&8?'On':'Off',fhss:flags&1?'On':'Off',name,recordHex:hex(b)});

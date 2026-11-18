@@ -4,14 +4,14 @@ const $=id=>document.getElementById(id);
 const option=(value,label,disabled=false)=>{const el=document.createElement('option');el.value=String(value);el.textContent=label;el.disabled=disabled;return el;};
 let generation=0;
 // Channel-list replacement preserves all configuration and the reserved 1,000th record.
-export function replaceImportedChannels(current,channels){
+export function replaceImportedChannels(current,channels,capacity=999){
  if(!Array.isArray(channels)||!channels.length)throw Error('Select at least one valid channel.');
- if(channels.length>999)throw Error('The selected list exceeds 999 channels.');
+ if(channels.length>capacity)throw Error('The selected list exceeds '+capacity+' channels.');
  if(channels.some(c=>!c?.rxFreq))throw Error('The selected list contains an empty channel.');
- const data=structuredClone(current);data.channelList[0].splice(0,999,...Array.from({length:999},(_,i)=>i<channels.length?structuredClone(channels[i]):emptyChannel()));
+ const data=structuredClone(current);data.channelList[0].splice(0,capacity,...Array.from({length:capacity},(_,i)=>i<channels.length?structuredClone(channels[i]):emptyChannel()));
  return {data,plan:{channels:structuredClone(channels),start:1,end:channels.length,duplicates:0,error:''}};
 }
-export function openChannelAppend({mode='preset',initialFile=null,getData,readFile,onApply}){
+export function openChannelAppend({mode='preset',initialFile=null,getData,readFile,onApply,capacity=999}){
  const dialog=$('appendDialog');generation++;let imported=null,loading=false,fileError='',closed=false,csv=null,csvFile=null,csvPage=0,chosen=new Set();
  const replacing=mode==='replace',isDat=mode!=='preset';
  $('appendTitle').textContent=replacing?'Import channels':isDat?'Append channels':'Add channel preset';
@@ -24,7 +24,7 @@ export function openChannelAppend({mode='preset',initialFile=null,getData,readFi
  $('appendPreset').replaceChildren(...PRESETS.map(p=>option(p.key,p.label)));$('appendPreset').value='shared';
  $('appendPlacement').value='next';$('appendSkip').checked=true;$('appendPower').value='1';$('appendRepeaters').checked=false;$('appendDat').value='';
  $('csvReview').hidden=true;$('csvPower').value='1';$('csvPartial').checked=false;dialog.classList.remove('csv-import-dialog');
- const preferences=()=>({placement:$('appendPlacement').value,skipDuplicates:$('appendSkip').checked});
+ const preferences=()=>({placement:$('appendPlacement').value,skipDuplicates:$('appendSkip').checked,capacity});
  const source=()=>isDat?(csv?csv.rows.filter((r,i)=>r.channel&&chosen.has(i)).map(r=>r.channel):imported||[]):presetChannels($('appendPreset').value,{power:Number($('appendPower').value),repeaters:$('appendRepeaters').checked});
  const renderCsv=()=>{
   $('csvReview').hidden=!csv;dialog.classList.toggle('csv-import-dialog',!!csv);if(!csv)return;
@@ -43,12 +43,12 @@ export function openChannelAppend({mode='preset',initialFile=null,getData,readFi
  };
  const update=()=>{
   const preset=PRESETS.find(p=>p.key===$('appendPreset').value),list=source(),current=getData();let plan;
-  const existing=current.channelList[0].slice(0,999).filter(c=>c.rxFreq).length;
+  const existing=current.channelList[0].slice(0,capacity).filter(c=>c.rxFreq).length;
   $('appendRepeaterField').hidden=isDat||preset.key!=='shared';
-  if(replacing){try{plan=replaceImportedChannels(current,list).plan;}catch(e){plan={channels:list,start:1,end:list.length,error:e.message};}}
+  if(replacing){try{plan=replaceImportedChannels(current,list,capacity).plan;}catch(e){plan={channels:list,start:1,end:list.length,error:e.message};}}
   else{
    const unplaced=planAppend(current,list,{...preferences(),placement:'next'}),selected=$('appendPlacement').value||'next';
-   $('appendPlacement').replaceChildren(option('next','Next available space'),...blockAvailability(current,unplaced.channels.length).map(b=>option(b.start,`${b.start}–${b.end}${b.occupied?' · occupied':!b.available?' · too small':' · empty'}`,!b.available)));
+   $('appendPlacement').replaceChildren(option('next','Next available space'),...blockAvailability(current,unplaced.channels.length,capacity).map(b=>option(b.start,`${b.start}–${b.end}${b.occupied?' · occupied':!b.available?' · too small':' · empty'}`,!b.available)));
    $('appendPlacement').value=selected;plan=planAppend(current,list,preferences());
   }
   $('replaceConfirmRow').hidden=!replacing||!existing;
@@ -79,7 +79,7 @@ export function openChannelAppend({mode='preset',initialFile=null,getData,readFi
  $('appendCancel').onclick=close;$('appendClose').onclick=close;dialog.oncancel=()=>{closed=true;generation++;};
  $('appendApply').onclick=()=>{
   if(closed||loading)return;update();if($('appendApply').disabled)return;
-  try{const result=replacing?replaceImportedChannels(getData(),source()):appendChannels(getData(),source(),preferences());onApply(result.data,result.plan);close();}
+  try{const result=replacing?replaceImportedChannels(getData(),source(),capacity):appendChannels(getData(),source(),preferences());onApply(result.data,result.plan);close();}
   catch(e){$('appendErrors').hidden=false;$('appendErrors').textContent=e.message;}
  };
  update();dialog.showModal();if(initialFile)return chooseFile(initialFile);
