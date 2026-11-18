@@ -59,7 +59,7 @@ await writeFile('dist/app.mjs',app);
 const bluetoothModules=['uat-protocols.mjs','uat-uv32-read.mjs','uat-uv32-write.mjs'];
 for(const file of [...bluetoothModules,'uv32-codec.mjs','uv32-files.mjs','uv32-dat.mjs','uv32-dat-image.mjs','uat-uv32-image.mjs','uat-uv32-serial.mjs','uat-uv32-capture.mjs','uat-uv32-edit.mjs','uat-uv32-help.mjs','uat-uv32-tones.mjs','uat-uv32-workspace.mjs','uat-uv32-ui.mjs'])await writeFile('dist/'+file,await readFile('scripts/'+file,'utf8'));
 // A page and its dependencies must all use the same browser cache key.
-for(const file of [...(await readdir('dist')).filter(name=>name.endsWith('.mjs')),'read-test/reader.mjs','read-test/memory.mjs']){
+for(const file of [...(await readdir('dist')).filter(name=>name.endsWith('.mjs')),'scripts/mini5-serial.mjs','read-test/reader.mjs','read-test/memory.mjs']){
  const path='dist/'+file;
  const source=await readFile(path,'utf8');
  const updated=source.replace(/\bfrom (['"])(\.{1,2}\/[^'"?]+\.mjs)(?:\?[^'"]*)?\1/g,(_match,quote,url)=>`from ${quote}${url}?v=${revision}${quote}`);
