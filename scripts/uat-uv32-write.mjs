@@ -110,14 +110,17 @@ export async function writeUv32Bluetooth(radio,baseline,editedImage,{
   report.verified=true;report.stage='complete';
   return report;
  }catch(error){
-  report.error=error.message;
-  if(error.uv32ReadReport)report.read=error.uv32ReadReport;
+  const detail=error?.message??String(error);
+  report.error=detail;
+  if(error?.uv32ReadReport)report.read=error.uv32ReadReport;
+  let context='No blocks sent.';
   if(report.attemptedAddress!==null){
    const address=report.attemptedAddress.toString(16).padStart(4,'0').toUpperCase();
-   error.message+=` · ${report.acknowledged}/${report.totalBlocks} blocks acknowledged, last attempted 0x${address}.`;
-  }else error.message+=' · No blocks sent.';
-  error.uv32BluetoothWriteReport=report;
-  throw error;
+   context=`${report.acknowledged}/${report.totalBlocks} blocks acknowledged, last attempted 0x${address}.`;
+  }
+  const failure=new Error(`${detail} · ${context}`,{cause:error});
+  failure.uv32BluetoothWriteReport=report;
+  throw failure;
  }finally{
   if(ownsBusy)radio.busy=false;
   if(radio.connected)radio.disconnect();

@@ -95,6 +95,24 @@ test('A rejected write stops before any later block and reports the attempted ad
  });
 });
 
+test('A browser Bluetooth error keeps its message and original cause',async t=>{
+ await withRadio(t,{},async(radio,fake)=>{
+  const original=new DOMException('Bluetooth write exceeds the supported length','NetworkError');
+  const send=fake.characteristic.writeValueWithResponse.bind(fake.characteristic);
+  t.mock.method(fake.characteristic,'writeValueWithResponse',bytes=>{
+   if(bytes[0]===0x57)throw original;
+   return send(bytes);
+  });
+  await assert.rejects(writeUv32Bluetooth(radio,baseline,edited),error=>{
+   assert.equal(error.cause,original);
+   assert.match(error.message,/Bluetooth write exceeds the supported length.*last attempted 0x0000/);
+   assert.equal(error.uv32BluetoothWriteReport.acknowledged,0);
+   return true;
+  });
+  assert.equal(fake.writes,0);
+ });
+});
+
 test('An acknowledged write with a differing read-back is never reported as verified',async t=>{
  await withRadio(t,{},async(radio,fake)=>{
   await assert.rejects(writeUv32Bluetooth(radio,baseline,edited,{
