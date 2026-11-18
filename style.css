@@ -137,9 +137,12 @@ footer{margin-top:10px;padding:6px 0}
 @media(pointer:coarse){#channelTableWrap td{height:40px}#channelTableWrap td button{min-height:34px;padding:5px 8px}}
 
 /* Spreadsheet cells: same compact row height, with visible focus and native controls. */
-#channelTableWrap td.editable-cell{position:relative;cursor:text;outline-offset:-2px}
-#channelTableWrap td.editable-cell:focus-within{outline:2px solid var(--blue);outline-offset:-2px;background:var(--selected)}
-#channelTableWrap .inline-control{display:block;width:100%;min-width:0;height:24px;line-height:20px;padding:1px 3px;font-size:12px;border-radius:2px;box-sizing:border-box}
+#channelTableWrap td.editable-cell{position:relative;cursor:text}
+#channelTableWrap td.editable-cell:focus-within{outline:1px solid var(--blue);outline-offset:-1px;background:var(--selected)}
+#channelTableWrap .inline-control{display:block;width:100%;min-width:0;height:24px;line-height:20px;padding:1px 3px;font-size:12px;border-radius:0;box-sizing:border-box}
+/* The cell owns the visible focus indicator for both inline controls and checkboxes. */
+#channelTableWrap .editable-cell .inline-control:focus,
+#channelTableWrap .editable-cell input[type=checkbox]:focus{outline:none}
 #channelTableWrap td.numeric{min-width:94px}#channelTableWrap td.channel-name{min-width:120px}
 #channelTableWrap td input[type=checkbox]{margin:auto}
 #bulkMovePreview{max-height:240px;overflow:auto;font-size:12px;padding-left:24px}#bulkMoveSummary{margin-top:12px}
