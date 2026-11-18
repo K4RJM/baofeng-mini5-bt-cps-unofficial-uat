@@ -34,6 +34,24 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
  };
  const appendFile=addFileButton('uv32AppendFile','＋ Append channels',cableRead);
  const saveDat=addFileButton('uv32SaveDat','↧ Save .dat copy',cableRead);
+ const bluetoothWrite=bluetooth&&addFileButton('uatUv32BluetoothWrite','↑ Write UV-32 Bluetooth',cableWrite);
+ const bluetoothWriteReport=bluetooth&&addFileButton('uatUv32BluetoothWriteReport','↧ Save Bluetooth write report',view);
+ const gpsWarning=bluetooth&&d.createElement('p');
+ let lastBluetoothWrite=null;
+ if(gpsWarning){
+  gpsWarning.className='muted';
+  gpsWarning.textContent='Turn GPS off on the UV-32 before reading or writing over Bluetooth.';
+  gpsWarning.hidden=true;
+  read.insertAdjacentElement('beforebegin',gpsWarning);
+ }
+ const blockedBluetoothWrite=()=>{
+  if(!navigator.bluetooth||!window.isSecureContext)return 'Use a browser with Web Bluetooth.';
+  if(!capture?.readout||!editedImage||fileOnly)return 'Read the UV-32 by cable or open a full cable capture, then edit a channel.';
+  const blocks=changedUv32Blocks(uv32ImageFromHex(capture.wireHex),editedImage);
+  if(!blocks.length)return 'Edit a channel before writing over Bluetooth.';
+  if(blocks.some(block=>block.address>=32000))return 'Use the cable to write changes to settings, VFO, DTMF, or zone names.';
+  return '';
+ };
  const templateInput=d.createElement('input');
  templateInput.type='file';templateInput.accept='.dat';templateInput.hidden=true;
  saveDat.insertAdjacentElement('afterend',templateInput);
@@ -171,6 +189,29 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
   }catch(error){if(lastCableTrace)lastCableTrace.error=error.message;if(bluetooth&&error.uv32ReadReport)capture=error.uv32ReadReport;output.textContent=error.message;throw error;}
   finally{controller=null;refresh();}
  });
+ if(bluetooth){
+  bluetoothWrite.onclick=()=>run(async()=>{
+   const blocked=blockedBluetoothWrite();
+   if(blocked)throw Error(blocked);
+   const baseline=capture,staged=editedImage;
+   lastBluetoothWrite=null;
+   controller=new AbortController();
+   note('Starting experimental UV-32 Bluetooth channel write…');refresh();
+   try{
+    lastBluetoothWrite=await bluetooth.writeUv32Bluetooth(radio,baseline,staged,{
+     signal:controller.signal,interBlockDelayMs:Number(readPace.value),stage:note,
+     progress:(stage,n,total)=>{const p=$('progress');p.max=total;p.value=n;note(`UV-32 Bluetooth ${stage}: block ${n}/${total}`);}
+    });
+    capture=openUv32Capture({...baseline,wireHex:uv32ImageToHex(staged)});preview=capture;undo=[];
+    note('UV-32 Bluetooth write complete. All 500 channel blocks verified.');
+    workspace.render();
+   }catch(error){
+    lastBluetoothWrite=error.uv32BluetoothWriteReport??null;
+    note(error.message);throw error;
+   }finally{controller=null;refresh();}
+  });
+  bluetoothWriteReport.onclick=()=>download(lastBluetoothWrite,'ham-rx-uv32-bluetooth-write.json');
+ }
  cableWrite.onclick=()=>{
   if(!navigator.serial||!window.isSecureContext){note('Cable writing requires Web Serial in a secure browser');return;}
   if(radio.connected){note('Disconnect Bluetooth before starting a cable write');return;}
@@ -204,6 +245,13 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
    for(const id of ['uatUv32Read','uatUv32ReadSendControl','uatUv32ReadPaceControl','uatUv32SweepControl'])$(id).hidden=!uv;
    readSend.disabled=busy;readPace.disabled=busy;sweep.disabled=busy;
    read.disabled=busy||!navigator.bluetooth||!window.isSecureContext;
+   gpsWarning.hidden=!uv;
+   const writeBlocked=uv?blockedBluetoothWrite():'';
+   bluetoothWrite.hidden=!uv;
+   bluetoothWrite.disabled=busy||!!writeBlocked;
+   bluetoothWrite.title=writeBlocked||'Experimental. Write changed channel blocks over Bluetooth and verify all channels afterward.';
+   bluetoothWriteReport.hidden=!uv||!lastBluetoothWrite;
+   bluetoothWriteReport.disabled=busy;
   }
   for(const id of ['open','appendChannels','save','saveImg','readRadio','writeRadio','verify','backup'])$(id).hidden=uv;
   select.disabled=busy;importButton.disabled=busy;

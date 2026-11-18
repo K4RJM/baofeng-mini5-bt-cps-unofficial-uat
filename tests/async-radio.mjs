@@ -1,8 +1,8 @@
 // Test-only browser-shaped GATT peripheral. Never delegates to navigator.bluetooth.
 // Input bytes are supplied by the test; no production encoder, decoder or memory-map import.
 export function asyncRadio(initial, faults={}) {
- if (!(initial instanceof Uint8Array) || initial.length!==33344) throw Error('Test image must contain 33344 bytes');
- const raw=initial.slice(),sent=[],packets=[],events=[],timers=new Set();let writes=0,reads=0,closed=false,held=[],pendingInit=[],idleTimer=null;
+ if (!(initial instanceof Uint8Array) || initial.length!==(faults.fragmentedWrites?0x8380:33344)) throw Error('Unexpected test image length');
+ const raw=initial.slice(),sent=[],packets=[],events=[],timers=new Set();let writes=0,reads=0,closed=false,held=[],pendingInit=[],pendingWrite=[],idleTimer=null;
  const init=Uint8Array.from('53454e4421050d010101041108050d0d01110f091209100400'.match(/../g),b=>parseInt(b,16));
  const device=new EventTarget(),characteristic=new EventTarget();device.id='F13-FAKE-ONLY';
  const later=fn=>{const t=setTimeout(()=>{timers.delete(t);if(!closed)fn();},0);timers.add(t);};
@@ -39,6 +39,12 @@ export function asyncRadio(initial, faults={}) {
    if(pendingInit.length>init.length||!pendingInit.every((v,i)=>v===init[i]))throw Error('Unexpected fragmented test command');
    if(pendingInit.length<init.length){events.push('native-resolved');return;}
    b=Uint8Array.from(pendingInit);pendingInit=[];
+  }
+  if(faults.fragmentedWrites&&(pendingWrite.length||(b[0]===87&&b.length===20))){
+   pendingWrite.push(...b);
+   if(pendingWrite.length<68){events.push('native-resolved');return;}
+   if(pendingWrite.length!==68||pendingWrite[3]!==64)throw Error('Unexpected fragmented write');
+   b=Uint8Array.from(pendingWrite);pendingWrite=[];
   }
   sent.push(b);later(()=>reply(b));events.push('native-resolved');
  }

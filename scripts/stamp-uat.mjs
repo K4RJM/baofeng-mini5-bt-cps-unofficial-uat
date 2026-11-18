@@ -43,19 +43,19 @@ html=replaceOnce(html,`<script type="module" src="app.mjs?v=${base}"></script>`,
  `<script type="module">import('./app.mjs?v=${revision}').catch(error=>{console.error(error);document.getElementById('status').textContent='Editor files could not load. Refresh this page to try again.';});</script>`);
 await writeFile('dist/index.html',html);
 let app=await readFile('dist/app.mjs','utf8');
-const bluetoothImports=live?'':"import {installProtocolTools,uv32ReadSessionStatus,isUatPage} from './uat-protocols.mjs';\nimport {captureUv32Channels,uv32ReadDiagnostics} from './uat-uv32-read.mjs';\n";
+const bluetoothImports=live?'':"import {installProtocolTools,uv32ReadSessionStatus,isUatPage} from './uat-protocols.mjs';\nimport {captureUv32Channels,uv32ReadDiagnostics} from './uat-uv32-read.mjs';\nimport {writeUv32Bluetooth} from './uat-uv32-write.mjs';\n";
 app=bluetoothImports+"import {installUv32Reader} from './uat-uv32-ui.mjs';\nlet uatProtocolTools,uatUv32Reader;\n"+app;
 app=replaceOnce(app,'function sync(){','function sync(){\n uatProtocolTools?.sync(busy);');
 
 app=replaceOnce(app,"$('content').inert=busy;$('tabs').inert=busy;","$('content').inert=busy;$('tabs').inert=busy;uatUv32Reader?.sync(busy);");
 app=replaceOnce(app,"$('help').onclick=()=>{tab='Radio & help';render();};","$('help').onclick=()=>{if(uatUv32Reader?.openHelp())return;tab='Radio & help';render();};");
 app+="\n{\n";
-if(!live)app+="const page=location.href==='about:srcdoc'?document.baseURI:location.href;\nconst bluetooth=isUatPage(new URL('./uat-protocols.mjs',import.meta.url).href,page)?{uv32ReadSessionStatus,captureUv32Channels,uv32ReadDiagnostics}:null;\nif(bluetooth)uatProtocolTools=installProtocolTools({radio,run,connect,message});\n";
+if(!live)app+="const page=location.href==='about:srcdoc'?document.baseURI:location.href;\nconst bluetooth=isUatPage(new URL('./uat-protocols.mjs',import.meta.url).href,page)?{uv32ReadSessionStatus,captureUv32Channels,uv32ReadDiagnostics,writeUv32Bluetooth}:null;\nif(bluetooth)uatProtocolTools=installProtocolTools({radio,run,connect,message});\n";
 app+="const fileTools={save,openChannelAppend,readChannelFile:(file,settings)=>/\\.rdt$/i.test(file.name)?readRdtFile(file,{options,charset,...settings}):readCsvFile(file,{options,charset,...settings})};\n";
 app+="uatUv32Reader=installUv32Reader({radio,run,connect,message,refresh:sync,renderMini5:render,workspaceStatus,fileTools"+(live?'':',bluetooth')+"});sync();\n}\n";
 if(!app.includes("build:'"+base+"'"))throw Error('Diagnostic version anchor missing');
 await writeFile('dist/app.mjs',app.replace("build:'"+base+"'","environment:'"+environment+"',build:'"+version+"'"));
-const bluetoothModules=['uat-protocols.mjs','uat-uv32-read.mjs'];
+const bluetoothModules=['uat-protocols.mjs','uat-uv32-read.mjs','uat-uv32-write.mjs'];
 if(live)for(const file of bluetoothModules)await rm('dist/'+file,{force:true});
 for(const file of [...(live?[]:bluetoothModules),'uv32-codec.mjs','uv32-files.mjs','uv32-dat.mjs','uv32-dat-image.mjs','uat-uv32-image.mjs','uat-uv32-serial.mjs','uat-uv32-capture.mjs','uat-uv32-edit.mjs','uat-uv32-help.mjs','uat-uv32-tones.mjs','uat-uv32-workspace.mjs','uat-uv32-ui.mjs'])await writeFile('dist/'+file,await readFile('scripts/'+file,'utf8'));
 // A page and its dependencies must all use the same browser cache key.

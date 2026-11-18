@@ -1,0 +1,122 @@
+// UAT only. The cable write frame is carried over the verified UV32PRO BLE session.
+import {identifyProfile,consumeUv32ReadSession} from './uat-protocols.mjs?v=20.46';
+import {captureUv32Channels} from './uat-uv32-read.mjs';
+import {changedUv32Blocks,uv32ImageFromHex,uv32ImageToHex} from './uat-uv32-edit.mjs';
+import {openUv32Capture} from './uat-uv32-capture.mjs';
+import {UV32_BLOCK_BYTES,UV32_CHANNEL_BYTES,uv32WireDecode} from './uv32-codec.mjs';
+
+const CHUNK_BYTES=20;
+const ADDRESS_HEX_BYTES=UV32_CHANNEL_BYTES*2;
+const identityKey=handshake=>JSON.stringify([handshake.id,handshake.config]);
+
+// Reopen the already-authorized device without another picker or user gesture.
+// This only runs after the shared reader has connected to and identified a UV-32.
+async function reconnectUv32(radio,device){
+ if(!device||radio.device!==device||radio.connected||radio.busy||radio.connecting||radio.unsettledNative.size)
+  throw Error('Cannot reopen the verified UV-32 Bluetooth connection');
+ const generation=radio.generation;
+ const check=()=>{
+  if(radio.generation!==generation||radio.device!==device||!device.gatt.connected)
+   throw Error('UV-32 Bluetooth link changed during reconnection');
+ };
+ radio.connecting=true;
+ try{
+  radio.disconnected=()=>{
+   if(radio.generation!==generation||radio.device!==device||device.gatt.connected)return;
+   radio.invalidate(Error('UV-32 Bluetooth link ended'));
+   radio.onDisconnect();
+  };
+  device.addEventListener('gattserverdisconnected',radio.disconnected);
+  const server=await radio.native('Reconnecting UV-32',()=>device.gatt.connect(),radio.deadlines.connect,()=>{
+   if(device.gatt.connected)device.gatt.disconnect();
+  });check();
+  const service=await radio.native('Finding UV-32 service',()=>server.getPrimaryService(0xffe0),radio.deadlines.discovery);check();
+  const characteristic=await radio.native('Finding UV-32 data connection',()=>service.getCharacteristic(0xffe1),radio.deadlines.discovery);check();
+  await radio.native('Enabling UV-32 responses',()=>characteristic.startNotifications(),radio.deadlines.notifications);check();
+  radio.char=characteristic;
+  radio.notify=event=>{
+   if(radio.generation===generation&&event.target===characteristic)radio.receive(event.target.value);
+  };
+  characteristic.addEventListener('characteristicvaluechanged',radio.notify);
+ }catch(error){
+  radio.disconnect();
+  throw error;
+ }finally{radio.connecting=false;}
+}
+
+export async function writeUv32Bluetooth(radio,baseline,editedImage,{
+ signal, stage=()=>{}, progress=()=>{}, interBlockDelayMs
+}={}){
+ if(radio.busy||radio.connecting)throw Error('Another radio operation is already running');
+ const original=openUv32Capture(baseline);
+ const changes=changedUv32Blocks(uv32ImageFromHex(original.wireHex),editedImage);
+ if(!changes.length)throw Error('Edit a UV-32 channel before writing by Bluetooth');
+ if(changes.some(block=>block.address>=UV32_CHANNEL_BYTES))throw Error('Write settings, VFO, DTMF and zone edits by cable');
+ const wire=uv32WireDecode(editedImage);
+ const expected=uv32ImageToHex(editedImage).slice(0,ADDRESS_HEX_BYTES);
+ const report={kind:'uv32-bluetooth-write-v1',stage:'preflight',totalBlocks:changes.length,acknowledged:0,attemptedAddress:null,verified:false};
+ let device,ownsBusy=false;
+ const checkCancelled=()=>{if(signal?.aborted)throw Error('Bluetooth write cancelled');};
+ const reconnect=()=>reconnectUv32(radio,device);
+ const read=(label,connectRadio)=>captureUv32Channels(radio,{
+  connect:connectRadio,signal,interBlockDelayMs,
+  stage:text=>stage(label+' · '+text),progress:(n,total)=>progress(label,n,total)
+ });
+ try{
+  const before=await read('Preflight',()=>radio.connect());
+  if(before.wireHex!==original.wireHex.slice(0,ADDRESS_HEX_BYTES))throw Error('Bluetooth channels differ from the cable capture. Read the target by cable again.');
+  device=radio.device;
+  checkCancelled();
+  report.stage='identifying';
+  stage('Reconnecting to the same UV-32 to write…');
+  radio.disconnect();
+  await reconnect();
+  const identity=await identifyProfile(radio,'uv32',{sendMode:'with-response'});
+  if(identityKey(identity)!==identityKey(before.handshake))throw Error('UV-32 identification changed before writing');
+  const session=consumeUv32ReadSession(radio);
+  const {characteristic,generation}=session;
+  const check=()=>{
+   checkCancelled();
+   if(!radio.connected||radio.device!==device||radio.char!==characteristic||radio.generation!==generation)throw Error('Bluetooth link changed during the write');
+  };
+  if(!characteristic.properties.write||typeof characteristic.writeValueWithResponse!=='function')throw Error('Bluetooth writing with response is unavailable');
+  radio.busy=true;ownsBusy=true;report.stage='writing';
+  progress('Writing',0,changes.length);
+  for(const {address,imageOffset} of changes){
+   const frame=Uint8Array.of(0x57,address>>8,address&255,UV32_BLOCK_BYTES,...wire.subarray(imageOffset,imageOffset+UV32_BLOCK_BYTES));
+   for(let offset=0;offset<frame.length;offset+=CHUNK_BYTES){
+    check();
+    if(radio.rx.length)throw Error('Unexpected response before completing the write block');
+    report.attemptedAddress=address;
+    const chunk=frame.subarray(offset,offset+CHUNK_BYTES);
+    await radio.native('Sending UV-32 write data',()=>characteristic.writeValueWithResponse(chunk),radio.deadlines.send);
+   }
+   check();
+   const response=await radio.wait(1);
+   if(response[0]!==0x06)throw Error('Radio rejected the write block (response 0x'+response[0].toString(16).padStart(2,'0')+')');
+   await radio.pause(20);
+   check();
+   if(radio.rx.length)throw Error('Unexpected bytes after the write acknowledgement');
+   report.acknowledged++;
+   progress('Writing',report.acknowledged,changes.length);
+  }
+  radio.busy=false;ownsBusy=false;
+  report.stage='read-back';
+  const after=await read('Read-back',reconnect);
+  if(identityKey(after.handshake)!==identityKey(before.handshake)||after.wireHex!==expected)throw Error('Bluetooth read-back differs from the edited channel data');
+  report.verified=true;report.stage='complete';
+  return report;
+ }catch(error){
+  report.error=error.message;
+  if(error.uv32ReadReport)report.read=error.uv32ReadReport;
+  if(report.attemptedAddress!==null){
+   const address=report.attemptedAddress.toString(16).padStart(4,'0').toUpperCase();
+   error.message+=` · ${report.acknowledged}/${report.totalBlocks} blocks acknowledged, last attempted 0x${address}. Read the radio before retrying.`;
+  }else error.message+=' · No blocks sent.';
+  error.uv32BluetoothWriteReport=report;
+  throw error;
+ }finally{
+  if(ownsBusy)radio.busy=false;
+  if(radio.connected)radio.disconnect();
+ }
+}
