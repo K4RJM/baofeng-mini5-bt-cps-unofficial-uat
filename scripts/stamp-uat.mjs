@@ -20,6 +20,11 @@ html=html.replace('href="https://github.com/K4RJM/baofeng-mini5-bt-cps-unofficia
 const chooser='<label class="uat-radio-choice" for="uatProtocol">Choose Your Radio <select id="uatProtocol"><option value="mini5">MINI-5</option><option value="uv32">UV-32</option></select></label>';
 const actions='<div class="uat-uv32-actions"><button id="uatUv32Import" type="button" hidden>↥ Open UV-32 capture</button><input id="uatUv32ImportFile" type="file" accept=".json,application/json" hidden><button id="uatUv32Read" type="button" disabled hidden>↓ Read UV-32 Bluetooth</button><button id="uatUv32CableRead" type="button" disabled hidden>↓ Read UV-32 by cable</button><button id="uatUv32CableWrite" type="button" disabled hidden>↑ Write UV-32 by cable</button><button id="uatUv32View" type="button" disabled hidden>View UV-32 read</button><button id="uatUv32Save" type="button" disabled hidden>↧ Save UV-32 capture</button><button id="uatUv32Cancel" type="button" hidden>Cancel operation</button></div>';
 html=replaceOnce(html,'<h1>Ham-Rx Baofeng Mini-5</h1>','<h1 id="brandTitle">Ham-Rx Baofeng Mini-5</h1>'+chooser);
+const connectionControls=html.match(/<div class="connection">.*?<button id="connect"[^>]*>.*?<\/button>/)?.[0];
+if(!connectionControls)throw Error('Connection controls missing');
+html=replaceOnce(html,connectionControls,'');
+html=replaceOnce(html,chooser,chooser+'<div class="radio-connection-controls">'+connectionControls+'</div>');
+html=replaceOnce(html,'</head>','<style>.radio-connection-controls{display:flex;align-items:center;gap:8px}.radio-connection-controls .connection{margin:0}</style></head>');
 html=replaceOnce(html,'<img src="assets/mini5-blue.png"','<img id="brandRadioImage" src="assets/mini5-blue.png"');
 html=replaceOnce(html,'<nav id="tabs" aria-label="Workspace"></nav>','<nav id="tabs" aria-label="Workspace"></nav>'+'<output id="uatProtocolResult" hidden></output>');
 html=replaceOnce(html,'<span class="eyebrow">FILE &amp; RADIO</span>','<span class="eyebrow">FILE &amp; RADIO</span>'+actions);

@@ -19,6 +19,7 @@ const edited=editUv32Channel(editUv32Channel(original,1,{name:'BLE TEST 1'}),3,{
 
 async function withRadio(t,faults,check){
  const fake=asyncRadio(wire,{identity:'UV32PRO',bridgeSetup:true,withResponse:true,maxWriteBytes:68,fragmentedWrites:true,...faults});
+ fake.characteristic.properties.writeWithoutResponse=true;
  const radio=new Reader();
  t.mock.method(radio,'pause',()=>Promise.resolve());
  const navigatorDescriptor=Object.getOwnPropertyDescriptor(globalThis,'navigator');
@@ -51,7 +52,9 @@ test('Bluetooth starts at zero and writes the channel table even when the only e
    const address=index*64;
    const frame=Uint8Array.of(0x57,address>>8,address&255,64,...target.subarray(address,address+64));
    assert.deepEqual(frames[index],frame);
-   assert.ok(fake.packets.some(packet=>Buffer.from(packet).equals(Buffer.from(frame))));
+   const first=fake.packets.findIndex(packet=>Buffer.from(packet).equals(Buffer.from(frame.subarray(0,20))));
+   assert.ok(first>=0);
+   assert.deepEqual(Buffer.concat(fake.packets.slice(first,first+4)),Buffer.from(frame));
   }
   assert.deepEqual(Buffer.from(fake.raw).subarray(0,32000),target);
   assert.deepEqual(fake.raw.subarray(32000),wire.subarray(32000));
@@ -98,8 +101,8 @@ test('A rejected write stops before any later block and reports the attempted ad
 test('A browser Bluetooth error keeps its message and original cause',async t=>{
  await withRadio(t,{},async(radio,fake)=>{
   const original=new DOMException('Bluetooth write exceeds the supported length','NetworkError');
-  const send=fake.characteristic.writeValueWithResponse.bind(fake.characteristic);
-  t.mock.method(fake.characteristic,'writeValueWithResponse',bytes=>{
+  const send=fake.characteristic.writeValueWithoutResponse.bind(fake.characteristic);
+  t.mock.method(fake.characteristic,'writeValueWithoutResponse',bytes=>{
    if(bytes[0]===0x57)throw original;
    return send(bytes);
   });
@@ -109,6 +112,17 @@ test('A browser Bluetooth error keeps its message and original cause',async t=>{
    assert.equal(error.uv32BluetoothWriteReport.acknowledged,0);
    return true;
   });
+  assert.equal(fake.writes,0);
+ });
+});
+
+test('A discovery disconnect reuses the selected radio without another chooser',async t=>{
+ await withRadio(t,{identity:'OTHER??'},async (radio,fake)=>{
+  let attempts=0;
+  Object.defineProperty(fake.faults,'disconnectDiscovery',{get:()=>attempts++===0});
+  await assert.rejects(writeUv32Bluetooth(radio,baseline,edited),/No unused UV32PRO|does not match|did not identify|UV-32 read blocked/);
+  assert.equal(fake.events.filter(event=>event==='chooser').length,1);
+  assert.equal(fake.events.filter(event=>event==='connect').length,2);
   assert.equal(fake.writes,0);
  });
 });

@@ -9,7 +9,7 @@ const ADDRESS_HEX_BYTES=UV32_CHANNEL_BYTES*2;
 const identityKey=handshake=>JSON.stringify([handshake.id,handshake.config]);
 
 // Reopen the already-authorized device without another picker or user gesture.
-// This only runs after the shared reader has connected to and identified a UV-32.
+// This only runs after the browser has authorized the selected device.
 async function reconnectUv32(radio,device){
  if(!device||radio.device!==device||radio.connected||radio.busy||radio.connecting||radio.unsettledNative.size)
   throw Error('Cannot reopen the verified UV-32 Bluetooth connection');
@@ -69,8 +69,24 @@ export async function writeUv32Bluetooth(radio,baseline,editedImage,{
  try{
   checkCancelled();
   stage('Connecting to UV-32 for writing…');
-  if(baseline.handshake&&radio.connected)radio.disconnect();
-  await radio.connect();
+  if(baseline.handshake&&radio.connected){
+   const selected=radio.device;
+   radio.disconnect();
+   await radio.pause(600);
+   checkCancelled();
+   await reconnectUv32(radio,selected);
+  }else{
+   try{await radio.connect();}
+   catch(error){
+    const selected=radio.device;
+    if(!selected||!/^Finding radio service: Bluetooth link ended/.test(error.message))throw error;
+    stage('Bluetooth dropped during setup. Reconnecting to the selected UV-32…');
+    radio.disconnect();
+    await radio.pause(600);
+    checkCancelled();
+    await reconnectUv32(radio,selected);
+   }
+  }
   device=radio.device;
   checkCancelled();
   report.stage='identifying';
@@ -83,7 +99,7 @@ export async function writeUv32Bluetooth(radio,baseline,editedImage,{
    checkCancelled();
    if(!radio.connected||radio.device!==device||radio.char!==characteristic||radio.generation!==generation)throw Error('Bluetooth link changed during the write');
   };
-  if(!characteristic.properties.write||typeof characteristic.writeValueWithResponse!=='function')throw Error('Bluetooth writing with response is unavailable');
+  if(!characteristic.properties.writeWithoutResponse||typeof characteristic.writeValueWithoutResponse!=='function')throw Error('This UV-32 Bluetooth link does not support the short writes needed for channel programming.');
   radio.busy=true;ownsBusy=true;report.stage='writing';
   progress('Writing channels',0,totalBlocks);
   for(let address=0;address<UV32_CHANNEL_BYTES;address+=UV32_BLOCK_BYTES){
@@ -91,9 +107,14 @@ export async function writeUv32Bluetooth(radio,baseline,editedImage,{
    check();
    if(radio.rx.length)throw Error('Unexpected response before sending the write block');
    report.attemptedAddress=address;
-   // Send the complete CPS frame as one characteristic value. Splitting it
-   // into separate characteristic writes produced 0x00 even at address zero.
-   await radio.native('Sending complete UV-32 write block',()=>characteristic.writeValueWithResponse(frame),radio.deadlines.send);
+   // Keep each GATT value within the default 20-byte payload. The radio's
+   // CPS acknowledgement still governs whether the next block may start.
+   for(let offset=0;offset<frame.length;offset+=20){
+    check();
+    if(radio.rx.length)throw Error('UV-32 replied before receiving the complete write block');
+    const chunk=frame.subarray(offset,offset+20);
+    await radio.native('Sending UV-32 write data',()=>characteristic.writeValueWithoutResponse(chunk),radio.deadlines.send);
+   }
    check();
    const response=await radio.wait(1);
    if(response[0]!==0x06)throw Error('Radio rejected the write block (response 0x'+response[0].toString(16).padStart(2,'0')+')');
