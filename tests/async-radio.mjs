@@ -17,6 +17,7 @@ export function asyncRadio(initial, faults={}) {
   let bytes;
   if(b[0]===82){if(idleTimer){clearTimeout(idleTimer);timers.delete(idleTimer);idleTimer=null;}reads++;const a=b[1]*256+b[2];bytes=Uint8Array.of(82,b[1],b[2]^(faults.badHeader?1:0),64,...raw.slice(index(a),index(a)+64));if(faults.badReadOpcode)bytes[0]=0x57;if(faults.badReadLength)bytes[3]=128;if(faults.extraRead)bytes=Uint8Array.of(...bytes,6);if(faults.truncateRead)bytes=bytes.slice(0,10);if(faults.silentRead)return;if(faults.disconnectRead===reads){device.gatt.disconnect();return;}}
   else if(b[0]===87){writes++;const a=b[1]*256+b[2],end=a<0x8040?0x8040:a<0x9040?0x9040:0xa1c0;raw.set(b.slice(4,4+Math.min(128,end-a)),index(a));if(faults.disconnectWrite===writes){device.gatt.disconnect();return;}if(faults.dropAck===writes)return;bytes=Uint8Array.of(faults.nak===writes?(faults.nakByte??21):6);}
+  else if(faults.fragmentedWrites&&b.length===1&&b[0]===69)bytes=Uint8Array.of(255,0);
   else if(b.length===1&&b[0]===70)bytes=new Uint8Array(16);
   else if(b.length===1&&b[0]===77)bytes=faults.modelReply?Uint8Array.from(faults.modelReply):new TextEncoder().encode(faults.identity??(faults.wrongModel?'OTHER   +L00000':'5RMINI  +L00000'));
   else if(new TextDecoder().decode(b)==='PROGRAMCOLORPROU'||Array.from(b).map(n=>n.toString(16).padStart(2,'0')).join('')==='53454e4421050d010101041108050d0d01110f091209100400')bytes=Uint8Array.of(6);
@@ -40,10 +41,12 @@ export function asyncRadio(initial, faults={}) {
    if(pendingInit.length<init.length){events.push('native-resolved');return;}
    b=Uint8Array.from(pendingInit);pendingInit=[];
   }
-  if(faults.fragmentedWrites&&(pendingWrite.length||(b[0]===87&&b.length===20))){
+  if(faults.fragmentedWrites&&(pendingWrite.length||(b[0]===87&&b.length===16))){
+   const expectedLength=pendingWrite.length===128?4:16;
+   if(b.length!==expectedLength)throw Error('Unexpected GATT write chunk size');
    pendingWrite.push(...b);
-   if(pendingWrite.length<68){events.push('native-resolved');return;}
-   if(pendingWrite.length!==68||pendingWrite[3]!==64)throw Error('Unexpected fragmented write');
+   if(pendingWrite.length<132){events.push('native-resolved');return;}
+   if(pendingWrite.length!==132||pendingWrite[3]!==128)throw Error('Unexpected fragmented write');
    b=Uint8Array.from(pendingWrite);pendingWrite=[];
   }
   sent.push(b);later(()=>reply(b));events.push('native-resolved');

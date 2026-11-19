@@ -39,25 +39,35 @@ test('Bluetooth starts at zero and writes the channel table even when the only e
   assert.equal(added.tx,'Off');
   const report=await writeUv32Bluetooth(radio,bluetoothBaseline,changed);
   assert.equal(report.verified,true);
-  assert.equal(report.acknowledged,500);
+  assert.equal(report.acknowledged,250);
   assert.equal(fake.reads,500);
-  assert.equal(fake.writes,500);
+  assert.equal(fake.writes,250);
   assert.equal(fake.events.filter(event=>event==='chooser').length,1);
   assert.equal(fake.events.filter(event=>event==='connect').length,2);
   assert.equal(fake.sent.find(command=>[0x52,0x57].includes(command[0]))[0],0x57);
   const frames=fake.sent.filter(frame=>frame[0]===0x57);
-  assert.deepEqual(frames.map(frame=>frame[1]*256+frame[2]),Array.from({length:500},(_,i)=>i*64));
+  assert.deepEqual(frames.map(frame=>frame[1]*256+frame[2]),Array.from({length:250},(_,i)=>i*128));
   const target=Buffer.from(uv32ImageToHex(changed),'hex');
-  for(const index of [0,16,499]){
-   const address=index*64;
-   const frame=Uint8Array.of(0x57,address>>8,address&255,64,...target.subarray(address,address+64));
+  for(let offset=0;offset<target.length;offset+=32){
+   if(target[offset]===255)target.fill(0,offset+8,offset+16);
+  }
+  for(const index of [0,8,249]){
+   const address=index*128;
+   const frame=Uint8Array.of(0x57,address>>8,address&255,128,...target.subarray(address,address+128));
    assert.deepEqual(frames[index],frame);
-   const first=fake.packets.findIndex(packet=>Buffer.from(packet).equals(Buffer.from(frame.subarray(0,20))));
+   const first=fake.packets.findIndex(packet=>Buffer.from(packet).equals(Buffer.from(frame.subarray(0,16))));
    assert.ok(first>=0);
-   assert.deepEqual(Buffer.concat(fake.packets.slice(first,first+4)),Buffer.from(frame));
+   const chunks=fake.packets.slice(first,first+9);
+   assert.deepEqual(chunks.map(packet=>packet.length),[16,16,16,16,16,16,16,16,4]);
+   assert.deepEqual(Buffer.concat(chunks),Buffer.from(frame));
   }
   assert.deepEqual(Buffer.from(fake.raw).subarray(0,32000),target);
   assert.deepEqual(fake.raw.subarray(32000),wire.subarray(32000));
+  const end=fake.sent.findIndex(frame=>frame.length===1&&frame[0]===0x45);
+  assert.equal(fake.sent.slice(0,end).filter(frame=>frame[0]===0x57).length,250);
+  assert.equal(fake.sent.findIndex(frame=>frame[0]===0x52)>end,true);
+  assert.deepEqual(fake.packets.slice(0,5).map(packet=>packet.length),[16,1,1,16,9]);
+  assert.equal(fake.events.slice(0,fake.events.indexOf('disconnect')).includes('send-with-response'),false);
  });
 });
 
@@ -66,7 +76,7 @@ test('An unchanged file writes directly using an existing Bluetooth connection',
   await radio.connect();
   const report=await writeUv32Bluetooth(radio,{wireHex:baseline.wireHex},original);
   assert.equal(report.verified,true);
-  assert.equal(fake.writes,500);
+  assert.equal(fake.writes,250);
   assert.equal(fake.sent.find(command=>[0x52,0x57].includes(command[0]))[0],0x57);
   assert.equal(fake.events.filter(event=>event==='chooser').length,1);
  });
@@ -87,7 +97,7 @@ test('Settings edits and a different previous Bluetooth identity send no channel
 test('A rejected write stops before any later block and reports the attempted address',async t=>{
  await withRadio(t,{nak:1,nakByte:0},async(radio,fake)=>{
   await assert.rejects(writeUv32Bluetooth(radio,baseline,edited),error=>{
-   assert.match(error.message,/rejected the write block \(response 0x00\).*0\/500 blocks acknowledged/);
+   assert.match(error.message,/rejected the write block \(response 0x00\).*0\/250 blocks acknowledged/);
    assert.equal(error.uv32BluetoothWriteReport.attemptedAddress,0);
    assert.equal(error.uv32BluetoothWriteReport.verified,false);
    return true;
@@ -130,14 +140,14 @@ test('A discovery disconnect reuses the selected radio without another chooser',
 test('An acknowledged write with a differing read-back is never reported as verified',async t=>{
  await withRadio(t,{},async(radio,fake)=>{
   await assert.rejects(writeUv32Bluetooth(radio,baseline,edited,{
-   progress:(stage,n)=>{if(stage==='Writing channels'&&n===500)fake.raw[64]^=1;}
+   progress:(stage,n)=>{if(stage==='Writing channels'&&n===250)fake.raw[64]^=1;}
   }),error=>{
    assert.match(error.message,/read-back differs/);
-   assert.equal(error.uv32BluetoothWriteReport.acknowledged,500);
+   assert.equal(error.uv32BluetoothWriteReport.acknowledged,250);
    assert.equal(error.uv32BluetoothWriteReport.verified,false);
    return true;
   });
-  assert.equal(fake.writes,500);
+  assert.equal(fake.writes,250);
   assert.equal(fake.reads,500);
  });
 });

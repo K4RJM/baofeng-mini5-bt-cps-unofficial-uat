@@ -179,13 +179,13 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
    controller=new AbortController();
    note('Starting UV-32 Bluetooth channel write…');refresh();
    try{
-    await bluetooth.writeUv32Bluetooth(radio,baseline,staged,{
+    const report=await bluetooth.writeUv32Bluetooth(radio,baseline,staged,{
      signal:controller.signal,stage:note,
      progress:(stage,n,total)=>{const p=$('progress');p.max=total;p.value=n;note(`UV-32 Bluetooth ${stage}: block ${n}/${total}`);}
     });
     const updated={...baseline,...uv32Preview(staged),wireHex:uv32ImageToHex(staged)};
     capture=channelOnly()||fileOnly?updated:openUv32Capture(updated);preview=capture;undo=[];
-    note('UV-32 Bluetooth write complete. All 500 channel blocks verified.');
+    note(`UV-32 Bluetooth write complete. All ${report.acknowledged} channel blocks acknowledged and channels verified.`);
     workspace.render();
    }catch(error){
     note(error.message);throw error;

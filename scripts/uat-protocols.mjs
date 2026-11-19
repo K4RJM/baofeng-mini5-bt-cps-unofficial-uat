@@ -9,7 +9,7 @@ export function uv32ReadSessionStatus(radio){
   sameDevice:!!s&&s.device===radio.device,sameCharacteristic:!!s&&s.characteristic===radio.char,
   sameGeneration:!!s&&s.generation===radio.generation,emptyReceiveBuffer:pending.length===0};
  const reasons=[
-  ['sessionPresent','No unused UV32PRO / With response handshake is available on this connection.'],
+  ['sessionPresent','No unused UV32PRO handshake is available on this connection.'],
   ['connected','The Bluetooth connection ended after identification.'],
   ['idle','Another radio operation is still running.'],
   ['notConnecting','Bluetooth connection setup is still running.'],
@@ -67,7 +67,7 @@ export function selectSendMethod(properties,mode='auto'){
  return method;
 }
 export function isHandshakeCommand(command){return [MAGIC,Uint8Array.of(0x46),Uint8Array.of(0x4d),INIT].some(c=>c.length===command.length&&c.every((b,i)=>b===command[i]));}
-export async function identifyProfile(radio,key,{sendMode='auto'}={}){
+export async function identifyProfile(radio,key,{sendMode='auto',writeSession=false}={}){
  const profile=PROFILES[key];if(!profile)throw Error('Choose a radio protocol');
  if(radio.busy||radio.connecting)throw Error('Another radio operation is already running');
  if(!radio.connected)throw Error('Connect the radio first');
@@ -84,13 +84,14 @@ export async function identifyProfile(radio,key,{sendMode='auto'}={}){
   const entry={stage,commandHex:hex(command),expectedBytes:n,sentAtMs:elapsed()};exchanges.push(entry);
   let response;
   if(key==='uv32'&&command.length>20){
-   // The recorded phone app sends SEND as 20 + 5 bytes. Keep one logical
-   // allowlisted command and one CPS ACK, with bounded sequential GATT writes.
+   // OLA's captured write session sent SEND in 16 + 9 bytes.
+   // Keep the existing 20 + 5 split for the working read session.
+   const chunkBytes=writeSession?16:20;
    if(radio.rx.length)throw Error('Unexpected leftover response bytes; disconnect and retry');
    entry.chunks=[];
-   for(let offset=0;offset<command.length;offset+=20){
+   for(let offset=0;offset<command.length;offset+=chunkBytes){
     check();if(radio.rx.length)throw Error('Unexpected response before initialization command was fully sent');
-    const bytes=command.slice(offset,offset+20);
+    const bytes=command.slice(offset,offset+chunkBytes);
     const part={offset,bytes:bytes.length,commandHex:hex(bytes),sentAtMs:elapsed()};
     entry.chunks.push(part);
     try{
@@ -154,7 +155,7 @@ export async function identifyProfile(radio,key,{sendMode='auto'}={}){
   if(radio.rx.length)throw Error('Unexpected trailing handshake data');
   const result={completed:true,stage:'complete',profile:key,profileLabel:profile.label,model,matchesExpected:model===profile.prefix,
    id:[...id],config:[...config],exchanges,transport,elapsedMs:elapsed(),memoryReads:0,memoryWrites:0,capturedAt:new Date().toISOString()};
-  if(key==='uv32'&&model==='UV32PRO'&&sendMode==='with-response')uv32ReadSessions.set(radio,{device,characteristic,generation,identity:structuredClone(result)});
+  if(key==='uv32'&&model==='UV32PRO'&&(sendMode==='with-response'||writeSession))uv32ReadSessions.set(radio,{device,characteristic,generation,identity:structuredClone(result)});
   return result;
  }catch(error){error.handshakeReport={completed:false,stage,profile:key,profileLabel:profile.label,exchanges,transport,elapsedMs:elapsed(),error:error.message,receivedPendingHex:hex(radio.rx),memoryReads:0,memoryWrites:0,capturedAt:new Date().toISOString()};throw error;}
  finally{characteristic.removeEventListener('characteristicvaluechanged',notification,{capture:true});radio.busy=false;}

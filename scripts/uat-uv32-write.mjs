@@ -1,11 +1,23 @@
-// UAT only. The cable write frame is carried over the verified UV32PRO BLE session.
+// UAT only. UV32PRO Bluetooth writes use the frame and chunk sizes observed in OLA.
 import {identifyProfile,consumeUv32ReadSession} from './uat-protocols.mjs?v=20.46';
 import {captureUv32Channels} from './uat-uv32-read.mjs';
 import {changedUv32Blocks,uv32ChannelCaptureImage,uv32ImageFromHex,uv32ImageToHex} from './uat-uv32-edit.mjs';
 import {openUv32Capture} from './uat-uv32-capture.mjs';
-import {UV32_BLOCK_BYTES,UV32_CHANNEL_BYTES,uv32WireDecode} from './uv32-codec.mjs';
+import {UV32_RECORD_BYTES,UV32_CHANNEL_BYTES,uv32WireDecode} from './uv32-codec.mjs';
 
-const ADDRESS_HEX_BYTES=UV32_CHANNEL_BYTES*2;
+const WRITE_BLOCK_BYTES=128,WRITE_CHUNK_BYTES=16;
+const CHANNEL_HEX_BYTES=UV32_RECORD_BYTES*2;
+
+function channelsMatch(expected,actual){
+ if(expected.length!==actual.length)return false;
+ for(let offset=0;offset<expected.length;offset+=CHANNEL_HEX_BYTES){
+  const expectedRecord=expected.slice(offset,offset+CHANNEL_HEX_BYTES);
+  const actualRecord=actual.slice(offset,offset+CHANNEL_HEX_BYTES);
+  if(expectedRecord.startsWith('ff')&&actualRecord.startsWith('ff'))continue;
+  if(expectedRecord!==actualRecord)return false;
+ }
+ return true;
+}
 const identityKey=handshake=>JSON.stringify([handshake.id,handshake.config]);
 
 // Reopen the already-authorized device without another picker or user gesture.
@@ -52,12 +64,15 @@ export async function writeUv32Bluetooth(radio,baseline,editedImage,{
   baseline?.kind==='uv32-cable-full-read-v1'?openUv32Capture(baseline).wireHex:baseline?.wireHex);
  const changes=changedUv32Blocks(original,editedImage);
  if(changes.some(block=>block.address>=UV32_CHANNEL_BYTES))throw Error('Write settings, VFO, DTMF and zone edits by cable');
- const wire=uv32WireDecode(editedImage);
- const expected=uv32ImageToHex(editedImage).slice(0,ADDRESS_HEX_BYTES);
- // OLA's UV32PRO upload starts the channel range at zero and advances in
- // 64-byte blocks. A sparse write beginning at the first changed block is
- // rejected on the physical radio. Stay within the channel capture.
- const totalBlocks=UV32_CHANNEL_BYTES/UV32_BLOCK_BYTES;
+ const wire=uv32WireDecode(editedImage).slice(0,UV32_CHANNEL_BYTES);
+ const expected=uv32ImageToHex(editedImage).slice(0,UV32_CHANNEL_BYTES*2);
+ // Match the empty-slot representation in the confirmed OLA upload.
+ for(let offset=0;offset<wire.length;offset+=UV32_RECORD_BYTES){
+  if(wire[offset]!==0xff)continue;
+  wire.fill(0xff,offset,offset+UV32_RECORD_BYTES);
+  wire.fill(0,offset+8,offset+16);
+ }
+ const totalBlocks=UV32_CHANNEL_BYTES/WRITE_BLOCK_BYTES;
  const report={kind:'uv32-bluetooth-write-v1',stage:'connecting',totalBlocks,acknowledged:0,attemptedAddress:null,verified:false};
  let device,ownsBusy=false;
  const checkCancelled=()=>{if(signal?.aborted)throw Error('Bluetooth write cancelled');};
@@ -91,7 +106,7 @@ export async function writeUv32Bluetooth(radio,baseline,editedImage,{
   checkCancelled();
   report.stage='identifying';
   stage('Identifying UV-32 for writing…');
-  const identity=await identifyProfile(radio,'uv32',{sendMode:'with-response'});
+  const identity=await identifyProfile(radio,'uv32',{sendMode:'without-response',writeSession:true});
   if(baseline.handshake?.id&&identityKey(identity)!==identityKey(baseline.handshake))throw Error('UV-32 identification differs from the previous Bluetooth read');
   const session=consumeUv32ReadSession(radio);
   const {characteristic,generation}=session;
@@ -102,32 +117,39 @@ export async function writeUv32Bluetooth(radio,baseline,editedImage,{
   if(!characteristic.properties.writeWithoutResponse||typeof characteristic.writeValueWithoutResponse!=='function')throw Error('This UV-32 Bluetooth link does not support the short writes needed for channel programming.');
   radio.busy=true;ownsBusy=true;report.stage='writing';
   progress('Writing channels',0,totalBlocks);
-  for(let address=0;address<UV32_CHANNEL_BYTES;address+=UV32_BLOCK_BYTES){
-   const frame=Uint8Array.of(0x57,address>>8,address&255,UV32_BLOCK_BYTES,...wire.subarray(address,address+UV32_BLOCK_BYTES));
+  for(let address=0;address<UV32_CHANNEL_BYTES;address+=WRITE_BLOCK_BYTES){
+   const frame=Uint8Array.of(0x57,address>>8,address&255,WRITE_BLOCK_BYTES,...wire.subarray(address,address+WRITE_BLOCK_BYTES));
    check();
    if(radio.rx.length)throw Error('Unexpected response before sending the write block');
    report.attemptedAddress=address;
-   // Keep each GATT value within the default 20-byte payload. The radio's
-   // CPS acknowledgement still governs whether the next block may start.
-   for(let offset=0;offset<frame.length;offset+=20){
+   // The radio acknowledges each complete frame before the next one starts.
+   for(let offset=0;offset<frame.length;offset+=WRITE_CHUNK_BYTES){
     check();
     if(radio.rx.length)throw Error('UV-32 replied before receiving the complete write block');
-    const chunk=frame.subarray(offset,offset+20);
+    const chunk=frame.subarray(offset,offset+WRITE_CHUNK_BYTES);
     await radio.native('Sending UV-32 write data',()=>characteristic.writeValueWithoutResponse(chunk),radio.deadlines.send);
    }
    check();
    const response=await radio.wait(1);
    if(response[0]!==0x06)throw Error('Radio rejected the write block (response 0x'+response[0].toString(16).padStart(2,'0')+')');
-   await radio.pause(20);
    check();
    if(radio.rx.length)throw Error('Unexpected bytes after the write acknowledgement');
    report.acknowledged++;
-  progress('Writing channels',report.acknowledged,totalBlocks);
+   progress('Writing channels',report.acknowledged,totalBlocks);
   }
+  check();
+  report.stage='finishing';
+  stage('Closing the UV-32 programming session…');
+  await radio.native('Finishing UV-32 programming',()=>characteristic.writeValueWithoutResponse(Uint8Array.of(0x45)),radio.deadlines.send);
+  const [end]=await radio.wait(1);
+  if(end!==0x06&&(end!==0xff||(await radio.wait(1))[0]!==0x00))throw Error('UV-32 did not confirm the end of programming');
+  check();
   radio.busy=false;ownsBusy=false;
+  radio.disconnect();
+  await radio.pause(600);
   report.stage='read-back';
   const after=await read('Read-back',reconnect);
-  if(identityKey(after.handshake)!==identityKey(identity)||after.wireHex!==expected)throw Error('Bluetooth read-back differs from the edited channel data');
+  if(identityKey(after.handshake)!==identityKey(identity)||!channelsMatch(expected,after.wireHex))throw Error('Bluetooth read-back differs from the edited channel data');
   report.verified=true;report.stage='complete';
   return report;
  }catch(error){
