@@ -1,5 +1,6 @@
 // UAT UV-32 controls live in the existing Ham-Rx header and left sidebar.
 // A UV-32 read populates its own main workspace without loading MINI-5 data.
+import {installRadioBookmark} from './radio-bookmark.mjs';
 import {readUv32SerialImage,writeUv32SerialImage} from './uat-uv32-serial.mjs?v=20.66';
 import {openUv32Capture} from './uat-uv32-capture.mjs?v=20.70';
 import {createUv32Workspace} from './uat-uv32-workspace.mjs?v=20.70';
@@ -14,7 +15,6 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
  const read=$('uatUv32Read'),cableRead=$('uatUv32CableRead'),cableWrite=$('uatUv32CableWrite'),view=$('uatUv32View'),save=$('uatUv32Save'),cancel=$('uatUv32Cancel'),importButton=$('uatUv32Import'),importInput=$('uatUv32ImportFile'),output=$('uatProtocolResult');
  const bluetoothControls=[read];
  if([select,cableRead,cableWrite,view,save,cancel,importButton,importInput,output,...(bluetooth?bluetoothControls:[])].some(x=>!x))throw Error('UV-32 controls missing');
- select.value='';
  let capture=null,preview=null,editedImage=null,controller=null,undo=[],pending=[];
  let readBackup=null,fileOnly=false,datOnly=false,datTemplate=null;
  let writeDevice=null,importedSettings=null;
@@ -263,12 +263,17 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
   finally{controller=null;refresh();}
   });
  };
+ const showSelectedWorkspace=()=>{
+  if(select.value==='uv32'){workspace.reset();refresh();note('UV-32 · Ready to read or open a capture');}
+  else{workspace.restoreBrand();renderMini5();refresh();workspaceStatus();}
+ };
+ installRadioBookmark(select);
  select.addEventListener('change',()=>{
   writeDevice=null;
   if(bluetooth&&radio.connected)radio.disconnect();
-  if(select.value==='uv32'){workspace.reset();refresh();note('UV-32 · Ready to read or open a capture');}
-  else{workspace.restoreBrand();renderMini5();refresh();workspaceStatus();}
+  showSelectedWorkspace();
  });
+ if(select.value)showSelectedWorkspace();
  return {openHelp(){if(select.value!=='uv32')return false;workspace.openHelp();return true;},sync(busy){const uv=select.value==='uv32';
   if(!radio.connected&&!controller)writeDevice=null;
   for(const id of ['uatUv32CableRead','uatUv32CableWrite','uatUv32View','uatUv32Save','uatUv32Import'])$(id).hidden=!uv;
