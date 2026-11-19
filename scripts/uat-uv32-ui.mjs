@@ -300,7 +300,7 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
   if(uv){
    for(const id of ['readRadio','writeRadio','verify'])$(id).disabled=true;
    $('sourceTag').textContent=preview?(capture?.kind==='uv32-channel-file'?'UV-32 channel file':channelOnly()?'UV-32 Bluetooth read':fileOnly?(datOnly?'UV-32 DAT':'UV-32 image'):'UV-32 full read'):'Blank UV-32 workspace';
-   $('connectionHint').textContent=bluetooth?'UV-32 Bluetooth programming':radio.connected?'Disconnect MINI-5 to use the UV-32 cable':'UV-32 cable programming';
+   $('connectionHint').textContent=bluetooth?'Bluetooth programming':radio.connected?'Disconnect MINI-5 to use the UV-32 cable':'UV-32 cable programming';
    if(!bluetooth&&!radio.connected)$('connection').textContent=navigator.serial&&window.isSecureContext?'USB programming cable':'Cable unavailable in this browser';
   }
  }};

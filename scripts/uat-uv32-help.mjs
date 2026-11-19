@@ -51,8 +51,9 @@ const el=(d,tag,cls,text)=>{const node=d.createElement(tag);if(cls)node.classNam
 export function renderUv32Help(d,target){
  const workspace=el(d,'div','help-workspace uv32-help-workspace');
  const host=el(d,'div','help-tutorial-host'),card=el(d,'section','card radio-tutorial-card');
- card.append(el(d,'h3','', 'Radio button tutorials'),el(d,'p','muted','Hover, focus or tap a button for its instructions.'));
- const zoom=el(d,'button','uv32-keypad-zoom','Zoom into keypad');zoom.type='button';zoom.setAttribute('aria-pressed','false');card.append(zoom);
+ const heading=el(d,'div','uv32-tutorial-head');card.append(heading);
+ heading.append(el(d,'h3','', 'Radio button tutorials'),el(d,'p','muted','Hover, focus or tap a button for its instructions.'));
+ const zoom=el(d,'button','uv32-keypad-zoom','Zoom into keypad');zoom.type='button';zoom.setAttribute('aria-pressed','false');heading.append(zoom);
  const layout=el(d,'div','radio-tutorial-layout'),drawing=el(d,'div','radio-drawing uv32-radio-drawing');
  drawing.setAttribute('role','group');drawing.setAttribute('aria-label','UV-32 radio graphic with button tutorials');
  const sideKeys=svgNode(d,'g',{class:'uv32-side-keys'}),photo=svgNode(d,'svg',{'aria-label':'Front of the Baofeng UV-32',viewBox:'-48 0 588 1230'});

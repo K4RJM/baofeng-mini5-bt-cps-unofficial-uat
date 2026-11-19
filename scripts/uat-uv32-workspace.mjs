@@ -55,7 +55,7 @@ const SETTING_HELP={
  'TX tone code':'CTCSS or DCS code sent when transmitting from this VFO.',
  'Busy Lock':COL_HELP.busyLock,'Power code':COL_HELP.power,Bandwidth:COL_HELP.bandwidth,FHSS:COL_HELP.fhss,
  'Signalling code':'DTMF signaling entry used by this VFO; stored as a zero-based code for entries 1–20.',
- 'Offset direction code':'0 uses the receive frequency; 1 adds the offset; 2 subtracts it for transmission.',
+ 'Offset direction code':'0 (Off) transmits on the receive frequency. 1 (Plus) transmits higher by the offset. 2 (Minus) transmits lower by the offset.',
  'Step code':'Stored tuning-step code. The frequency increment for each code has not yet been verified.',
  'Offset MHz':'Difference between VFO receive and transmit frequencies when an offset direction is selected.',
  'SQ Mode code':COL_HELP.squelch,
@@ -104,7 +104,7 @@ export function createUv32Workspace({document:d,select,getCapture,onEdit,onUndo,
  const render=()=>{
   if(select.value!=='uv32')return;
   const capture=getCapture(),readout=capture?.readout??emptyUv32Readout();
-  d.documentElement.dataset.screen=section==='Channels'?'channels':section==='VFO A / B'?'uv32-vfo':'other';
+  d.documentElement.dataset.screen=section==='Channels'?'channels':section==='VFO A / B'?'uv32-vfo':section==='DTMF'?'dtmf':'other';
   $('pageTitle').textContent=section==='Channels'?(zone?`Channels · Bank ${zone}`:'Channels · All banks'):section;
   $('pageDescription').textContent=section==='Channels'?'Edit UV-32 channels by bank.':section==='VFO A / B'?'Edit the two frequency-mode memories.':section==='Radio & help'?'UV-32 controls and operating instructions.':section==='DTMF'?'Edit DTMF codes, names and timing.':'Edit UV-32 radio settings.';
   $('sourceTag').textContent=capture?(capture.kind==='uv32-channel-file'?'UV-32 channel file':capture.kind==='uv32-channel-read-v1'?'UV-32 Bluetooth read':capture.kind==='uv32-cable-full-read-v1'?'UV-32 full read':'UV-32 file'):'Blank UV-32 workspace';
@@ -121,7 +121,7 @@ export function createUv32Workspace({document:d,select,getCapture,onEdit,onUndo,
    const wrap=el('div','uv32-vfo-grid');for(const [name,fields] of [['VFO A',readout.vfoA],['VFO B',readout.vfoB]]){const card=box(name),side=name.slice(-1);for(const [key,value] of fields){if(key==='Offset bytes'){const bytes=String(value).split(' ').map(x=>parseInt(x,16));const offset=bytes.every(x=>x>=0&&x<=9)?(Number(bytes.join(''))/1000).toFixed(3):value;card.append(field('Offset MHz',offset,v=>onEdit('vfo',{side,field:'Offset MHz',value:v})));continue;}if(['Frequency MHz','RX tone code','TX tone code','Busy Lock','Power code','Bandwidth','FHSS','Signalling code','Offset direction code','Step code','SQ Mode code'].includes(key)){const shown=key==='Power code'?['High','Low','Medium'][value]??value:value;const options=key==='Busy Lock'||key==='FHSS'?['Off','On']:key==='Bandwidth'?['Wide','Narrow']:key==='Power code'?['High','Low','Medium']:null;card.append(field(key,shown,v=>onEdit('vfo',{side,field:key,value:v}),options));}else card.append(pairs([[key,value]]));}wrap.append(card);}content.append(wrap);
   }else if(section==='DTMF'){
 
-   const card=box('DTMF'),scroll=el('div','uv32-dtmf-scroll'),table=el('table','uv32-dtmf-table');
+   const card=box('DTMF'),scroll=el('div','dtmf-scroll'),table=el('table','dtmf-table');
    const head=el('thead'),heading=el('tr');for(const label of ['No.','Code','Name','No.','Code','Name'])heading.append(el('th','',label));head.append(heading);table.append(head);
    const body=el('tbody'),entries=new Map(readout.dtmf.entries.map(entry=>[entry.number,entry]));
    const editableEntry=(tr,number)=>{
@@ -197,7 +197,7 @@ export function createUv32Workspace({document:d,select,getCapture,onEdit,onUndo,
   const bankNav=el('div','uv32-bank-nav');bankNav.setAttribute('role','group');bankNav.setAttribute('aria-label','Bank navigation');
   function goBank(number){zone=number;page=0;selected.clear();render();}
   const first=button('Bank 1',()=>goBank(1)),last=button('Bank 10',()=>goBank(10));
-  const previousBank=button('‹ Previous',()=>goBank(zone-1)),nextBank=button('Next ›',()=>goBank(zone+1));previousBank.disabled=zone<=1;nextBank.disabled=!zone||zone>=10;
+  const previousBank=button('‹ Previous',()=>goBank(zone===1?10:zone-1)),nextBank=button('Next ›',()=>goBank(zone===10?1:zone+1));previousBank.disabled=!zone;nextBank.disabled=!isBank;
   first.disabled=zone===1;last.disabled=zone===10;
   bankNav.append(first,previousBank,el('span','',isBank?zone+' / 10':zone===11?'Extras':'All'),nextBank,last);
   const pager=el('div','uv32-page-nav'),prev=button('Previous page',()=>{page--;paint();}),next=button('Next page',()=>{page++;paint();});pager.append(prev,next);
@@ -260,7 +260,7 @@ export function createUv32Workspace({document:d,select,getCapture,onEdit,onUndo,
    else if(choices[key]){for(const value of choices[key]){const option=el('option','',key==='squelch'?SQ_LABELS[value]:value);option.value=value;control.append(option);}if(!choices[key].includes(initial)){const option=el('option','',key==='squelch'?(SQ_LABELS[initial]??initial):initial);option.value=initial;control.prepend(option);}control.value=initial;}
    else{control.value=initial;if(key==='rx'||key==='tx')control.inputMode='decimal';}
    control.setAttribute('aria-label',`Channel ${row.number} ${label}`);control.title=key==='squelch'?sqHelp(initial):COL_HELP[key];
-   tr.dataset.editing='true';tr.onclick=null;tr.onkeydown=null;cell.replaceChildren(control);
+   tr.dataset.editing='true';tr.onclick=null;tr.onkeydown=null;cell.replaceChildren(el('span','',cell.textContent),control);
    let finished=false;
    const finish=(cancel,keepInvalid=false)=>{
     if(finished)return false;

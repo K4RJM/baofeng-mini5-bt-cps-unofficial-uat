@@ -30,7 +30,7 @@ export function mountChannelCell(cell,{index,key,getChannel,options,accept,notif
   control.value=key==='name'?visibleName(value):String(value);const start=control.value;draft(()=>editing&&control?.value!==start);
   control.onkeydown=e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();finish(true,true);}else if(e.key==='Enter'){e.preventDefault();e.stopPropagation();finish(false,true);}else if(e.key==='Tab'){e.preventDefault();e.stopPropagation();finish(false,true);navigate(e.shiftKey?-1:1);}};
   control.onblur=()=>finish();if(choices)control.onchange=()=>finish(false,true);
-  cell.replaceChildren(control);control.focus({preventScroll:true});if(!choices)control.select();
+  cell.append(control);control.focus({preventScroll:true});if(!choices)control.select();
  }
  cell.onclick=e=>{if(e.target.closest('input,select,option'))return;activate();};
  cell.onkeydown=e=>{if(e.target!==cell)return;if(e.key==='Enter'||e.key===' '){e.preventDefault();activate();}else if(e.key==='Tab'&&navigate(e.shiftKey?-1:1))e.preventDefault();};
