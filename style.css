@@ -308,3 +308,5 @@ dialog#radioBookmarkDialog{width:min(27rem,94vw);padding:18px}
 #radioBookmarkStatus:empty{margin:0}
 #radioBookmarkStatus:not(:empty){margin:8px 0 0}
 #radioBookmarkUrl{width:100%;margin-top:6px}
+
+@media(min-width:751px){footer .mobile-facebook-link{display:none}}
