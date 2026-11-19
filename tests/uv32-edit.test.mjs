@@ -51,39 +51,39 @@ test('UV-32 insert and move preserve entire records and stay within a zone',()=>
  assert.throws(()=>insertUv32Channel(full,1),/no empty/);
 });
 
-function simulatedPort(initial,{badAckAt=-1,alterPreflight=false}={}){
+function simulatedPort(initial,{badAckAt=-1,model='UV32PRO'}={}){
  const memory=new Uint8Array(initial),replies=[],writes=[];let opens=0,writeBlocks=0;
  const offsets=new Map();let offset=0;for(const [start,size] of UV32_SERIAL_REGIONS)for(let address=start;address<start+size;address+=64){offsets.set(address,offset);offset+=64;}
  const port={
   async open(options){assert.equal(options.baudRate,115200);opens++;},
   readable:{getReader(){return {async read(){if(!replies.length)throw Error('No simulated reply');return {done:false,value:replies.shift()};},async cancel(){},releaseLock(){}};}},
-  writable:{getWriter(){return {async write(data){const b=Uint8Array.from(data);writes.push(b);if(b.length===16){replies.push(Uint8Array.of(6));return;}if(b.length===1&&b[0]===0x46){replies.push(new Uint8Array(16));return;}if(b.length===1&&b[0]===0x4d){replies.push(new TextEncoder().encode('UV32PRO'));return;}if(b[0]===0x53){replies.push(Uint8Array.of(6));return;}const address=b[1]*256+b[2],at=offsets.get(address);assert.notEqual(at,undefined);if(b[0]===0x52){const payload=memory.slice(at,at+64);if(alterPreflight&&opens===1&&address===0)payload[0]^=1;replies.push(Uint8Array.of(0x52,b[1],b[2],64,...payload));}else if(b[0]===0x57){assert.equal(b.length,68);writeBlocks++;if(writeBlocks!==badAckAt)memory.set(b.slice(4),at);replies.push(Uint8Array.of(writeBlocks===badAckAt?0:6));}else throw Error('Unexpected command');},releaseLock(){}};}},
+  writable:{getWriter(){return {async write(data){const b=Uint8Array.from(data);writes.push(b);if(b.length===16){replies.push(Uint8Array.of(6));return;}if(b.length===1&&b[0]===0x46){replies.push(new Uint8Array(16));return;}if(b.length===1&&b[0]===0x4d){replies.push(new TextEncoder().encode(model));return;}if(b[0]===0x53){replies.push(Uint8Array.of(6));return;}const address=b[1]*256+b[2],at=offsets.get(address);assert.notEqual(at,undefined);if(b[0]===0x52){const payload=memory.slice(at,at+64);replies.push(Uint8Array.of(0x52,b[1],b[2],64,...payload));}else if(b[0]===0x57){assert.equal(b.length,68);writeBlocks++;if(writeBlocks!==badAckAt)memory.set(b.slice(4),at);replies.push(Uint8Array.of(writeBlocks===badAckAt?0:6));}else throw Error('Unexpected command');},releaseLock(){}};}},
   async close(){}
  };
  return {port,memory,writes,get opens(){return opens;},get writeBlocks(){return writeBlocks;}};
 }
 
-test('UV-32 cable write checks baseline, uploads CHIRP regions, and verifies read-back',async()=>{
+test('UV-32 cable write identifies the model and uploads CHIRP regions without reading memory',async()=>{
  const baseline=blank(),original=uv32ImageFromHex(baseline.wireHex),edited=editUv32Channel(original,1,{rx:'146.52000',tx:'Off',name:'TEST'}),radio=simulatedPort(Uint8Array.from(Buffer.from(baseline.wireHex,'hex')));
  const trace=[],result=await writeUv32SerialImage(radio.port,baseline,edited,{onTrace:event=>trace.push(event)});
- assert.equal(result.completed,true);assert.equal(result.preflightMatched,true);assert.equal(result.readBackVerified,true);assert.equal(result.completedBlocks,526);assert.equal(radio.writeBlocks,526);assert.equal(radio.opens,3);
+ assert.equal(result.completed,true);assert.equal(result.completedBlocks,526);assert.equal(radio.writeBlocks,526);assert.equal(radio.opens,1);
  assert.deepEqual(Array.from(radio.writes.find(x=>x[0]===0x57).slice(0,4)),[0x57,0,0,64]);
  assert.equal(Buffer.from(radio.memory).toString('hex'),uv32ImageToHex(edited));
- for(const phase of ['preflight','write','readback'])assert.equal(trace.filter(event=>event.phase===phase&&event.direction==='tx'&&event.hex.startsWith(phase==='write'?'57':'52')).length,526);
+ assert.equal(radio.writes.filter(b=>b[0]===0x52).length,0);
  assert.equal(trace.filter(event=>event.phase==='write'&&event.direction==='rx-frame'&&event.hex==='06').length,528);
  assert.equal(trace.find(event=>event.phase==='write'&&event.direction==='tx'&&event.hex.startsWith('57'))?.length,68);
 });
 
-test('UV-32 unchanged full image can be written and verified',async()=>{
+test('UV-32 unchanged imported CHIRP image writes directly',async()=>{
  const baseline=blank(),original=uv32ImageFromHex(baseline.wireHex),radio=simulatedPort(Uint8Array.from(Buffer.from(baseline.wireHex,'hex')));
- const result=await writeUv32SerialImage(radio.port,baseline,original);
- assert.equal(result.changedBlocks,0);assert.equal(result.readBackVerified,true);assert.equal(radio.writeBlocks,526);
+ const result=await writeUv32SerialImage(radio.port,{kind:'uv32-chirp-image',wireHex:baseline.wireHex},original);
+ assert.equal(result.changedBlocks,0);assert.equal(result.completed,true);assert.equal(radio.writeBlocks,526);
 });
 
-test('UV-32 refuses stale baseline and stops at rejected write ACK',async()=>{
+test('UV-32 refuses another model and stops at rejected write ACK',async()=>{
  const baseline=openUv32Capture(blank()),edited=editUv32Channel(uv32ImageFromHex(baseline.wireHex),1,{rx:'146.52000'});
- const stale=simulatedPort(Uint8Array.from(Buffer.from(baseline.wireHex,'hex')),{alterPreflight:true});
- await assert.rejects(writeUv32SerialImage(stale.port,baseline,edited),error=>{assert.equal(error.uv32WriteReport.preflightMatched,false);return /changed since this capture/.test(error.message);});assert.equal(stale.writeBlocks,0);
+ const other=simulatedPort(new Uint8Array(0x8380),{model:'OTHER  '});
+ await assert.rejects(writeUv32SerialImage(other.port,baseline,edited),/model mismatch/);assert.equal(other.writeBlocks,0);
  const rejected=simulatedPort(Uint8Array.from(Buffer.from(baseline.wireHex,'hex')),{badAckAt:2});
- await assert.rejects(writeUv32SerialImage(rejected.port,baseline,edited),error=>{assert.equal(error.uv32WriteReport.preflightMatched,true);assert.equal(error.uv32WriteReport.completedBlocks,1);return /rejected write/.test(error.message);});assert.equal(rejected.writeBlocks,2);
+ await assert.rejects(writeUv32SerialImage(rejected.port,baseline,edited),error=>{assert.equal(error.uv32WriteReport.completedBlocks,1);return /rejected write/.test(error.message);});assert.equal(rejected.writeBlocks,2);
 });

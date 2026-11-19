@@ -199,8 +199,24 @@ dialog#appendDialog.csv-import-dialog{width:min(1160px,96vw);padding:18px}
 .csv-pagination{font-size:12px;justify-content:flex-end}.csv-pagination span{margin-right:auto}.csv-pagination button{font-size:12px;padding:5px 9px}#csvPartialRow{font-size:12px;margin:8px 0}
 @media(max-width:600px){dialog#appendDialog.csv-import-dialog{padding:12px}.csv-review-heading{align-items:flex-start;flex-direction:column}.csv-table-wrap{max-height:230px}.csv-pagination{gap:6px}}
 
-.uv32-zone-controls,.uv32-zone-rename{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.uv32-zone-rename input{width:13ch;padding:4px 6px}
 
 .header-connect{display:flex;align-items:center;gap:8px}.header-connect .connection{display:flex;min-width:0}.header-connect button{font-size:12px;padding:5px 9px}
 @media(max-width:750px){.header-connect{flex-wrap:wrap;margin:4px 0}}
+
+.channel-card .uv32-bank-bar{display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap;border-top:1px solid var(--border);margin-top:6px;padding-top:6px}
+.uv32-bank-name,.uv32-bank-actions,.uv32-bank-nav,.uv32-page-nav{display:flex;align-items:center;gap:4px}
+.uv32-bank-name{flex-direction:row;gap:7px;margin:0}.uv32-bank-name input{width:16ch;min-height:26px;padding:3px 6px;font-size:12px}
+.uv32-bank-bar button{padding:3px 8px;min-height:26px;font-size:12px}
+.uv32-bank-nav span{min-width:5ch;text-align:center;font-variant-numeric:tabular-nums}.uv32-bank-count{margin-left:auto}
+.uv32-vfo-grid .card{margin:0;padding:10px 14px}.uv32-vfo-grid .card h3{margin:0 0 7px}
+.uv32-vfo-grid .uv32-edit-field{display:grid;grid-template-columns:minmax(9em,0.85fr) minmax(0,1.15fr);align-items:center;gap:8px;margin:3px 0;max-width:none}
+.uv32-vfo-grid .uv32-edit-field span{min-width:0;text-align:right;font-size:12px}
+.uv32-vfo-grid .uv32-edit-field :is(input,select){width:100%;min-width:0;min-height:24px;height:26px;padding:2px 6px;font-size:12px}
+@media(min-width:751px){
+ html[data-screen=uv32-vfo],html[data-screen=uv32-vfo] body{height:100%;overflow:hidden}
+ html[data-screen=uv32-vfo] body{height:100dvh;display:flex;flex-direction:column}
+ html[data-screen=uv32-vfo] .app-layout{flex:1;min-height:0;overflow:hidden}
+ html[data-screen=uv32-vfo] aside,html[data-screen=uv32-vfo] main{position:static;min-height:0;max-height:none;overflow:auto}
+ html[data-screen=uv32-vfo] footer{display:none}
+ #content>.uv32-vfo-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}

@@ -6,7 +6,8 @@ import {UV32_IMAGE_BYTES,decodeUv32Image} from './uat-uv32-image.mjs';
 const assertImage=image=>{if(!(image instanceof Uint8Array)||image.length!==UV32_IMAGE_BYTES)throw Error('A complete UV-32 image is required');};
 const assertChannelImage=image=>{if(!(image instanceof Uint8Array)||![UV32_CHANNEL_BYTES,UV32_IMAGE_BYTES].includes(image.length))throw Error('A complete UV-32 channel image is required');};
 export function uv32ChannelCaptureImage(report){
- if(report?.kind!=='uv32-channel-read-v1'||report.model!=='UV32PRO'||report.completed!==true||report.completedBlocks!==500||report.totalBlocks!==500||report.bytes!==UV32_CHANNEL_BYTES||typeof report.wireHex!=='string'||report.wireHex.length!==UV32_CHANNEL_BYTES*2||!/^[0-9a-f]+$/i.test(report.wireHex))throw Error('A complete UV-32 Bluetooth read is required');
+ const blockBytes=report?.blockBytes??64,totalBlocks=UV32_CHANNEL_BYTES/blockBytes;
+ if(![64,128].includes(blockBytes)||report?.kind!=='uv32-channel-read-v1'||report.model!=='UV32PRO'||report.completed!==true||report.completedBlocks!==totalBlocks||report.totalBlocks!==totalBlocks||report.bytes!==UV32_CHANNEL_BYTES||typeof report.wireHex!=='string'||report.wireHex.length!==UV32_CHANNEL_BYTES*2||!/^[0-9a-f]+$/i.test(report.wireHex))throw Error('A complete UV-32 Bluetooth read is required');
  return uv32WireDecode(Uint8Array.from(report.wireHex.match(/../g),x=>parseInt(x,16)));
 }
 const ascii=(value,max)=>{const s=String(value??'');if(s.length>max||/[^\x20-\x7e]/.test(s))throw Error(`Use at most ${max} plain-text characters`);return s;};

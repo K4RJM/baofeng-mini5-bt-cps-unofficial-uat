@@ -1,6 +1,6 @@
 {
   "name": "ham-rx-baofeng-mini-5",
-  "version": "0.20.86",
+  "version": "0.20.87",
   "private": true,
   "type": "module",
   "scripts": {

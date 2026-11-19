@@ -4,13 +4,13 @@
 export const UV32_CHANNELS=1000,UV32_RECORD_BYTES=32,UV32_BLOCK_BYTES=64,UV32_CHANNEL_BYTES=32000;
 export const UV32_BLOCKS=UV32_CHANNEL_BYTES/UV32_BLOCK_BYTES;
 const hex=b=>Array.from(b,n=>n.toString(16).padStart(2,'0')).join('');
-export function uv32ReadCommand(address){
- if(!Number.isSafeInteger(address)||address<0||address%64||address+64>32000)throw Error('Outside UV-32 channel read area');
- return Uint8Array.of(0x52,address>>8,address&255,64);
+export function uv32ReadCommand(address,blockBytes=UV32_BLOCK_BYTES){
+ if(![64,128].includes(blockBytes)||!Number.isSafeInteger(address)||address<0||address%blockBytes||address+blockBytes>UV32_CHANNEL_BYTES)throw Error('Outside UV-32 channel read area');
+ return Uint8Array.of(0x52,address>>8,address&255,blockBytes);
 }
-export function uv32Payload(response,address){
- uv32ReadCommand(address);
- if(!(response instanceof Uint8Array)||response.length!==68||response[0]!==0x52||response[1]!==(address>>8)||response[2]!== (address&255)||response[3]!==64)throw Error('Unexpected UV-32 read header or length at 0x'+address.toString(16).padStart(4,'0'));
+export function uv32Payload(response,address,blockBytes=UV32_BLOCK_BYTES){
+ uv32ReadCommand(address,blockBytes);
+ if(!(response instanceof Uint8Array)||response.length!==blockBytes+4||response[0]!==0x52||response[1]!==(address>>8)||response[2]!== (address&255)||response[3]!==blockBytes)throw Error('Unexpected UV-32 read header or length at 0x'+address.toString(16).padStart(4,'0'));
  return response.slice(4);
 }
 // CHIRP's reversible CO7 wire transform resets at each 64-byte response.

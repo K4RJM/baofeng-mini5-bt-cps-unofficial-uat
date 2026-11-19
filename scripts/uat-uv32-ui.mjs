@@ -151,7 +151,7 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
     }
     if(template)datTemplate=template;
     refresh();
-    note(fileOnly?'Opened UV-32 '+format+'. Use Bluetooth to write the channel table.':'Imported UV-32 '+format+'. Use the cable to program settings as well as channels.');
+    note(datOnly?'Opened UV-32 '+format+'. Use Bluetooth to write the channel table.':'Imported UV-32 '+format+'. Use the cable to program settings as well as channels.');
     return;
    }
    if(file.size>250000)throw Error('UV-32 capture is larger than expected');const loaded=openUv32Capture(await file.text());
@@ -168,7 +168,7 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
  if(bluetooth)read.onclick=()=>run(async()=>{
   controller=new AbortController();note('Reading UV-32 channels…');refresh();
   try{
-   const result=await bluetooth.captureUv32Channels(radio,{connect,signal:controller.signal,stage:note,
+   const result=await bluetooth.captureUv32Channels(radio,{connect,blockBytes:128,readSendMode:'without-response',signal:controller.signal,stage:note,
     progress:(n,total)=>{const p=$('progress');p.max=total;p.value=n;note(`Reading UV-32 channels · block ${n}/${total}`);}
    });
    editedImage=uv32ChannelCaptureImage(result);capture=result;preview=result;fileOnly=false;datOnly=false;undo=[];
@@ -200,8 +200,8 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
     });
     const updated={...baseline,...uv32Preview(staged),wireHex:uv32ImageToHex(staged)};
     capture=channelOnly()||fileOnly?updated:openUv32Capture(updated);preview=capture;undo=[];
-    const connection=report.reconnected?'Bluetooth connected.':'Use Connect at the top to reconnect.';
-    note(`UV-32 Bluetooth write verified. ${report.acknowledged} blocks acknowledged. ${connection}`);
+    const connection=report.connected?'Bluetooth connected.':'Use Connect at the top to reconnect.';
+    note(`UV-32 Bluetooth write complete. All ${report.acknowledged} channel blocks acknowledged. ${connection}`);
     workspace.render();
    }catch(error){
     note(error.message);throw error;
@@ -211,13 +211,14 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
  cableWrite.onclick=()=>{
   if(!navigator.serial||!window.isSecureContext){note('Cable writing requires Web Serial in a secure browser');return;}
   if(radio.connected){note('Disconnect Bluetooth before starting a cable write');return;}
-  if(!capture?.readout||!editedImage||fileOnly){note('Read the target UV-32 by cable first');return;}
+  if(!capture?.readout||!editedImage||datOnly){note('Open a complete UV-32 CHIRP image or cable capture to write by cable.');return;}
   // Web Serial must be requested directly in the button's user activation.
   const portPromise=navigator.serial.requestPort();
   return run(async()=>{
   controller=new AbortController();note('Choose the UV-32 programming cable…');refresh();
-  try{const port=await portPromise;note('Writing and verifying the complete UV-32 image…');await writeUv32SerialImage(port,capture,editedImage,{signal:controller.signal,progress:(stage,n,total)=>{const p=$('progress');p.max=total;p.value=n;note(`UV-32 ${stage}: block ${n}/${total}`);}});
-   capture=openUv32Capture({...capture,wireHex:uv32ImageToHex(editedImage)});preview=capture;undo=[];note('UV-32 cable write completed and read-back verified');workspace.render();
+  try{const port=await portPromise;note('Writing the complete UV-32 image…');const report=await writeUv32SerialImage(port,fileOnly?{kind:'uv32-chirp-image',wireHex:capture.wireHex}:capture,editedImage,{signal:controller.signal,progress:(stage,n,total)=>{const p=$('progress');p.max=total;p.value=n;note(`UV-32 ${stage}: block ${n}/${total}`);}});
+   const updated={...capture,...uv32Preview(editedImage),wireHex:uv32ImageToHex(editedImage)};
+   capture=fileOnly?updated:openUv32Capture(updated);preview=capture;undo=[];note(`UV-32 cable write complete. All ${report.completedBlocks} blocks acknowledged.`);workspace.render();
   }catch(error){note(error.message);throw error;}
   finally{controller=null;refresh();}
   });
@@ -244,14 +245,14 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
    bluetoothWrite.hidden=!uv;
    if(uv&&!hasWriteConnection())topConnect.textContent='Connect';
    bluetoothWrite.disabled=busy||!!writeBlocked;
-   bluetoothWrite.title=writeBlocked||'Write the channel table over Bluetooth and verify it afterward.';
+   bluetoothWrite.title=writeBlocked||'Write the channel table over Bluetooth.';
   }
   for(const id of ['open','appendChannels','save','saveImg','readRadio','writeRadio','readMini5Cable','writeMini5Cable','verify','backup'])$(id).hidden=uv;
   select.disabled=busy;importButton.disabled=busy;
   $('connect').hidden=uv&&!bluetooth&&!radio.connected;
   $('linkDot').toggleAttribute('hidden',uv&&!bluetooth);
   cableRead.disabled=busy||!!radio.connected||!navigator.serial||!window.isSecureContext;
-  cableWrite.disabled=busy||!!radio.connected||!navigator.serial||!window.isSecureContext||!editedImage||!capture?.readout||fileOnly;
+  cableWrite.disabled=busy||!!radio.connected||!navigator.serial||!window.isSecureContext||!editedImage||!capture?.readout||datOnly;
   view.disabled=busy||!preview;save.disabled=busy||!editedImage||!capture?.readout||datOnly;
   save.title=datOnly?'Open a complete UV-32 CHIRP image or read the radio before exporting a CHIRP image.':'Save a complete UV-32 CHIRP image';
   save.textContent='↧ Save CHIRP .img';

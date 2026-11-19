@@ -23,23 +23,23 @@ const instructions={
 };
 const numeric=['1','2','3','4','5','6','7','8','9'];
 for(const digit of numeric)instructions[digit]={name:digit,short:'Enter '+digit+' as part of a VFO frequency, stored channel number, or numbered menu choice.'};
-// Coordinates use the 800-unit square of the manufacturer's front photo. Both
+// Coordinates use the supplied 633 × 1254 blue radio image. Both
 // views share this geometry. The four middle actions share one physical rocker.
 function keyFace(x,y,w,h,leftRadius,rightRadius){
  const l=leftRadius,r=rightRadius;
  return `M ${x+l} ${y} H ${x+w-r} Q ${x+w} ${y} ${x+w} ${y+r} V ${y+h-r} Q ${x+w} ${y+h} ${x+w-r} ${y+h} H ${x+l} Q ${x} ${y+h} ${x} ${y+h-l} V ${y+l} Q ${x} ${y} ${x+l} ${y} Z`;
 }
 const faces={
- encoder:'M317 30 Q317 17 342 17 Q366 18 367 30 L369 100 H314 Z',
- power:'M405 82 Q407 70 440 74 Q475 78 474 91 L469 128 L400 114 Z',
- menu:keyFace(260,405,32,69,13,2),home:keyFace(394,405,32,69,2,13),
- up:'M304 405 H383 L357 427 H330 Z',down:'M330 451 H357 L383 474 H304 Z',
- p1:'M303 407 L329 429 H343 V449 H329 L303 472 Z',
- p2:'M384 407 V472 L358 449 H344 V429 H358 Z'
+ encoder:'M268 45 Q269 29 305 28 Q343 29 348 44 L352 160 H265 Z',
+ power:'M407 127 Q412 109 463 118 Q513 126 516 143 L507 195 L398 172 Z',
+ menu:keyFace(183,639,49,108,20,3),home:keyFace(392,639,48,108,3,20),
+ up:'M249 639 H374 L332 675 H290 Z',down:'M290 712 H332 L374 747 H249 Z',
+ p1:'M248 643 L288 677 H311 V710 H288 L248 743 Z',
+ p2:'M375 643 V743 L334 710 H313 V677 H334 Z'
 };
 for(const [row,keys] of [['1','2','3'],['4','5','6'],['7','8','9'],['star','zero','hash']].entries()){
  for(const [column,key] of keys.entries()){
-  faces[key]=keyFace([259.5,318.5,378][column],[493,528,563.5,598.5][row],49,25,column===0?12.5:2,column===2?12.5:2);
+  faces[key]=keyFace([181,273,366][column],[778,833,887,942][row],76,39,column===0?19:3,column===2?19:3);
  }
 }
 const svgNode=(d,tag,attributes)=>{
@@ -55,8 +55,8 @@ export function renderUv32Help(d,target){
  const zoom=el(d,'button','uv32-keypad-zoom','Zoom into keypad');zoom.type='button';zoom.setAttribute('aria-pressed','false');card.append(zoom);
  const layout=el(d,'div','radio-tutorial-layout'),drawing=el(d,'div','radio-drawing uv32-radio-drawing');
  drawing.setAttribute('role','group');drawing.setAttribute('aria-label','UV-32 radio graphic with button tutorials');
- const sideKeys=el(d,'div','uv32-side-keys'),photo=svgNode(d,'svg',{'aria-label':'Front of the Baofeng UV-32',viewBox:'198 0 286 778'});
- photo.append(svgNode(d,'image',{href:'assets/uv32-front.webp',width:800,height:800,'aria-hidden':'true'}));drawing.append(sideKeys,photo);
+ const sideKeys=svgNode(d,'g',{class:'uv32-side-keys'}),photo=svgNode(d,'svg',{'aria-label':'Front of the Baofeng UV-32',viewBox:'-48 0 588 1230'});
+ photo.append(svgNode(d,'image',{href:'assets/uv32-front.webp',width:633,height:1254,'aria-hidden':'true'}));photo.append(sideKeys);drawing.append(photo);
  const panel=el(d,'section','radio-tutorial-panel');panel.id='uv32RadioTutorialPanel';panel.setAttribute('role','status');panel.setAttribute('aria-live','polite');
  const buttons=[];
  const show=key=>{const info=instructions[key];panel.replaceChildren(el(d,'h3','tutorial-key-title',`Key: ${info.name}`));panel.scrollTop=0;
@@ -74,27 +74,29 @@ export function renderUv32Help(d,target){
   const path=svgNode(d,'path',{d:shape,class:'uv32-key-face',role:'button',tabindex:0,'vector-effect':'non-scaling-stroke'});
   bind(path,key);path.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();show(key);}};photo.append(path);
  }
- for(const key of ['ptt','sk1','sk2']){
-  const button=el(d,'button','',key.toUpperCase());button.type='button';bind(button,key);sideKeys.append(button);
+ for(const [key,y] of [['ptt',515],['sk1',696],['sk2',772]]){
+  const label=svgNode(d,'foreignObject',{x:-44,y:y-29,width:121,height:58});
+  const button=el(d,'button','',key.toUpperCase());button.type='button';bind(button,key);label.append(button);
+  sideKeys.append(svgNode(d,'line',{x1:77,y1:y,x2:116,y2:y,'aria-hidden':'true'}),label);
  }
  zoom.onclick=()=>{
   const close=zoom.getAttribute('aria-pressed')!=='true';zoom.setAttribute('aria-pressed',String(close));zoom.textContent=close?'Show full radio':'Zoom into keypad';
-  drawing.classList.toggle('keypad-zoom',close);photo.setAttribute('viewBox',close?'248 394 191 242':'198 0 286 778');
-  sideKeys.hidden=close;
+  drawing.classList.toggle('keypad-zoom',close);photo.setAttribute('viewBox',close?'166 626 290 373':'-48 0 588 1230');
+  sideKeys.style.display=close?'none':'';
   for(const key of ['power','encoder'])photo.querySelector('[data-radio-key="'+key+'"]').style.display=close?'none':'';
  };
  panel.append(el(d,'span','tag','Interactive guide'),el(d,'h3','','Choose a radio button'),el(d,'p','','Choose a control on the graphic to see its short press, hold, and combined actions.'));
  layout.append(drawing,panel);card.append(layout);
- const source=el(d,'p','muted radio-tutorial-source','Button functions follow the Baofeng UV-32 user manual. Front-view photograph by Baofeng.');card.append(source);host.append(card);workspace.append(host);
+ const source=el(d,'p','muted radio-tutorial-source','Button functions follow the Baofeng UV-32 user manual.');card.append(source);host.append(card);workspace.append(host);
  const reference=el(d,'div','help-reference'),manualCard=el(d,'section','card');manualCard.append(el(d,'h3','','UV-32 manual'));
  const link=el(d,'a','','Open Baofeng UV-32 user manual ↗');link.href=manual;link.target='_blank';link.rel='noopener noreferrer';manualCard.append(link);
  manualCard.append(el(d,'p','muted','Only SK1 short press is identified as programmable. SK1 hold and both SK2 actions are fixed; the available SK1 choices are listed in the button guide. Button behavior may differ with radio firmware.'));
  const testCard=el(d,'section','card');testCard.append(el(d,'h3','','Cable programming'));
  const steps=el(d,'ol');for(const instruction of [
   'Close the stock CPS. Turn on the UV-32 and connect its programming cable.',
-  'Choose Read UV-32 by cable and wait for a complete read.',
-  'Edit channels or settings, then choose Write UV-32 by cable and select the same port.',
-  'Leave the cable connected until read-back verification finishes.'
+  'Open a complete UV-32 CHIRP image or cable capture, or choose Read UV-32 by cable.',
+  'Choose Write UV-32 by cable and select the programming cable.',
+  'Keep the cable connected until all blocks are acknowledged.'
  ])steps.append(el(d,'li','',instruction));testCard.append(steps);
  reference.append(manualCard,testCard);workspace.append(reference);target.append(workspace);
 }
