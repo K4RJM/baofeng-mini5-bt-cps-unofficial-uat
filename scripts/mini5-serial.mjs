@@ -1,5 +1,5 @@
 import {REGIONS,SIZE,compare,offset,hex} from '../read-test/memory.mjs';
-import {checkIdentity,makePlan} from '../writer.mjs';
+import {makePlan} from '../writer.mjs';
 import {offlineFrames} from '../radio-encoder.mjs';
 
 const BLOCK_SIZE=64;
@@ -7,15 +7,18 @@ const TOTAL_BLOCKS=SIZE/BLOCK_SIZE;
 const READ_ADDRESSES=REGIONS.flatMap(({start,size})=>
  Array.from({length:size/BLOCK_SIZE},(_,index)=>start+index*BLOCK_SIZE));
 const EXIT_READ=Uint8Array.of(0x45);
-const MAX_BLOCK_RETRIES=2;
+const MAX_BLOCK_RETRIES=5;
+const MODEL_SETTLE_MS=100;
+const CABLE_QUIET_MS=15;
 class CableReceiveTimeout extends Error {}
 const MAGIC=new TextEncoder().encode('PROGRAMCOLORPROU');
 const INIT=Uint8Array.from('53454e4421050d010101041108050d0d01110f091209100400'.match(/../g),byte=>parseInt(byte,16));
 
-async function withMini5Port(port,operation,{timeoutMs=4000}={}){
+async function withMini5Port(port,operation,{timeoutMs=1000}={}){
  await port.open({baudRate:115200,dataBits:8,stopBits:1,parity:'none',flowControl:'none'});
  let reader,writer;
  try{
+  await port.setSignals({requestToSend:true,dataTerminalReady:true});
   reader=port.readable.getReader();
   writer=port.writable.getWriter();
   let pending=new Uint8Array();
@@ -25,23 +28,41 @@ async function withMini5Port(port,operation,{timeoutMs=4000}={}){
     return await Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new ErrorType(message)),remaining);})]);
    }finally{clearTimeout(timer);}
   }
-  async function exact(count,stage){
-   const deadline=Date.now()+timeoutMs*3;
-   let idleDeadline=Date.now()+timeoutMs;
-   while(pending.length<count){
-    const remaining=Math.min(idleDeadline,deadline)-Date.now();
-    const message=`MINI-5 cable timed out during ${stage} (received ${pending.length} of ${count} bytes).`;
-    if(remaining<=0)throw new CableReceiveTimeout(message);
-    const {done,value}=await timed(reader.read(),remaining,message,CableReceiveTimeout);
-    if(done)throw Error('MINI-5 programming cable disconnected.');
-    if(!value.length)continue;
-    idleDeadline=Date.now()+timeoutMs;
+  let outstandingRead;
+  async function receive(waitMs,message){
+   // A timeout leaves the native read outstanding. Reuse it so two callers can never consume each other's reply.
+   outstandingRead??=reader.read();
+   const {done,value}=await timed(outstandingRead,waitMs,message,CableReceiveTimeout);
+   outstandingRead=null;
+   if(done)throw Error('MINI-5 programming cable disconnected.');
+   if(value.length){
     const next=new Uint8Array(pending.length+value.length);
     next.set(pending);next.set(value,pending.length);pending=next;
+   }
+  }
+  async function exact(count,stage){
+   const deadline=Date.now()+timeoutMs;
+   while(pending.length<count){
+    const remaining=deadline-Date.now();
+    const message=`MINI-5 cable timed out during ${stage} (received ${pending.length} of ${count} bytes).`;
+    if(remaining<=0)throw new CableReceiveTimeout(message);
+    await receive(remaining,message);
    }
    const response=pending.slice(0,count);
    pending=pending.slice(count);
    return response;
+  }
+  async function takeBurst(stage){
+   const deadline=Date.now()+timeoutMs;
+   for(;;){
+    const remaining=deadline-Date.now();
+    if(pending.length>256||remaining<=0)throw Error('MINI-5 cable did not become quiet during '+stage+'.');
+    try{await receive(Math.min(CABLE_QUIET_MS,remaining),stage);}
+    catch(error){
+     if(!(error instanceof CableReceiveTimeout))throw error;
+     const burst=pending;pending=new Uint8Array();return burst;
+    }
+   }
   }
   const send=bytes=>timed(writer.write(bytes),timeoutMs,'MINI-5 cable send timed out.');
   // Some two-pin cable interfaces return the entire outgoing command before the radio replies.
@@ -72,11 +93,33 @@ async function withMini5Port(port,operation,{timeoutMs=4000}={}){
    return response;
   };
   const config=await request(Uint8Array.of(0x46),16,'frequency query');
-  const id=await request(Uint8Array.of(0x4d),15,'model identification');
-  const identity={model:new TextDecoder().decode(id.subarray(0,8)).trim(),id:[...id],config:[...config]};
-  checkIdentity(identity);
+  const modelQuery=Uint8Array.of(0x4d);
+  await send(modelQuery);
+  await new Promise(resolve=>setTimeout(resolve,MODEL_SETTLE_MS));
+  if(echoes)await checkEcho(modelQuery,'model identification');
+  const modelBytes=await exact(8,'model identification');
+  const model=new TextDecoder().decode(modelBytes).trim();
+  if(model!=='5RMINI')throw Error('The selected device did not identify as 5RMINI.');
+  const id=[...modelBytes,...await takeBurst('model identification')];
+  const identity={model,id,config:[...config]};
   if((await request(INIT,1,'initialization'))[0]!==6)throw Error('MINI-5 cable initialization was rejected.');
-  return await operation(request,identity,()=>send(EXIT_READ));
+  async function readBlock(address,onRetry){
+   const header=Uint8Array.of(0x52,address>>8,address&255,BLOCK_SIZE),stage='read at 0x'+hex(address);
+   for(let attempt=0;;attempt++){
+    try{
+     const reply=await request(header,BLOCK_SIZE+4,stage);
+     if(!header.every((byte,i)=>reply[i]===byte))throw Error('Unexpected MINI-5 read response at 0x'+hex(address));
+     return reply.subarray(4);
+    }catch(error){
+     if(!(error instanceof CableReceiveTimeout))throw error;
+     if(attempt===MAX_BLOCK_RETRIES)throw Error(error.message+' The block remained incomplete after '+attempt+' retries.',{cause:error});
+     onRetry(attempt+1);
+     // Consume the old fragment and any delayed tail before resending the same address.
+     await takeBurst('read retry');
+    }
+   }
+  }
+  return await operation({request,identity,readBlock,exitRead:()=>send(EXIT_READ)});
  }finally{
   if(reader){try{await reader.cancel();}catch{}reader.releaseLock();}
   writer?.releaseLock();
@@ -85,53 +128,30 @@ async function withMini5Port(port,operation,{timeoutMs=4000}={}){
 }
 
 export async function readMini5Serial(port,{progress=()=>{},timeoutMs}={}){
- const raw=new Uint8Array(SIZE);
- let completed=0,retries=0,firstIdentity;
- for(;;){
-  let stalledBlock=false;
+ return withMini5Port(port,async({identity,readBlock,exitRead})=>{
+  const raw=new Uint8Array(SIZE);
+  let completed=0;
   try{
-   return await withMini5Port(port,async(request,identity,exitRead)=>{
-    try{
-     if(firstIdentity&&(!firstIdentity.id.every((b,i)=>identity.id[i]===b)||
-         !firstIdentity.config.every((b,i)=>identity.config[i]===b))){
-      throw Error('MINI-5 identification changed while resuming the cable read.');
-     }
-     firstIdentity=identity;
-     while(completed<TOTAL_BLOCKS){
-      const address=READ_ADDRESSES[completed],header=Uint8Array.of(0x52,address>>8,address&255,BLOCK_SIZE);
-      const reply=await request(header,BLOCK_SIZE+4,'read at 0x'+hex(address));
-      if(!header.every((value,index)=>reply[index]===value))throw Error('Unexpected MINI-5 read response at 0x'+hex(address));
-      raw.set(reply.subarray(4),offset(address));
-      retries=0;
-      progress(++completed,TOTAL_BLOCKS);
-     }
-    }catch(error){
-     stalledBlock=error instanceof CableReceiveTimeout;
-     // End this read before reopening. Its pending bytes belong to this session alone.
-     await exitRead().catch(()=>{});
-     throw error;
-    }
-    await exitRead();
-    return {raw,identity,capturedAt:new Date().toISOString()};
-   },{timeoutMs});
+   for(const address of READ_ADDRESSES){
+    const block=await readBlock(address,retry=>progress(completed,TOTAL_BLOCKS,'Retrying MINI-5 cable read at 0x'+hex(address)+' ('+retry+'/'+MAX_BLOCK_RETRIES+')'));
+    raw.set(block,offset(address));
+    progress(++completed,TOTAL_BLOCKS);
+   }
   }catch(error){
-   if(!stalledBlock||!(error instanceof CableReceiveTimeout))throw error;
-   if(retries===MAX_BLOCK_RETRIES)throw Error(error.message+' The block remained incomplete after '+retries+' retries.',{cause:error});
-   retries++;
-   progress(completed,TOTAL_BLOCKS,'Retrying MINI-5 cable read at 0x'+hex(READ_ADDRESSES[completed])+' ('+retries+'/'+MAX_BLOCK_RETRIES+')');
-   await new Promise(resolve=>setTimeout(resolve,150));
+   await exitRead().catch(()=>{});
+   throw error;
   }
- }
+  await exitRead();
+  return {raw,identity,capturedAt:new Date().toISOString()};
+ },{timeoutMs});
 }
 
-export async function writeMini5Serial(port,data,options,{progress=()=>{},timeoutMs}={}){
+export async function writeMini5Serial(port,data,options,{progress=()=>{},timeoutMs,verifyAfterWrite=true}={}){
  makePlan(data,options); // Reuse the application’s existing data validation.
  const frames=offlineFrames(data);
- const target=new Uint8Array(SIZE);
- for(const frame of frames)target.set(frame.subarray(4),offset(frame[1]*256+frame[2]));
  let attempted=false,acknowledged=0;
  try{
-  const writtenIdentity=await withMini5Port(port,async(request,identity)=>{
+  const writtenIdentity=await withMini5Port(port,async({request,identity})=>{
    for(const frame of frames){
     attempted=true;
     if((await request(frame,1,'write at 0x'+hex(frame[1]*256+frame[2])))[0]!==6)throw Error('MINI-5 rejected cable write at 0x'+hex(frame[1]*256+frame[2]));
@@ -139,8 +159,11 @@ export async function writeMini5Serial(port,data,options,{progress=()=>{},timeou
    }
    return identity;
   },{timeoutMs});
+  if(!verifyAfterWrite)return {identity:writtenIdentity,acknowledged};
+  const target=new Uint8Array(SIZE);
+  for(const frame of frames)target.set(frame.subarray(4),offset(frame[1]*256+frame[2]));
   const result=await readMini5Serial(port,{timeoutMs,progress:(n,total,recovery)=>progress(recovery??'Verifying radio',n,total)});
-  if(result.identity.id.some((value,index)=>value!==writtenIdentity.id[index]))throw Error('MINI-5 identity changed before cable verification.');
+  if(result.identity.id.length!==writtenIdentity.id.length||result.identity.id.some((value,index)=>value!==writtenIdentity.id[index]))throw Error('MINI-5 identity changed before cable verification.');
   if(compare(target,result.raw).total)throw Error('MINI-5 cable read-back differs from the write.');
   return result;
  }catch(error){
