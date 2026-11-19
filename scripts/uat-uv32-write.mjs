@@ -1,6 +1,6 @@
-// UAT only. UV32PRO Bluetooth writes use the frame and chunk sizes observed in OLA.
+// UV32PRO Bluetooth writes use the frame and chunk sizes observed in OLA.
 import {identifyProfile,consumeUv32ReadSession} from './uat-protocols.mjs?v=20.46';
-import {captureUv32Channels} from './uat-uv32-read.mjs';
+import {captureUv32Channels,finishUv32Session} from './uat-uv32-read.mjs';
 import {changedUv32Blocks,uv32ChannelCaptureImage,uv32ImageFromHex,uv32ImageToHex} from './uat-uv32-edit.mjs';
 import {openUv32Capture} from './uat-uv32-capture.mjs';
 import {UV32_RECORD_BYTES,UV32_CHANNEL_BYTES,uv32WireDecode} from './uv32-codec.mjs';
@@ -59,6 +59,7 @@ export async function writeUv32Bluetooth(radio,baseline,editedImage,{
  signal, stage=()=>{}, progress=()=>{}, interBlockDelayMs
 }={}){
  if(radio.busy||radio.connecting)throw Error('Another radio operation is already running');
+ if(!radio.connected)throw Error('Use Connect at the top before writing to the UV-32.');
  const channelOnly=baseline?.kind==='uv32-channel-read-v1';
  const original=channelOnly?uv32ChannelCaptureImage(baseline):uv32ImageFromHex(
   baseline?.kind==='uv32-cable-full-read-v1'?openUv32Capture(baseline).wireHex:baseline?.wireHex);
@@ -74,35 +75,20 @@ export async function writeUv32Bluetooth(radio,baseline,editedImage,{
  }
  const totalBlocks=UV32_CHANNEL_BYTES/WRITE_BLOCK_BYTES;
  const report={kind:'uv32-bluetooth-write-v1',stage:'connecting',totalBlocks,acknowledged:0,attemptedAddress:null,verified:false};
- let device,ownsBusy=false;
+ const device=radio.device;
+ let ownsBusy=false;
  const checkCancelled=()=>{if(signal?.aborted)throw Error('Bluetooth write cancelled');};
- const reconnect=()=>reconnectUv32(radio,device);
- const read=(label,connectRadio)=>captureUv32Channels(radio,{
-  connect:connectRadio,signal,interBlockDelayMs,
-  stage:text=>stage(label+' · '+text),progress:(n,total)=>progress(label,n,total)
- });
- try{
-  checkCancelled();
-  stage('Connecting to UV-32 for writing…');
-  if(baseline.handshake&&radio.connected){
-   const selected=radio.device;
-   radio.disconnect();
-   await radio.pause(600);
+ async function reconnect(){
+  for(let attempt=1;attempt<=3;attempt++){
    checkCancelled();
-   await reconnectUv32(radio,selected);
-  }else{
-   try{await radio.connect();}
-   catch(error){
-    const selected=radio.device;
-    if(!selected||!/^Finding radio service: Bluetooth link ended/.test(error.message))throw error;
-    stage('Bluetooth dropped during setup. Reconnecting to the selected UV-32…');
-    radio.disconnect();
-    await radio.pause(600);
-    checkCancelled();
-    await reconnectUv32(radio,selected);
-   }
+   radio.disconnect();
+   await radio.pause(600*attempt);
+   checkCancelled();
+   try{await reconnectUv32(radio,device);return;}
+   catch(error){if(attempt===3||signal?.aborted||radio.unsettledNative.size)throw error;}
   }
-  device=radio.device;
+ }
+ try{
   checkCancelled();
   report.stage='identifying';
   stage('Identifying UV-32 for writing…');
@@ -132,32 +118,49 @@ export async function writeUv32Bluetooth(radio,baseline,editedImage,{
    check();
    const response=await radio.wait(1);
    if(response[0]!==0x06)throw Error('Radio rejected the write block (response 0x'+response[0].toString(16).padStart(2,'0')+')');
-   check();
-   if(radio.rx.length)throw Error('Unexpected bytes after the write acknowledgement');
    report.acknowledged++;
    progress('Writing channels',report.acknowledged,totalBlocks);
+   if(report.acknowledged<totalBlocks){
+    check();
+    if(radio.rx.length)throw Error('Unexpected bytes after the write acknowledgement');
+   }
   }
-  check();
+  checkCancelled();
   report.stage='finishing';
   stage('Closing the UV-32 programming session…');
-  await radio.native('Finishing UV-32 programming',()=>characteristic.writeValueWithoutResponse(Uint8Array.of(0x45)),radio.deadlines.send);
-  const [end]=await radio.wait(1);
-  if(end!==0x06&&(end!==0xff||(await radio.wait(1))[0]!==0x00))throw Error('UV-32 did not confirm the end of programming');
-  check();
+  try{
+   check();
+   await finishUv32Session(radio,'write');
+  }catch(error){
+   checkCancelled();
+   if(radio.connected)throw error;
+   stage('Bluetooth ended after the last acknowledgment. Reconnecting to verify…');
+  }
   radio.busy=false;ownsBusy=false;
-  radio.disconnect();
-  await radio.pause(600);
   report.stage='read-back';
-  const after=await read('Read-back',reconnect);
+  const after=await captureUv32Channels(radio,{
+   connect:reconnect,signal,interBlockDelayMs,
+   stage:text=>stage('Read-back · '+text),progress:(n,total)=>progress('Read-back',n,total)
+  });
   if(identityKey(after.handshake)!==identityKey(identity)||!channelsMatch(expected,after.wireHex))throw Error('Bluetooth read-back differs from the edited channel data');
-  report.verified=true;report.stage='complete';
+  report.verified=true;
+  if(!radio.connected){
+   stage('Restoring the UV-32 Bluetooth connection…');
+   try{await reconnect();}
+   catch(error){report.connectionError=error.message;}
+  }
+  report.reconnected=radio.connected&&!report.connectionError;
+  report.stage='complete';
   return report;
  }catch(error){
   const detail=error?.message??String(error);
   report.error=detail;
   if(error?.uv32ReadReport)report.read=error.uv32ReadReport;
   let context='No blocks sent.';
-  if(report.attemptedAddress!==null){
+  if(report.acknowledged===report.totalBlocks){
+   context=`All ${report.totalBlocks} write blocks acknowledged. Read-back was not verified.`;
+   if(!radio.connected)context+=' Use Connect to reconnect.';
+  }else if(report.attemptedAddress!==null){
    const address=report.attemptedAddress.toString(16).padStart(4,'0').toUpperCase();
    context=`${report.acknowledged}/${report.totalBlocks} blocks acknowledged, last attempted 0x${address}.`;
   }
@@ -166,6 +169,6 @@ export async function writeUv32Bluetooth(radio,baseline,editedImage,{
   throw failure;
  }finally{
   if(ownsBusy)radio.busy=false;
-  if(radio.connected)radio.disconnect();
+  if(!report.reconnected)radio.disconnect();
  }
 }

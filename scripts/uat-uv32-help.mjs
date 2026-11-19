@@ -23,14 +23,30 @@ const instructions={
 };
 const numeric=['1','2','3','4','5','6','7','8','9'];
 for(const digit of numeric)instructions[digit]={name:digit,short:'Enter '+digit+' as part of a VFO frequency, stored channel number, or numbered menu choice.'};
-const hotspots=[
- ['power',58,3,7,10],['encoder',46,3,8,10],
- ['menu',41,51,5,8],['up',47,50,6,5],['down',47,55,6,5],['p1',46,53,4,5],['p2',53,53,4,5],['home',56,51,5,8],
- ['1',40,62,5,4],['2',47,62,5,4],['3',54,62,5,4],
- ['4',40,66,5,4],['5',47,66,5,4],['6',54,66,5,4],
- ['7',40,70,5,4],['8',47,70,5,4],['9',54,70,5,4],
- ['star',40,75,5,4],['zero',47,75,5,4],['hash',54,75,5,4]
-];
+// Coordinates use the 800-unit square of the manufacturer's front photo. Both
+// views share this geometry. The four middle actions share one physical rocker.
+function keyFace(x,y,w,h,leftRadius,rightRadius){
+ const l=leftRadius,r=rightRadius;
+ return `M ${x+l} ${y} H ${x+w-r} Q ${x+w} ${y} ${x+w} ${y+r} V ${y+h-r} Q ${x+w} ${y+h} ${x+w-r} ${y+h} H ${x+l} Q ${x} ${y+h} ${x} ${y+h-l} V ${y+l} Q ${x} ${y} ${x+l} ${y} Z`;
+}
+const faces={
+ encoder:'M317 30 Q317 17 342 17 Q366 18 367 30 L369 100 H314 Z',
+ power:'M405 82 Q407 70 440 74 Q475 78 474 91 L469 128 L400 114 Z',
+ menu:keyFace(260,405,32,69,13,2),home:keyFace(394,405,32,69,2,13),
+ up:'M304 405 H383 L357 427 H330 Z',down:'M330 451 H357 L383 474 H304 Z',
+ p1:'M303 407 L329 429 H343 V449 H329 L303 472 Z',
+ p2:'M384 407 V472 L358 449 H344 V429 H358 Z'
+};
+for(const [row,keys] of [['1','2','3'],['4','5','6'],['7','8','9'],['star','zero','hash']].entries()){
+ for(const [column,key] of keys.entries()){
+  faces[key]=keyFace([259.5,318.5,378][column],[493,528,563.5,598.5][row],49,25,column===0?12.5:2,column===2?12.5:2);
+ }
+}
+const svgNode=(d,tag,attributes)=>{
+ const node=d.createElementNS('http://www.w3.org/2000/svg',tag);
+ for(const [name,value] of Object.entries(attributes))node.setAttribute(name,value);
+ return node;
+};
 const el=(d,tag,cls,text)=>{const node=d.createElement(tag);if(cls)node.className=cls;if(text!==undefined)node.textContent=text;return node;};
 export function renderUv32Help(d,target){
  const workspace=el(d,'div','help-workspace uv32-help-workspace');
@@ -39,7 +55,8 @@ export function renderUv32Help(d,target){
  const zoom=el(d,'button','uv32-keypad-zoom','Zoom into keypad');zoom.type='button';zoom.setAttribute('aria-pressed','false');card.append(zoom);
  const layout=el(d,'div','radio-tutorial-layout'),drawing=el(d,'div','radio-drawing uv32-radio-drawing');
  drawing.setAttribute('role','group');drawing.setAttribute('aria-label','UV-32 radio graphic with button tutorials');
- const photo=el(d,'div','radio-outline'),img=el(d,'img');img.src='assets/uv32-blue.jpg';img.alt='Baofeng UV-32 with blue accents';photo.append(img);drawing.append(photo);
+ const sideKeys=el(d,'div','uv32-side-keys'),photo=svgNode(d,'svg',{'aria-label':'Front of the Baofeng UV-32',viewBox:'198 0 286 778'});
+ photo.append(svgNode(d,'image',{href:'assets/uv32-front.webp',width:800,height:800,'aria-hidden':'true'}));drawing.append(sideKeys,photo);
  const panel=el(d,'section','radio-tutorial-panel');panel.id='uv32RadioTutorialPanel';panel.setAttribute('role','status');panel.setAttribute('aria-live','polite');
  const buttons=[];
  const show=key=>{const info=instructions[key];panel.replaceChildren(el(d,'h3','tutorial-key-title',`Key: ${info.name}`));panel.scrollTop=0;
@@ -49,20 +66,26 @@ export function renderUv32Help(d,target){
   }
   for(const b of buttons)b.classList.toggle('tutorial-active',b.dataset.radioKey===key);
  };
- const add=(key,label,x,y,w,h,side=false)=>{const b=el(d,'button','radio-key'+(side?' radio-side-key':''),label);b.type='button';b.dataset.radioKey=key;b.dataset.basePosition=JSON.stringify([x,y,w,h]);b.setAttribute('aria-label',`Key: ${instructions[key].name}`);b.setAttribute('aria-controls',panel.id);b.onmouseenter=()=>show(key);b.onfocus=()=>show(key);b.onclick=()=>show(key);drawing.append(b);buttons.push(b);};
- for(const [key,x,y,w,h] of hotspots)add(key,key,x,y,w,h);
- add('ptt','PTT',0,34,23,7,true);add('sk1','SK1',0,43,23,7,true);add('sk2','SK2',0,52,23,7,true);
- const position=close=>{drawing.classList.toggle('keypad-zoom',close);zoom.textContent=close?'Show full radio':'Zoom into keypad';zoom.setAttribute('aria-pressed',String(close));
-  for(const b of buttons){const [x,y,w,h]=JSON.parse(b.dataset.basePosition),side=b.classList.contains('radio-side-key');b.hidden=close&&side;
-   b.style.cssText=side?`left:${x}%;top:${y}%;width:${w}%;height:${h}%;`:close
-    ?`left:${x*3-100}%;top:${y*90/34.5-435/3.45}%;width:${w*3}%;height:${h*90/34.5}%;`
-    :`left:${x*1.5-25}%;top:${y*450/460}%;width:${w*1.5}%;height:${h*450/460}%;`;
-  }
+ const bind=(node,key)=>{
+  node.dataset.radioKey=key;node.setAttribute('aria-label','Key: '+instructions[key].name);node.setAttribute('aria-controls',panel.id);
+  node.onmouseenter=()=>show(key);node.onfocus=()=>show(key);node.onclick=()=>show(key);buttons.push(node);
  };
- zoom.onclick=()=>position(!drawing.classList.contains('keypad-zoom'));position(false);
+ for(const [key,shape] of Object.entries(faces)){
+  const path=svgNode(d,'path',{d:shape,class:'uv32-key-face',role:'button',tabindex:0,'vector-effect':'non-scaling-stroke'});
+  bind(path,key);path.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();show(key);}};photo.append(path);
+ }
+ for(const key of ['ptt','sk1','sk2']){
+  const button=el(d,'button','',key.toUpperCase());button.type='button';bind(button,key);sideKeys.append(button);
+ }
+ zoom.onclick=()=>{
+  const close=zoom.getAttribute('aria-pressed')!=='true';zoom.setAttribute('aria-pressed',String(close));zoom.textContent=close?'Show full radio':'Zoom into keypad';
+  drawing.classList.toggle('keypad-zoom',close);photo.setAttribute('viewBox',close?'248 394 191 242':'198 0 286 778');
+  sideKeys.hidden=close;
+  for(const key of ['power','encoder'])photo.querySelector('[data-radio-key="'+key+'"]').style.display=close?'none':'';
+ };
  panel.append(el(d,'span','tag','Interactive guide'),el(d,'h3','','Choose a radio button'),el(d,'p','','Choose a control on the graphic to see its short press, hold, and combined actions.'));
  layout.append(drawing,panel);card.append(layout);
- const source=el(d,'p','muted radio-tutorial-source','Button functions checked against the supplied Baofeng UV-32 user manual. The graphic was supplied by K4RJM.');card.append(source);host.append(card);workspace.append(host);
+ const source=el(d,'p','muted radio-tutorial-source','Button functions follow the Baofeng UV-32 user manual. Front-view photograph by Baofeng.');card.append(source);host.append(card);workspace.append(host);
  const reference=el(d,'div','help-reference'),manualCard=el(d,'section','card');manualCard.append(el(d,'h3','','UV-32 manual'));
  const link=el(d,'a','','Open Baofeng UV-32 user manual ↗');link.href=manual;link.target='_blank';link.rel='noopener noreferrer';manualCard.append(link);
  manualCard.append(el(d,'p','muted','Only SK1 short press is identified as programmable. SK1 hold and both SK2 actions are fixed; the available SK1 choices are listed in the button guide. Button behavior may differ with radio firmware.'));

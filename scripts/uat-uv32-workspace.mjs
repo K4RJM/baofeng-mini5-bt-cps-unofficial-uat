@@ -68,8 +68,8 @@ const SETTING_HELP={
 
 
 export function createUv32Workspace({document:d,select,getCapture,onEdit,onUndo,canUndo,onError}){
- const $=id=>d.getElementById(id),sections=['Channels','Optional settings','VFO A / B','DTMF','Zones','Radio & help'];
- const icons=['☷','⚙','⇄','▦','▤','ⓘ'];
+ const $=id=>d.getElementById(id),sections=['Channels','Optional settings','VFO A / B','DTMF','Radio & help'];
+ const icons=['☷','⚙','⇄','▦','ⓘ'];
  let section='Channels',zone=0,search='',showEmpty=false,page=0;
  const el=(tag,cls,text)=>{const node=d.createElement(tag);if(cls)node.className=cls;if(text!==undefined)node.textContent=String(text);return node;};
  const button=(label,action)=>{const node=el('button','',label);node.type='button';node.onclick=action;return node;};
@@ -109,7 +109,7 @@ export function createUv32Workspace({document:d,select,getCapture,onEdit,onUndo,
   $('pageDescription').textContent=section==='Channels'?'Edit UV-32 channels by zone.':section==='Radio & help'?'UV-32 controls and operating instructions.':'UV-32 radio settings from the full cable capture.';
   $('sourceTag').textContent=capture?(capture.readout?'UV-32 full read':'UV-32 channel read'):'Blank UV-32 workspace';
   $('brandTitle').textContent='Ham-Rx Baofeng UV-32';
-  const image=$('brandRadioImage');image.src='assets/uv32-blue.jpg';image.alt='Baofeng UV-32 with blue accents';image.parentElement.classList.add('uv32-brand-image');
+  const image=$('brandRadioImage');image.src='assets/uv32-front.webp';image.alt='Baofeng UV-32';image.parentElement.classList.add('uv32-brand-image');
   const nav=$('tabs');nav.replaceChildren();for(let i=0;i<sections.length;i++){
    const name=sections[i],item=button(icons[i]+' '+name,()=>{section=name;page=0;render();});item.classList.toggle('active',section===name);item.setAttribute('aria-current',section===name?'page':'false');nav.append(item);
   }
@@ -134,23 +134,31 @@ export function createUv32Workspace({document:d,select,getCapture,onEdit,onUndo,
    left.append(field('DTMF Code Time',readout.dtmf.codeTime,value=>onEdit('dtmf',{field:'codeTime',value}),times),field('DTMF Idle Time',readout.dtmf.idleTime,value=>onEdit('dtmf',{field:'idleTime',value}),times));
    right.append(field('Hang-Up Time',readout.dtmf.hangUp,value=>onEdit('dtmf',{field:'hangUp',value}),Array.from({length:8},(_,i)=>`${i+3} s`)));
    settings.append(left,right);card.append(settings);content.append(card);
-  }else if(section==='Zones'){
-   if(!readout){content.append(empty());return;}const card=box('UV-32 zones');for(const z of readout.zones)card.append(field('Zone '+String(z.number).padStart(2,'0'),z.name,value=>onEdit('zone',{number:z.number,value})));content.append(card);
   }else{renderUv32Help(d,content);}
  };
  function renderChannels(content,capture){
   const selected=new Set(),editable=!!capture?.readout||capture?.completed===true&&capture.kind==='uv32-channel-read-v1';
-  const card=el('section','card channel-card'),guide=el('details','feature-guide');guide.append(el('summary','','How to edit UV-32 channels'),el('p','','Choose a zone and select a channel. Save your edits before writing them to the radio.'));card.append(guide);
+  const card=el('section','card channel-card'),guide=el('details','feature-guide');guide.append(el('summary','','How to edit UV-32 channels'),el('p','','Choose a zone below the table to see its 100 channel slots. Select a cell to edit it. To rename a zone, open a UV-32 DAT or image, or read the radio by cable, then enter its name below the table.'));card.append(guide);
   const toolbar=el('div','toolbar'),controls=el('div','toolbar-controls');
   const input=el('input');input.type='search';input.id='uv32ChannelSearch';input.placeholder='Search name, frequency, channel';input.setAttribute('aria-label','Search UV-32 channels');input.value=search;input.oninput=()=>{search=input.value;page=0;renderChannelsOnly();};controls.append(input);
   const emptyLabel=el('label','check'),checkbox=el('input');checkbox.type='checkbox';checkbox.checked=showEmpty;checkbox.onchange=()=>{showEmpty=checkbox.checked;page=0;renderChannelsOnly();};emptyLabel.append(checkbox,'Show empty slots');controls.append(emptyLabel);
-  const zoneLabel=el('label','uv32-zone-control','Zone '),picker=el('select');picker.id='uv32Zone';picker.setAttribute('aria-label','UV-32 zone');for(let n=0;n<=10;n++){const option=el('option','',n?(capture?.readout?.zones[n-1]?.name||'Zone '+String(n).padStart(2,'0')):'All zones');option.value=String(n);picker.append(option);}picker.value=String(zone);picker.onchange=()=>{zone=Number(picker.value);page=0;selected.clear();renderChannelsOnly();};zoneLabel.append(picker);toolbar.append(controls);
+  const zoneLabel=el('label','uv32-zone-control','Zone '),picker=el('select');picker.id='uv32Zone';picker.setAttribute('aria-label','UV-32 zone');for(let n=0;n<=10;n++){const option=el('option','',n?(capture?.readout?.zones[n-1]?.name||'Zone '+String(n).padStart(2,'0')):'All zones');option.value=String(n);picker.append(option);}picker.value=String(zone);picker.onchange=()=>{zone=Number(picker.value);page=0;selected.clear();render();d.getElementById('uv32Zone')?.focus({preventScroll:true});};zoneLabel.append(picker);toolbar.append(controls);
   const actions=el('div','toolbar-actions'),add=button('＋ Add channel',()=>{const populated=new Set((getCapture()?.preview?.channels??[]).map(c=>c.number)),first=zone?(zone-1)*100+1:1,last=zone?zone*100:1000;let number=first;while(number<=last&&populated.has(number))number++;if(number>last){onError('No empty channel slot in this zone');return;}showEmpty=true;checkbox.checked=true;search='';input.value='';page=Math.floor((number-first)/50);paint();const tr=body.querySelector(`[data-uv32-channel="${number}"]`);if(tr)inlineEdit(tr,{number},3);}),deleteSelected=button('Delete selected (0)',()=>{if(!selected.size)return;if(!window.confirm(`Delete ${selected.size} selected UV-32 channel(s)?`))return;apply(()=>onEdit('deleteMany',{numbers:[...selected]}));}),moveSelected=button('Move selected (0)',()=>{if(selected.size!==1)return;const from=[...selected][0],value=window.prompt(`Move channel ${from} to which slot in the same zone?`);if(value===null)return;apply(()=>onEdit('move',{from,to:Number(value)}));}),undo=button('Undo',()=>apply(onUndo));
   add.disabled=!editable;deleteSelected.disabled=true;moveSelected.disabled=true;undo.disabled=!canUndo?.();actions.append(add,deleteSelected,moveSelected,undo);toolbar.append(actions);card.append(toolbar);
   const updateSelected=()=>{deleteSelected.textContent=`Delete selected (${selected.size})`;deleteSelected.disabled=!editable||!selected.size;moveSelected.textContent=`Move selected (${selected.size})`;moveSelected.disabled=!editable||selected.size!==1;};
   const wrap=el('div','table-wrap');wrap.id='channelTableWrap';wrap.tabIndex=0;wrap.setAttribute('aria-label','UV-32 channels');const table=el('table','uv32-channel-table');const widths=[32,40,112,100,70,100,70,62,45,48,70,60,55,65,50,220],colgroup=el('colgroup');for(const width of widths){const col=el('col');col.style.width=width+'px';colgroup.append(col);}table.append(colgroup);const cols=[['number','Ch'],['name','Name'],['rx','RX MHz'],['rxTone','RX tone'],['tx','TX MHz'],['txTone','TX tone'],['power','Power'],['bandwidth','BW'],['scan','Scan'],['squelch','SQ mode'],['pttId','PTT-ID'],['signal','Signal'],['busyLock','Busy lock'],['fhss','FHSS']];
   const head=el('thead'),heading=el('tr'),selectHead=el('th');const selectAll=el('input');selectAll.type='checkbox';selectAll.setAttribute('aria-label','Select shown UV-32 channels');selectAll.title='Select every channel shown on this page for bulk actions.';selectHead.append(selectAll);heading.append(selectHead);for(const [key,label] of cols){const th=el('th','',label);th.scope='col';th.title=COL_HELP[key];heading.append(th);}heading.append(el('th','','Actions'));head.append(heading);table.append(head);const body=el('tbody');table.append(body);wrap.append(table);card.append(wrap);
-  const bottom=el('div','table-bottom'),count=el('span'),pager=el('div'),prev=button('← Previous',()=>{page--;paint();}),next=button('Next →',()=>{page++;paint();});pager.append(prev,next);bottom.append(zoneLabel,count,pager);card.append(bottom);const editor=$('uv32ChannelEditor')??el('dialog','uv32-channel-editor');editor.id='uv32ChannelEditor';if(!editor.isConnected)d.body.append(editor);content.append(card);
+  const bottom=el('div','table-bottom'),count=el('span'),pager=el('div'),prev=button('← Previous',()=>{page--;paint();}),next=button('Next →',()=>{page++;paint();});pager.append(prev,next);const zoneControls=el('div','uv32-zone-controls');zoneControls.append(zoneLabel);
+  if(zone&&capture?.readout){
+   const form=el('form','uv32-zone-rename'),name=el('input'),label=el('label','','Name '),save=el('button','','Rename');
+   name.value=capture.readout.zones[zone-1].name;name.maxLength=16;name.setAttribute('aria-label','Zone '+zone+' name');
+   save.type='submit';label.append(name);form.append(label,save);
+   form.onsubmit=event=>{event.preventDefault();apply(()=>onEdit('zone',{number:zone,value:name.value}));};
+   zoneControls.append(form);
+  }else if(zone){
+   zoneControls.append(el('span','muted','To rename, open a UV-32 DAT or image, or read by cable.'));
+  }
+  bottom.append(zoneControls,count,pager);card.append(bottom);const editor=$('uv32ChannelEditor')??el('dialog','uv32-channel-editor');editor.id='uv32ChannelEditor';if(!editor.isConnected)d.body.append(editor);content.append(card);
   const openEditor=row=>{
    if(!editable)return;
    let number=row.number;
@@ -202,33 +210,25 @@ export function createUv32Workspace({document:d,select,getCapture,onEdit,onUndo,
    const choices={power:['High','Low','Medium'],bandwidth:['Wide','Narrow'],scan:['Add','Skip'],squelch:['Code 0','Code 1','Code 2'],pttId:['Off','BOT','EOT','Both'],signal:Array.from({length:20},(_,i)=>String(i+1)),busyLock:['Off','On'],fhss:['Off','On']};
    const defaults={rx:'',tx:'Off',rxTone:'Off',txTone:'Off',power:'High',bandwidth:'Wide',scan:'Add',squelch:'Code 0',pttId:'Off',signal:'1',busyLock:'Off',fhss:'Off',name:''};
    const initial=String(row[key]??defaults[key]),tone=key==='rxTone'||key==='txTone';
-   const control=el(tone||choices[key]?'select':'input');
+   const control=el(tone||choices[key]?'select':'input','inline-control');
    if(tone)addUv32ToneOptions(control,initial);
    else if(choices[key]){for(const value of choices[key]){const option=el('option','',key==='squelch'?SQ_LABELS[value]:value);option.value=value;control.append(option);}if(!choices[key].includes(initial)){const option=el('option','',key==='squelch'?(SQ_LABELS[initial]??initial):initial);option.value=initial;control.prepend(option);}control.value=initial;}
    else{control.value=initial;if(key==='rx'||key==='tx')control.inputMode='decimal';}
    control.setAttribute('aria-label',`Channel ${row.number} ${label}`);control.title=key==='squelch'?sqHelp(initial):COL_HELP[key];
    tr.dataset.editing='true';tr.onclick=null;tr.onkeydown=null;cell.replaceChildren(control);
-   const redraw=draw=>{
-    const top=wrap.scrollTop,left=wrap.scrollLeft;
-    const view=d.defaultView;
-    const pageX=view?.scrollX,pageY=view?.scrollY;
-    draw();
-    const renderedTable=$('channelTableWrap');
-    if(renderedTable){renderedTable.scrollTop=top;renderedTable.scrollLeft=left;}
-    if(view&&(view.scrollX!==pageX||view.scrollY!==pageY))view.scrollTo(pageX,pageY);
-   };
    let finished=false;
    const finish=(cancel,keepInvalid=false)=>{
     if(finished)return false;
-    if(cancel||control.value===initial){finished=true;redraw(paint);return true;}
+    if(cancel||control.value===initial){finished=true;paint();return true;}
     try{onEdit('channel',{number:row.number,patch:{[key]:control.value}});}
     catch(error){
      onError(error.message);
-     if(!keepInvalid){finished=true;redraw(paint);}
+     if(!keepInvalid){finished=true;paint();}
      return false;
     }
-    finished=true;
-    redraw(render);
+    const {scrollTop,scrollLeft}=wrap;
+    finished=true;render();
+    const updated=$('channelTableWrap');updated.scrollTop=scrollTop;updated.scrollLeft=scrollLeft;
     return true;
    };
    control.onkeydown=e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();finish(true);}else if(e.key==='Enter'){e.preventDefault();e.stopPropagation();finish(false,true);}else if(e.key==='Tab'){e.preventDefault();e.stopPropagation();if(!finish(false,true))return;const next=index+(e.shiftKey?-1:1);if(next>=2&&next<=14)d.querySelector(`[data-uv32-channel="${row.number}"]`)?.cells[next]?.click();}};
@@ -239,7 +239,7 @@ export function createUv32Workspace({document:d,select,getCapture,onEdit,onUndo,
   function paint(){const all=capture?.preview?.channels??[],populated=new Map(all.map(c=>[c.number,c]));let rows=showEmpty?Array.from({length:1000},(_,i)=>populated.get(i+1)??{number:i+1}):all;
    if(zone)rows=rows.filter(r=>Math.floor((r.number-1)/100)+1===zone);
    if(search){const q=search.toLowerCase();rows=rows.filter(r=>`${r.number} ${r.name??''} ${r.rx??''} ${r.tx??''}`.toLowerCase().includes(q));}
-   const pages=Math.max(1,Math.ceil(rows.length/50));page=Math.min(page,pages-1);body.replaceChildren();const shown=rows.slice(page*50,(page+1)*50);selectAll.disabled=!editable||!shown.length;selectAll.checked=shown.length>0&&shown.every(row=>selected.has(row.number));selectAll.onchange=()=>{for(const row of shown)selectAll.checked?selected.add(row.number):selected.delete(row.number);paint();};for(const row of shown){const tr=el('tr','channel-row');tr.dataset.uv32Channel=String(row.number);if(editable){tr.tabIndex=0;tr.title='Select to edit';tr.onclick=e=>inlineEdit(tr,row,e.target.closest('td')?.cellIndex??3);tr.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();inlineEdit(tr,row);}};}const selection=el('td'),check=el('input');check.type='checkbox';check.checked=selected.has(row.number);check.disabled=!editable;check.setAttribute('aria-label',`Select channel ${row.number}`);check.title=`Select channel ${row.number} for bulk delete or move.`;check.onchange=()=>{check.checked?selected.add(row.number):selected.delete(row.number);updateSelected();selectAll.checked=shown.every(item=>selected.has(item.number));};check.onclick=e=>e.stopPropagation();selection.append(check);tr.append(selection);for(const [key] of cols){const td=el('td','',key==='squelch'?(SQ_LABELS[row[key]]??row[key]??''):row[key]??'');td.title=(key==='squelch'?sqHelp(row[key]):COL_HELP[key])+(editable?' Click to edit.':'');td.setAttribute('aria-label',`Channel ${row.number} ${key}: ${td.textContent||'empty'}. ${td.title}`);tr.append(td);}const actionCell=el('td','uv32-row-actions');if(editable){for(const [label,action] of [['Edit',()=>openEditor(row)],['Delete',()=>apply(()=>onEdit('channel',{number:row.number,patch:{delete:true}}))],['Ins Ch',()=>apply(()=>onEdit('insert',{number:row.number}))],['Move',()=>{const value=window.prompt(`Move channel ${row.number} to which slot in the same zone?`);if(value!==null)apply(()=>onEdit('move',{from:row.number,to:Number(value)}));}]]){const item=button(label,action);item.onclick=e=>{e.stopPropagation();action();};item.title=({Edit:'Open all settings for this channel.',Delete:'Remove this channel from the workspace.', 'Ins Ch':'Insert an empty channel here and shift later channels in this zone.',Move:'Move this channel to another slot in the same zone.'})[label];item.disabled=(label==='Delete'||label==='Move')&&row.rx===undefined;actionCell.append(item);}}tr.append(actionCell);body.append(tr);}
+   const pages=Math.max(1,Math.ceil(rows.length/50));page=Math.min(page,pages-1);body.replaceChildren();const shown=rows.slice(page*50,(page+1)*50);selectAll.disabled=!editable||!shown.length;selectAll.checked=shown.length>0&&shown.every(row=>selected.has(row.number));selectAll.onchange=()=>{for(const row of shown)selectAll.checked?selected.add(row.number):selected.delete(row.number);paint();};for(const row of shown){const tr=el('tr','channel-row');tr.dataset.uv32Channel=String(row.number);if(editable){tr.tabIndex=0;tr.title='Select to edit';tr.onclick=e=>inlineEdit(tr,row,e.target.closest('td')?.cellIndex??3);tr.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();inlineEdit(tr,row);}};}const selection=el('td'),check=el('input');check.type='checkbox';check.checked=selected.has(row.number);check.disabled=!editable;check.setAttribute('aria-label',`Select channel ${row.number}`);check.title=`Select channel ${row.number} for bulk delete or move.`;check.onchange=()=>{check.checked?selected.add(row.number):selected.delete(row.number);updateSelected();selectAll.checked=shown.every(item=>selected.has(item.number));};check.onclick=e=>e.stopPropagation();selection.append(check);tr.append(selection);for(const [key] of cols){const td=el('td',editable&&key!=='number'?'editable-cell':'',key==='squelch'?(SQ_LABELS[row[key]]??row[key]??''):row[key]??'');td.title=(key==='squelch'?sqHelp(row[key]):COL_HELP[key])+(editable?' Click to edit.':'');td.setAttribute('aria-label',`Channel ${row.number} ${key}: ${td.textContent||'empty'}. ${td.title}`);tr.append(td);}const actionCell=el('td','uv32-row-actions');if(editable){for(const [label,action] of [['Edit',()=>openEditor(row)],['Delete',()=>apply(()=>onEdit('channel',{number:row.number,patch:{delete:true}}))],['Ins Ch',()=>apply(()=>onEdit('insert',{number:row.number}))],['Move',()=>{const value=window.prompt(`Move channel ${row.number} to which slot in the same zone?`);if(value!==null)apply(()=>onEdit('move',{from:row.number,to:Number(value)}));}]]){const item=button(label,action);item.onclick=e=>{e.stopPropagation();action();};item.title=({Edit:'Open all settings for this channel.',Delete:'Remove this channel from the workspace.', 'Ins Ch':'Insert an empty channel here and shift later channels in this zone.',Move:'Move this channel to another slot in the same zone.'})[label];item.disabled=(label==='Delete'||label==='Move')&&row.rx===undefined;actionCell.append(item);}}tr.append(actionCell);body.append(tr);}
    if(!rows.length){const tr=el('tr'),td=el('td','empty-state',capture?'No channels in this view.':'No UV-32 capture loaded yet.');td.colSpan=cols.length+2;tr.append(td);body.append(tr);}
    count.textContent=`${rows.length?page*50+1:0}–${Math.min((page+1)*50,rows.length)} of ${rows.length} shown · 1000 available slots`;prev.disabled=page===0;next.disabled=page+1>=pages;
    updateSelected();

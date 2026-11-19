@@ -47,3 +47,16 @@
 @media(max-width:550px){.help-workspace .radio-tutorial-layout{grid-template-columns:minmax(0,1fr)}.help-workspace .radio-drawing{width:270px;max-width:100%}.help-workspace .radio-tutorial-panel{height:320px;padding:8px 0}.manual-viewer iframe,.help-workspace.manual-expanded .manual-viewer iframe{height:65dvh}.manual-toolbar button{min-height:36px}.help-workspace .radio-tutorial-panel li{font-size:13px}}
 
 .manual-controls>a{display:block;width:fit-content;margin-top:5px}
+
+.uv32-help-workspace .radio-tutorial-layout{grid-template-columns:minmax(190px,40%) minmax(0,1fr)}
+.uv32-help-workspace .uv32-radio-drawing{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;max-width:330px;height:min(460px,75vh);aspect-ratio:auto}
+.uv32-radio-drawing svg{display:block;width:min(169px,27vh);height:auto;min-width:0;max-width:100%;aspect-ratio:286/778;overflow:hidden}
+.uv32-radio-drawing.keypad-zoom svg{width:100%;aspect-ratio:191/242}
+.radio-brand-crop.uv32-brand-image img{width:56px;left:-11.5px;top:0;clip-path:inset(0 39.5% 2.75% 24.75%)}
+.uv32-side-keys{display:grid;align-content:center;gap:6px;flex:none}.uv32-side-keys[hidden]{display:none}
+.uv32-side-keys button{font-size:11px;padding:4px}
+.uv32-key-face{fill:transparent;stroke:transparent;stroke-width:1.5;cursor:pointer;outline:0}
+.uv32-key-face:hover,.uv32-key-face:focus-visible,.uv32-key-face.tutorial-active{fill:#1677e433;stroke:#72baff}
+.uv32-side-keys .tutorial-active{border-color:var(--blue);background:var(--selected)}
+.uv32-keypad-zoom{margin:0 0 8px}
+@media(max-width:750px){.uv32-help-workspace .radio-tutorial-layout{grid-template-columns:minmax(0,1fr)}}

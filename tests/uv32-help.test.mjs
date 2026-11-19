@@ -10,7 +10,7 @@ class Element{
 const textOf=node=>[node.textContent||'',...node.children.map(textOf)].join(' ');
 
 test('UV-32 help distinguishes programmable SK1 from fixed SK2 actions',()=>{
- const document={createElement:tag=>new Element(tag),createTextNode:text=>new Element('#text',text)};
+ const document={createElement:tag=>new Element(tag),createElementNS:(_ns,tag)=>new Element(tag),createTextNode:text=>new Element('#text',text)};
  const root=new Element('main');renderUv32Help(document,root);
  const buttons=root.querySelectorAll('button'),panel=root.querySelectorAll('section').find(x=>x.id==='uv32RadioTutorialPanel');
  buttons.find(x=>x.dataset.radioKey==='sk1').onclick();

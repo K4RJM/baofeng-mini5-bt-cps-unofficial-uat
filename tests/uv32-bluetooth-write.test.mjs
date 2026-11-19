@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {Reader} from '../read-test/reader.mjs';
+import {captureUv32Channels} from '../scripts/uat-uv32-read.mjs';
 import {writeUv32Bluetooth} from '../scripts/uat-uv32-write.mjs';
 import {editUv32Channel,uv32ChannelCaptureImage,uv32ImageFromHex,uv32Preview,uv32ImageToHex} from '../scripts/uat-uv32-edit.mjs';
 import {asyncRadio} from './async-radio.mjs';
@@ -24,7 +25,7 @@ async function withRadio(t,faults,check){
  t.mock.method(radio,'pause',()=>Promise.resolve());
  const navigatorDescriptor=Object.getOwnPropertyDescriptor(globalThis,'navigator');
  Object.defineProperty(globalThis,'navigator',{configurable:true,value:{bluetooth:fake.bluetooth}});
- try{await check(radio,fake);}
+ try{if(!faults.skipConnect)await radio.connect();await check(radio,fake);}
  finally{radio.disconnect();fake.close();if(navigatorDescriptor)Object.defineProperty(globalThis,'navigator',navigatorDescriptor);else delete globalThis.navigator;}
 }
 
@@ -43,7 +44,9 @@ test('Bluetooth starts at zero and writes the channel table even when the only e
   assert.equal(fake.reads,500);
   assert.equal(fake.writes,250);
   assert.equal(fake.events.filter(event=>event==='chooser').length,1);
-  assert.equal(fake.events.filter(event=>event==='connect').length,2);
+  assert.equal(fake.events.filter(event=>event==='connect').length,1);
+  assert.equal(radio.connected,true);
+  assert.equal(report.reconnected,true);
   assert.equal(fake.sent.find(command=>[0x52,0x57].includes(command[0]))[0],0x57);
   const frames=fake.sent.filter(frame=>frame[0]===0x57);
   assert.deepEqual(frames.map(frame=>frame[1]*256+frame[2]),Array.from({length:250},(_,i)=>i*128));
@@ -67,7 +70,7 @@ test('Bluetooth starts at zero and writes the channel table even when the only e
   assert.equal(fake.sent.slice(0,end).filter(frame=>frame[0]===0x57).length,250);
   assert.equal(fake.sent.findIndex(frame=>frame[0]===0x52)>end,true);
   assert.deepEqual(fake.packets.slice(0,5).map(packet=>packet.length),[16,1,1,16,9]);
-  assert.equal(fake.events.slice(0,fake.events.indexOf('disconnect')).includes('send-with-response'),false);
+  assert.equal(fake.events.slice(0,fake.events.indexOf('bridge-setup',fake.events.indexOf('bridge-setup')+1)).includes('send-with-response'),false);
  });
 });
 
@@ -126,14 +129,25 @@ test('A browser Bluetooth error keeps its message and original cause',async t=>{
  });
 });
 
-test('A discovery disconnect reuses the selected radio without another chooser',async t=>{
- await withRadio(t,{identity:'OTHER??'},async (radio,fake)=>{
-  let attempts=0;
-  Object.defineProperty(fake.faults,'disconnectDiscovery',{get:()=>attempts++===0});
-  await assert.rejects(writeUv32Bluetooth(radio,baseline,edited),/No unused UV32PRO|does not match|did not identify|UV-32 read blocked/);
+test('A write needs an existing connection and never opens the Bluetooth chooser',async t=>{
+ await withRadio(t,{skipConnect:true},async(radio,fake)=>{
+  await assert.rejects(writeUv32Bluetooth(radio,baseline,edited),/Use Connect at the top/);
+  assert.deepEqual(fake.events,[]);
+ });
+});
+
+test('A disconnect at the end reconnects to verify and leaves the same radio connected',async t=>{
+ await withRadio(t,{disconnectOnFinish:true},async(radio,fake)=>{
+  const device=radio.device;
+  const report=await writeUv32Bluetooth(radio,baseline,edited);
+  assert.equal(report.acknowledged,250);
+  assert.equal(report.verified,true);
+  assert.equal(report.reconnected,true);
+  assert.equal(fake.writes,250);
+  assert.equal(fake.reads,500);
   assert.equal(fake.events.filter(event=>event==='chooser').length,1);
-  assert.equal(fake.events.filter(event=>event==='connect').length,2);
-  assert.equal(fake.writes,0);
+  assert.equal(radio.device,device);
+  assert.equal(radio.connected,true);
  });
 });
 
@@ -143,11 +157,31 @@ test('An acknowledged write with a differing read-back is never reported as veri
    progress:(stage,n)=>{if(stage==='Writing channels'&&n===250)fake.raw[64]^=1;}
   }),error=>{
    assert.match(error.message,/read-back differs/);
+   assert.match(error.message,/All 250 write blocks acknowledged\. Read-back was not verified\./);
+   assert.doesNotMatch(error.message,/last attempted/);
    assert.equal(error.uv32BluetoothWriteReport.acknowledged,250);
    assert.equal(error.uv32BluetoothWriteReport.verified,false);
    return true;
   });
   assert.equal(fake.writes,250);
   assert.equal(fake.reads,500);
+ });
+});
+
+test('Top Connect, Read, then Write uses one Bluetooth connection through verification',async t=>{
+ await withRadio(t,{},async(radio,fake)=>{
+  const generation=radio.generation;
+  const read=await captureUv32Channels(radio,{connect:()=>assert.fail('Already connected')});
+  assert.equal(read.closeError,undefined);
+  assert.equal(fake.sent.at(-1)[0],0x45);
+  const start=fake.sent.length;
+  const report=await writeUv32Bluetooth(radio,read,uv32ChannelCaptureImage(read));
+  assert.deepEqual(fake.sent.slice(start,start+5).map(command=>command[0]),[0x50,0x46,0x4d,0x53,0x57]);
+  assert.equal(report.verified,true);
+  assert.equal(fake.writes,250);
+  assert.equal(fake.reads,1000);
+  assert.equal(fake.events.filter(event=>event==='chooser').length,1);
+  assert.equal(fake.events.includes('disconnect'),false);
+  assert.equal(radio.generation,generation);
  });
 });

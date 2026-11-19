@@ -109,8 +109,23 @@ export async function readUv32Channels(radio,{progress=()=>{},status=()=>{},sign
  finally{if(receiver&&radio.receive===receiver){if(receiveDescriptor)Object.defineProperty(radio,'receive',receiveDescriptor);else delete radio.receive;}report.wireHex=diagnosticSweep&&!report.completed?'':hex(raw.slice(0,report.completedBlocks*64));report.bytes=report.completedBlocks*64;report.elapsedMs=Date.now()-started;if(ownsBusy)radio.busy=false;}
 }
 
-// One explicit Read action opens a fresh browser connection, identifies, then
-// starts reading without an intervening human click. No CPS reset/exit or retry.
+// OLA sends E after the last block, then waits for the bridge's separate idle
+// notification (about three seconds in the captured UV-32 session).
+export async function finishUv32Session(radio,operation){
+ const characteristic=radio.char,generation=radio.generation;
+ const check=()=>{if(!radio.connected||radio.char!==characteristic||radio.generation!==generation)throw Error('UV-32 Bluetooth link ended while closing the '+operation);};
+ check();
+ if(radio.rx.length)throw Error('Unexpected bytes before closing the UV-32 '+operation);
+ await radio.native('Closing UV-32 '+operation,()=>characteristic.writeValueWithoutResponse(Uint8Array.of(0x45)),radio.deadlines.send);
+ check();
+ const [ack]=await radio.wait(1);
+ if(operation==='write'&&ack===0xff){
+  if((await radio.wait(1))[0]!==0)throw Error('Unexpected UV-32 write completion response');
+ }else if(ack!==0x06)throw Error('UV-32 did not acknowledge the end of the '+operation);
+ const [idle]=await radio.wait(1,5000);
+ check();
+ if(idle!==0||radio.rx.length)throw Error('Unexpected UV-32 status after '+operation);
+}
 export async function captureUv32Channels(radio,{connect=()=>radio.connect(),progress,status,signal,stage=()=>{},readSendMode='with-response',diagnosticSweep=false,interBlockDelayMs=UV32_INTER_BLOCK_MS}={}){
  const report=uv32ReadDiagnostics(radio,{readSendMode,interBlockDelayMs}),started=Date.now();
  const before=report.sessionAtStart;
@@ -119,17 +134,27 @@ export async function captureUv32Channels(radio,{connect=()=>radio.connect(),pro
   if(radio.busy||radio.connecting)throw Error('Another radio operation is already running');
   cancelled();assertReadSendMode(readSendMode);assertReadPace(interBlockDelayMs);
   report.stage='connecting';stage('Connecting for UV-32 channel read…');
-  // Preserve the old state before using the existing browser disconnect/connect
-  // lifecycle. Never discard bytes and continue on the same programming session.
-  report.connectionRestarted=!!(radio.connected||radio.char||radio.rx.length);
+  report.connectionRestarted=!!(radio.rx.length||before.checks.sessionPresent||(!radio.connected&&radio.char));
   if(report.connectionRestarted)radio.disconnect();
-  await connect();cancelled();
+  if(!radio.connected)await connect();
+  cancelled();
   report.sendMethod=readSendMethod(radio.char,readSendMode);
   report.stage='identifying';stage('Identifying UV-32 for channel read…');
   report.handshake=await identifyProfile(radio,'uv32',{sendMode:'with-response'});
   cancelled();
   report.stage='reading';stage('Reading UV-32 channels…');
   const capture=await readUv32Channels(radio,{progress,status,signal,readSendMode,diagnosticSweep,interBlockDelayMs});
+  if(capture.completed){
+   stage('Closing the UV-32 channel read…');
+   radio.busy=true;
+   try{await finishUv32Session(radio,'read');}
+   catch(error){
+    // All 500 read blocks have already been validated. Retain them if the link ends.
+    capture.closeError=error.message;
+    radio.disconnect();
+   }finally{radio.busy=false;}
+  }
+  cancelled();
   capture.sessionBeforeConnect=before;capture.connectionRestarted=report.connectionRestarted;
   capture.operationElapsedMs=Date.now()-started;return capture;
  }catch(error){

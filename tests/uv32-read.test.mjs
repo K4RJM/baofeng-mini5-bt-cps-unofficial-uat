@@ -164,9 +164,9 @@ test('One UV-32 read action connects, identifies and reads before the simulated 
  const h=setup({sessionIdleMs:50});try{
   const stages=[],r=await captureUv32Channels(h.radio,{connect:()=>connectSimulated(h),stage:s=>stages.push(s)});
   assert.equal(r.completed,true);assert.equal(r.memoryReads,500);assert.equal(r.memoryWrites,0);
-  assert.equal(h.fake.sent.length,504);assert.deepEqual(h.fake.sent.slice(0,4).map(b=>b[0]),[80,70,77,83]);
+  assert.equal(h.fake.sent.length,505);assert.deepEqual(h.fake.sent.slice(0,4).map(b=>b[0]),[80,70,77,83]);
   assert.equal(h.fake.sent[4][0],82);assert.equal(h.fake.events.includes('session-idle'),false);
-  assert.deepEqual(stages,['Connecting for UV-32 channel read…','Identifying UV-32 for channel read…','Reading UV-32 channels…']);
+  assert.deepEqual(stages,['Connecting for UV-32 channel read…','Identifying UV-32 for channel read…','Reading UV-32 channels…','Closing the UV-32 channel read…']);
   assert.ok(Number.isFinite(r.firstReadAfterHandshakeMs)&&r.firstReadAfterHandshakeMs>=0);
   assert.equal(h.radio.busy,false);
  }finally{h.close();}
@@ -179,7 +179,7 @@ test('An expired separate handshake is retained in diagnostics and replaced by o
   assert.equal(r.sessionBeforeConnect.pendingHex,'00');assert.equal(r.sessionBeforeConnect.checks.sessionPresent,true);
   assert.equal(r.connectionRestarted,true);assert.ok(h.radio.generation>old);
   assert.equal(r.sessionAtStart.ready,true);assert.equal(r.sessionAtStart.pendingHex,'');
-  assert.equal(r.completed,true);assert.equal(h.fake.sent.length-sent,504);assert.equal(h.fake.writes,0);
+  assert.equal(r.completed,true);assert.equal(h.fake.sent.length-sent,505);assert.equal(h.fake.writes,0);
  }finally{h.close();}
 });
 test('Model query 00 is retained with its failed handshake and no memory read or automatic retry',async()=>{
@@ -311,9 +311,9 @@ test('Without-response channel requests keep the verified with-response handshak
   assert.equal(r.requestedReadSendMode,'without-response');assert.equal(r.sendMethod,'writeValueWithoutResponse');
   assert.equal(r.handshake.transport.sendMethod,'writeValueWithResponse');assert.equal(r.handshake.completed,true);
   assert.equal(h.fake.events.filter(x=>x==='send-with-response').length,5,'Four handshake commands, with SEND split into two portions');
-  assert.equal(h.fake.events.filter(x=>x==='send-without-response').length,500);
-  assert.equal(h.fake.sent.length,504);assert.equal(h.fake.writes,0);
-  h.fake.sent.slice(4).forEach((command,i)=>assert.deepEqual([...command],[82,(i*64)>>8,(i*64)&255,64]));
+  assert.equal(h.fake.events.filter(x=>x==='send-without-response').length,501);
+  assert.equal(h.fake.sent.length,505);assert.equal(h.fake.writes,0);
+  h.fake.sent.slice(4,-1).forEach((command,i)=>assert.deepEqual([...command],[82,(i*64)>>8,(i*64)&255,64]));
   assert.equal(r.wireHex,Buffer.from(h.fake.raw.slice(0,32000)).toString('hex'));
   assert.ok(r.packetTrace.requests.every(x=>x.sendMethod==='writeValueWithoutResponse'&&x.validated));
   await assert.rejects(readUv32Channels(h.radio,{readSendMode:'without-response'}),/UV-32 read blocked/);
