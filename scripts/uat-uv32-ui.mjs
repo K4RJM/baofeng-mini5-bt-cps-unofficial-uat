@@ -14,6 +14,7 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
  const read=$('uatUv32Read'),cableRead=$('uatUv32CableRead'),cableWrite=$('uatUv32CableWrite'),view=$('uatUv32View'),save=$('uatUv32Save'),cancel=$('uatUv32Cancel'),importButton=$('uatUv32Import'),importInput=$('uatUv32ImportFile'),output=$('uatProtocolResult');
  const bluetoothControls=[read];
  if([select,cableRead,cableWrite,view,save,cancel,importButton,importInput,output,...(bluetooth?bluetoothControls:[])].some(x=>!x))throw Error('UV-32 controls missing');
+ select.value='';
  let capture=null,preview=null,editedImage=null,controller=null,undo=[],pending=[];
  let readBackup=null,fileOnly=false,datOnly=false,datTemplate=null;
  let writeDevice=null,importedSettings=null;
@@ -287,6 +288,9 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
    bluetoothWrite.title=writeBlocked||'Write channels and edited settings over Bluetooth.';
   }
   for(const id of ['open','appendChannels','save','saveImg','readRadio','writeRadio','readMini5Cable','writeMini5Cable','verify','backup'])$(id).hidden=uv;
+  if(!select.value){
+   for(const id of ['connect','readRadio','writeRadio','readMini5Cable','writeMini5Cable','verify'])$(id).disabled=true;
+  }
   select.disabled=busy;importButton.disabled=busy;
   $('connect').hidden=uv&&!bluetooth&&!radio.connected;
   $('linkDot').toggleAttribute('hidden',uv&&!bluetooth);
