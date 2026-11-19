@@ -3,6 +3,14 @@
 // Independent implementation; CHIRP attribution and GPL-3.0 project terms apply.
 export const UV32_CHANNELS=1000,UV32_RECORD_BYTES=32,UV32_BLOCK_BYTES=64,UV32_CHANNEL_BYTES=32000;
 export const UV32_BLOCKS=UV32_CHANNEL_BYTES/UV32_BLOCK_BYTES;
+// OLA reads these configuration blocks using 128-byte Bluetooth transfers.
+// Each entry maps only the bytes represented in the CPS image.
+export const UV32_CONFIG_BLOCK_BYTES=128,UV32_BLUETOOTH_IMAGE_BYTES=0x8340;
+export const UV32_CONFIG_BLOCKS=Object.freeze([
+ [0x8000,0x8000,64],[0x9000,0x8040,64],
+ [0xa000,0x8080,128],[0xa080,0x8100,128],[0xa100,0x8180,128],
+ [0xa180,0x8200,128],[0xa200,0x8280,128],[0xa280,0x8300,64]
+]);
 const hex=b=>Array.from(b,n=>n.toString(16).padStart(2,'0')).join('');
 export function uv32ReadCommand(address,blockBytes=UV32_BLOCK_BYTES){
  if(![64,128].includes(blockBytes)||!Number.isSafeInteger(address)||address<0||address%blockBytes||address+blockBytes>UV32_CHANNEL_BYTES)throw Error('Outside UV-32 channel read area');

@@ -94,8 +94,8 @@ export function renderUv32Help(d,target){
  const testCard=el(d,'section','card');testCard.append(el(d,'h3','','Cable programming'));
  const steps=el(d,'ol');for(const instruction of [
   'Close the stock CPS. Turn on the UV-32 and connect its programming cable.',
-  'Open a complete UV-32 CHIRP image or cable capture, or choose Read UV-32 by cable.',
-  'Choose Write UV-32 by cable and select the programming cable.',
+  'Open a complete UV-32 CHIRP image or cable capture, or choose Read Cable.',
+  'Choose Write Cable and select the programming cable.',
   'Keep the cable connected until all blocks are acknowledged.'
  ])steps.append(el(d,'li','',instruction));testCard.append(steps);
  reference.append(manualCard,testCard);workspace.append(reference);target.append(workspace);

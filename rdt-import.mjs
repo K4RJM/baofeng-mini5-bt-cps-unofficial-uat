@@ -39,6 +39,38 @@ export function parseRdt(input){
  if(candidates.length!==1)fail('RDT channel layout is incomplete or unrecognized; file not imported.');
  return {model,version,...candidates[0]};
 }
+// These CPS revisions store the radio ID list and then the zone table after
+// the complete channel table. Members refer to original channel IDs.
+function readRdtZones(bytes,parsed){
+ let p=parsed.end;
+ const string=()=>{
+  const start=p;
+  while(p<bytes.length&&p-start<=16&&bytes[p])p++;
+  if(p>=bytes.length||p-start>16||bytes.subarray(start,p).some(b=>b<32||b>126))throw Error('Unrecognized name');
+  return ascii(bytes.subarray(start,p++));
+ };
+ const zones=[],ids=new Set(parsed.records.filter(r=>r.id<4000).map(r=>r.id));
+ try{
+  const idCount=bytes[p++];
+  for(let i=0;i<idCount;i++){
+   if(bytes[p++]!==i)return [];
+   p+=3;string();
+  }
+  const count=bytes[p++];let previous=-1;
+  for(let i=0;i<count;i++){
+   const index=bytes[p++],size=bytes[p++];
+   if(index<=previous||p+size*2+4>=bytes.length)return [];
+   previous=index;
+   const members=[];
+   for(let n=0;n<size;n++,p+=2){const id=u16(bytes,p);if(!ids.has(id))return [];members.push(id);}
+   p+=4; // A/B channel selections
+   const name=string();if(!name)return [];
+   if(parsed.model==='D168UV')p++;
+   zones.push({name,members});
+  }
+ }catch{return [];}
+ return zones;
+}
 function tone(h,p){
  const mode=h[p];if(mode===0)return 'Off';
  if(mode===1){if(h[p+1]>=tones.length)fail('Custom or unrecognized RDT CTCSS needs verification.');return tones[h[p+1]];}
@@ -63,12 +95,18 @@ const heads=['Channel Name','Receive Frequency','Transmit Frequency','Channel Ty
 const csvRow=cells=>cells.map(s=>'"'+String(s).replaceAll('"','""')+'"').join(',');
 export function importRdt(input,settings){
  const parsed=parseRdt(input),rows=[];let skippedDigital=0;const baseNotes=[];
+ const zones=settings?.model==='UV-32'?readRdtZones(input instanceof Uint8Array?input:new Uint8Array(input),parsed):[];
+ const membership=new Map();let hasChannelNotes=false;
+ if(settings?.model==='UV-32')baseNotes.push(zones.length?'Source zone memberships are available. A channel in multiple zones uses its first source zone.':'No recognized source zone table. Channels will use available slots.');
+ zones.forEach(({name,members},zone)=>members.forEach((id,order)=>{
+  if(!membership.has(id))membership.set(id,{sourceZone:name,sourceZoneOrder:zone,sourceMemberOrder:order});
+ }));
  for(const r of parsed.records){
   if(r.id>=4000)continue;
   if(r.h[11]!==0){skippedDigital++;continue;}
   try{
    const converted=importChannelCsv(csvRow(heads)+'\n'+csvRow(analogFields(r,parsed.model)),settings);
-   const row=converted.rows[0];rows.push({...row,line:r.id+1});if(!baseNotes.length)baseNotes.push(...converted.notes);
+   const row=converted.rows[0];if(row.channel&&membership.has(r.id))Object.assign(row.channel,membership.get(r.id));rows.push({...row,line:r.id+1});if(!hasChannelNotes&&row.channel){baseNotes.push(...converted.notes);hasChannelNotes=true;}
   }catch(e){rows.push({line:r.id+1,sourceName:ascii(r.name),channel:null,notes:[],error:e.message});}
  }
  return {kind:'rdt',format:'AnyTone '+parsed.model+' RDT',rows,channels:rows.filter(r=>r.channel).map(r=>r.channel),emptyRows:0,skippedDigital,skippedVfo:2,

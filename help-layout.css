@@ -1,9 +1,5 @@
-/* Stable cell geometry regardless of native editor contents. */
-#channelTableWrap table{table-layout:fixed;width:100%;min-width:1270px}
-#channelTableWrap td,#channelTableWrap th{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;box-sizing:border-box}
-#channelTableWrap td.numeric,#channelTableWrap td.channel-name{min-width:0}
+#channelTableWrap td,#channelTableWrap th{box-sizing:border-box}
 #channelTableWrap .inline-control{max-width:100%;margin:0}
-@media(max-width:750px),(pointer:coarse){#channelTableWrap table{min-width:1340px}#channelTableWrap col:last-child{width:274px!important}}
 .help-workspace{display:grid;grid-template-columns:minmax(0,65fr) minmax(0,35fr);column-gap:20px;row-gap:8px;align-items:start}
 .help-tutorial-host{grid-column:1;grid-row:1 / span 2;min-width:0}
 .help-reference{grid-column:2;grid-row:1;min-width:0}

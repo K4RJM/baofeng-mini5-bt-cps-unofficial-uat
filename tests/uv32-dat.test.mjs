@@ -58,3 +58,13 @@ test('UV32PRO DAT rejects truncated and other-model files',()=>{
  document.root.model='UV17PRO';
  assert.throws(()=>readUv32Dat(writeUv32Dat(document)),/UV32PRO/);
 });
+
+test('Saving a channel list into a DAT preserves all settings from its template',()=>{
+ const template=fixture(),image=new Uint8Array(32000).fill(255);
+ const channels=editUv32Channel(image,2,{rx:'146.52',name:'IMPORTED',power:'High'});
+ const saved=readUv32Dat(writeUv32Dat(updateUv32Dat(template,channels))).root;
+ assert.equal(saved.channelList[0][1].name,'IMPORTED');
+ assert.equal(saved.channelList[9][99].rxFreq,'');
+ for(const key of Object.keys(template.root).filter(k=>k!=='channelList'))assert.deepEqual(saved[key],template.root[key]);
+ assert.equal(template.root.channelList[9][99].name,'LAST');
+});

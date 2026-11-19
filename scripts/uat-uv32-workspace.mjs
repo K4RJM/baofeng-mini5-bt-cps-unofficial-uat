@@ -1,6 +1,7 @@
 // UAT UV-32 views use Ham-Rx's existing navigation, card, and channel table.
 import {renderUv32Help} from './uat-uv32-help.mjs?v=20.70';
 import {UV32_SETTING_OPTIONS} from './uat-uv32-edit.mjs?v=20.55c';
+import {emptyUv32Readout} from './uat-uv32-image.mjs';
 import {UV32_TONES,addUv32ToneOptions} from './uat-uv32-tones.mjs?v=20.61';
 const SQ_LABELS={'Code 0':'QT/DQT','Code 1':'QT/DQT*DTMF','Code 2':'QT/DQT+DTMF','Code 3':'Unknown (code 3)'};
 const COL_HELP={
@@ -85,13 +86,13 @@ export function createUv32Workspace({document:d,select,getCapture,onEdit,onUndo,
  const radioFunction=fields=>{
   const values=new Map(fields),work=String(values.get('Work Modes')??'');
   const modes=work.match(/^A (\d+), B (\d+)$/);
-  if(modes){values.set('Work Mode A',modes[1]==='1'?'Ch Mode':`Code ${modes[1]}`);values.set('Work Mode B',modes[2]==='1'?'Ch Mode':`Code ${modes[2]}`);}
+  if(modes){values.set('Work Mode A',['Frequency Mode','Ch Mode'][modes[1]]??`Code ${modes[1]}`);values.set('Work Mode B',['Frequency Mode','Ch Mode'][modes[2]]??`Code ${modes[2]}`);}
   const grid=el('div','uv32-cps-grid');
   for(const names of cpsColumns){const column=el('dl','uv32-cps-column');for(const name of names){
    const row=el('div','uv32-cps-field'),source=cpsAliases[name]??name,raw=values.get(source);
-   const label=el('dt','',name),cell=el('dd'),output=el('output','uv32-cps-value',raw===undefined?'Not captured':raw);
+   const label=el('dt','',name),cell=el('dd'),output=el('output','uv32-cps-value',raw??'');
    const spec=UV32_SETTING_OPTIONS[name];
-   if(spec&&getCapture()?.readout){const current=String(raw);const control=el('select');control.setAttribute('aria-label',name);if(SETTING_HELP[name])control.title=SETTING_HELP[name];for(const choice of spec.values){const option=el('option','',choice);option.value=choice;control.append(option);}if(!spec.values.includes(current)){const option=el('option','',current);option.value=current;control.prepend(option);}control.value=current;control.onchange=()=>apply(()=>onEdit('setting',{name,value:control.value}));cell.append(control);}
+   if(spec){const current=String(raw??'');const control=el('select');control.setAttribute('aria-label',name);if(SETTING_HELP[name])control.title=SETTING_HELP[name];for(const choice of spec.values){const option=el('option','',choice);option.value=choice;control.append(option);}if(!spec.values.includes(current)){const option=el('option','',current);option.value=current;control.prepend(option);}control.value=current;control.onchange=()=>apply(()=>onEdit('setting',{name,value:control.value}));cell.append(control);}
    else cell.append(output);row.append(label,cell);column.append(row);
   }grid.append(column);}
   const used=new Set(cpsColumns.flat().map(name=>cpsAliases[name]??name));used.add('Work Modes');
@@ -100,14 +101,13 @@ export function createUv32Workspace({document:d,select,getCapture,onEdit,onUndo,
   const wrap=el('div','uv32-cps-function');wrap.append(grid,details);return wrap;
  };
  const box=(title)=>{const card=el('section','card');card.append(el('h3','',title));return card;};
- const empty=()=>el('p','muted','Open a complete UV-32 cable capture or read the radio to see this section.');
  const render=()=>{
   if(select.value!=='uv32')return;
-  const capture=getCapture(),readout=capture?.readout;
+  const capture=getCapture(),readout=capture?.readout??emptyUv32Readout();
   d.documentElement.dataset.screen=section==='Channels'?'channels':section==='VFO A / B'?'uv32-vfo':'other';
   $('pageTitle').textContent=section==='Channels'?(zone?`Channels · Bank ${zone}`:'Channels · All banks'):section;
-  $('pageDescription').textContent=section==='Channels'?'Edit UV-32 channels by bank.':section==='VFO A / B'?'Edit the two frequency-mode memories.':section==='Radio & help'?'UV-32 controls and operating instructions.':'UV-32 radio settings from the full cable capture.';
-  $('sourceTag').textContent=capture?(capture.readout?'UV-32 full read':'UV-32 channel read'):'Blank UV-32 workspace';
+  $('pageDescription').textContent=section==='Channels'?'Edit UV-32 channels by bank.':section==='VFO A / B'?'Edit the two frequency-mode memories.':section==='Radio & help'?'UV-32 controls and operating instructions.':section==='DTMF'?'Edit DTMF codes, names and timing.':'Edit UV-32 radio settings.';
+  $('sourceTag').textContent=capture?(capture.kind==='uv32-channel-file'?'UV-32 channel file':capture.kind==='uv32-channel-read-v1'?'UV-32 Bluetooth read':capture.kind==='uv32-cable-full-read-v1'?'UV-32 full read':'UV-32 file'):'Blank UV-32 workspace';
   $('brandTitle').textContent='Ham-Rx Baofeng UV-32';
   const image=$('brandRadioImage');image.src='assets/uv32-front.webp';image.alt='Baofeng UV-32';image.parentElement.classList.add('uv32-brand-image');
   const nav=$('tabs');nav.replaceChildren();for(let i=0;i<sections.length;i++){
@@ -116,11 +116,11 @@ export function createUv32Workspace({document:d,select,getCapture,onEdit,onUndo,
   const content=$('content');content.replaceChildren();
   if(section==='Channels')renderChannels(content,capture);
   else if(section==='Optional settings'){
-   if(!readout){content.append(empty());return;}const card=box('Radio Function');card.append(radioFunction(readout.functionFields));content.append(card);
+   const card=box('Radio Function');card.append(radioFunction(readout.functionFields));content.append(card);
   }else if(section==='VFO A / B'){
-   if(!readout){content.append(empty());return;}const wrap=el('div','uv32-vfo-grid');for(const [name,fields] of [['VFO A',readout.vfoA],['VFO B',readout.vfoB]]){const card=box(name),side=name.slice(-1);for(const [key,value] of fields){if(key==='Offset bytes'){const bytes=String(value).split(' ').map(x=>parseInt(x,16));const offset=bytes.every(x=>x>=0&&x<=9)?(Number(bytes.join(''))/1000).toFixed(3):value;card.append(field('Offset MHz',offset,v=>onEdit('vfo',{side,field:'Offset MHz',value:v})));continue;}if(['Frequency MHz','RX tone code','TX tone code','Busy Lock','Power code','Bandwidth','FHSS','Signalling code','Offset direction code','Step code','SQ Mode code'].includes(key)){const shown=key==='Power code'?['High','Low','Medium'][value]??value:value;const options=key==='Busy Lock'||key==='FHSS'?['Off','On']:key==='Bandwidth'?['Wide','Narrow']:key==='Power code'?['High','Low','Medium']:null;card.append(field(key,shown,v=>onEdit('vfo',{side,field:key,value:v}),options));}else card.append(pairs([[key,value]]));}wrap.append(card);}content.append(wrap);
+   const wrap=el('div','uv32-vfo-grid');for(const [name,fields] of [['VFO A',readout.vfoA],['VFO B',readout.vfoB]]){const card=box(name),side=name.slice(-1);for(const [key,value] of fields){if(key==='Offset bytes'){const bytes=String(value).split(' ').map(x=>parseInt(x,16));const offset=bytes.every(x=>x>=0&&x<=9)?(Number(bytes.join(''))/1000).toFixed(3):value;card.append(field('Offset MHz',offset,v=>onEdit('vfo',{side,field:'Offset MHz',value:v})));continue;}if(['Frequency MHz','RX tone code','TX tone code','Busy Lock','Power code','Bandwidth','FHSS','Signalling code','Offset direction code','Step code','SQ Mode code'].includes(key)){const shown=key==='Power code'?['High','Low','Medium'][value]??value:value;const options=key==='Busy Lock'||key==='FHSS'?['Off','On']:key==='Bandwidth'?['Wide','Narrow']:key==='Power code'?['High','Low','Medium']:null;card.append(field(key,shown,v=>onEdit('vfo',{side,field:key,value:v}),options));}else card.append(pairs([[key,value]]));}wrap.append(card);}content.append(wrap);
   }else if(section==='DTMF'){
-   if(!readout){content.append(empty());return;}
+
    const card=box('DTMF'),scroll=el('div','uv32-dtmf-scroll'),table=el('table','uv32-dtmf-table');
    const head=el('thead'),heading=el('tr');for(const label of ['No.','Code','Name','No.','Code','Name'])heading.append(el('th','',label));head.append(heading);table.append(head);
    const body=el('tbody'),entries=new Map(readout.dtmf.entries.map(entry=>[entry.number,entry]));
@@ -135,47 +135,73 @@ export function createUv32Workspace({document:d,select,getCapture,onEdit,onUndo,
    right.append(field('Hang-Up Time',readout.dtmf.hangUp,value=>onEdit('dtmf',{field:'hangUp',value}),Array.from({length:8},(_,i)=>`${i+3} s`)));
    settings.append(left,right);card.append(settings);content.append(card);
   }else{renderUv32Help(d,content);}
+  if(!capture?.readout&&['DTMF','VFO A / B','Optional settings'].includes(section)){
+   for(const field of content.querySelectorAll('input,select'))field.disabled=true;
+  }
  };
  function renderChannels(content,capture){
-  const selected=new Set(),editable=!!capture?.readout||capture?.completed===true&&capture.kind==='uv32-channel-read-v1';
-  const card=el('section','card channel-card'),guide=el('details','feature-guide');guide.append(el('summary','','How to edit UV-32 channels'),el('p','','Use the bank controls below the table to move between ten banks of 100 channels. Edit the bank name and press Enter or leave the field to save it in the workspace. Bank names come from a UV-32 DAT, image, or cable read. Clear bank and Clear all affect the workspace and can be undone.'));card.append(guide);
+  const excess=capture?.overCapacity??0;
+  if(zone===11&&!excess){zone=1;page=0;}
+  const isBank=zone>=1&&zone<=10;
+  const selected=new Set(),editable=!!capture?.readout||capture?.kind==='uv32-channel-file'||capture?.completed===true&&capture.kind==='uv32-channel-read-v1';
+  const card=el('section','card channel-card'),guide=el('details','feature-guide');guide.append(el('summary','','How to edit UV-32 channels'),el('p','','Use Import file to replace the channel list, or Append channels to keep existing channels. Both accept analog channels from CSV, TSV, HMK and supported AnyTone RDT files. To use an AnyTone CSV zone list, select the channel and zone CSV files together. Recognized source zones are packed together where space allows. Channels without zone information use available slots starting in the chosen bank. Excess channels stay under Over capacity. Deleting a banked channel brings the next extra channel into its slot. Choose one of the ten banks below the table. Type in Bank name and press Enter to save the rename in the workspace. Use Write to send it to the radio. Clear bank and Clear all affect the workspace and can be undone.'));card.append(guide);
   const toolbar=el('div','toolbar'),controls=el('div','toolbar-controls');
   const input=el('input');input.type='search';input.id='uv32ChannelSearch';input.placeholder='Search name, frequency, channel';input.setAttribute('aria-label','Search UV-32 channels');input.value=search;input.oninput=()=>{search=input.value;page=0;renderChannelsOnly();};controls.append(input);
   const emptyLabel=el('label','check'),checkbox=el('input');checkbox.type='checkbox';checkbox.checked=showEmpty;checkbox.onchange=()=>{showEmpty=checkbox.checked;page=0;renderChannelsOnly();};emptyLabel.append(checkbox,'Show empty slots');controls.append(emptyLabel);
   toolbar.append(controls);
+  if(excess){
+   const review=button('Review '+excess+' extra channel'+(excess===1?'':'s'),()=>goBank(11));
+   review.title='Remove '+excess+' before writing. The radio holds 1,000 channels.';toolbar.append(review);
+  }
   const actions=el('div','toolbar-actions'),add=button('＋ Add channel',()=>{const populated=new Set((getCapture()?.preview?.channels??[]).map(c=>c.number)),first=zone?(zone-1)*100+1:1,last=zone?zone*100:1000;let number=first;while(number<=last&&populated.has(number))number++;if(number>last){onError('No empty channel slot in this zone');return;}showEmpty=true;checkbox.checked=true;search='';input.value='';page=zone?0:Math.floor((number-first)/50);paint();const tr=body.querySelector(`[data-uv32-channel="${number}"]`);if(tr)inlineEdit(tr,{number},3);}),deleteSelected=button('Delete selected (0)',()=>{if(!selected.size)return;if(!window.confirm(`Delete ${selected.size} selected UV-32 channel(s)?`))return;apply(()=>onEdit('deleteMany',{numbers:[...selected]}));}),moveSelected=button('Move selected (0)',()=>{if(selected.size!==1)return;const from=[...selected][0],value=window.prompt(`Move channel ${from} to which slot in the same zone?`);if(value===null)return;apply(()=>onEdit('move',{from,to:Number(value)}));}),undo=button('Undo',()=>apply(onUndo));
-  add.disabled=!editable;deleteSelected.disabled=true;moveSelected.disabled=true;undo.disabled=!canUndo?.();actions.append(add,deleteSelected,moveSelected,undo);toolbar.append(actions);card.append(toolbar);
-  const updateSelected=()=>{deleteSelected.textContent=`Delete selected (${selected.size})`;deleteSelected.disabled=!editable||!selected.size;moveSelected.textContent=`Move selected (${selected.size})`;moveSelected.disabled=!editable||selected.size!==1;};
-  const wrap=el('div','table-wrap');wrap.id='channelTableWrap';wrap.tabIndex=0;wrap.setAttribute('aria-label','UV-32 channels');const table=el('table','uv32-channel-table');const widths=[32,40,112,100,70,100,70,62,45,48,70,60,55,65,50,220],colgroup=el('colgroup');for(const width of widths){const col=el('col');col.style.width=width+'px';colgroup.append(col);}table.append(colgroup);const cols=[['number','Ch'],['name','Name'],['rx','RX MHz'],['rxTone','RX tone'],['tx','TX MHz'],['txTone','TX tone'],['power','Power'],['bandwidth','BW'],['scan','Scan'],['squelch','SQ mode'],['pttId','PTT-ID'],['signal','Signal'],['busyLock','Busy lock'],['fhss','FHSS']];
+  add.disabled=!editable||!!excess;deleteSelected.disabled=true;moveSelected.disabled=true;undo.disabled=!canUndo?.();actions.append(add,deleteSelected,moveSelected,undo);toolbar.append(actions);card.append(toolbar);
+  const updateSelected=()=>{deleteSelected.textContent=`Delete selected (${selected.size})`;deleteSelected.disabled=!editable||!selected.size;moveSelected.textContent=`Move selected (${selected.size})`;moveSelected.disabled=!editable||selected.size!==1||[...selected][0]>1000;};
+  const wrap=el('div','table-wrap');wrap.id='channelTableWrap';wrap.tabIndex=0;wrap.setAttribute('aria-label','UV-32 channels');const table=el('table','uv32-channel-table');const cols=[['number','Ch'],['name','Name'],['rx','RX MHz'],['rxTone','RX tone'],['tx','TX MHz'],['txTone','TX tone'],['power','Power'],['bandwidth','BW'],['scan','Scan'],['squelch','SQ mode'],['pttId','PTT-ID'],['signal','Signal'],['busyLock','Busy lock'],['fhss','FHSS']];
   const head=el('thead'),heading=el('tr'),selectHead=el('th');const selectAll=el('input');selectAll.type='checkbox';selectAll.setAttribute('aria-label','Select shown UV-32 channels');selectAll.title='Select every channel shown on this page for bulk actions.';selectHead.append(selectAll);heading.append(selectHead);for(const [key,label] of cols){const th=el('th','',label);th.scope='col';th.title=COL_HELP[key];heading.append(th);}heading.append(el('th','','Actions'));head.append(heading);table.append(head);const body=el('tbody');table.append(body);wrap.append(table);card.append(wrap);
   const bottom=el('div','table-bottom uv32-bank-bar'),count=el('span','uv32-bank-count');
-  const bankLabel=el('label','uv32-bank-name','Bank'),name=el('input');
+  const banks=capture?.readout?.zones??capture?.zones;
+  const bankLabel=el('label','uv32-bank-name','Bank'),bankSelect=el('select');
+  bankSelect.setAttribute('aria-label','Select bank');
+  const bankOption=i=>banks?.[i-1]?.name?i+' · '+banks[i-1].name:'Bank '+i;
+  for(let i=1;i<=10;i++){const option=el('option','',bankOption(i));option.value=String(i);bankSelect.append(option);}
+  const all=el('option','','All banks');all.value='0';bankSelect.append(all);
+  if(excess){const option=el('option','','Over capacity ('+excess+')');option.value='11';bankSelect.append(option);}
+  bankSelect.value=String(zone);
+  bankSelect.onchange=()=>goBank(Number(bankSelect.value));bankLabel.append(bankSelect);
+  const renameLabel=el('label','uv32-bank-name','Bank name'),name=el('input');
   name.id='uv32BankName';name.maxLength=16;name.setAttribute('aria-label','Bank name');
-  name.disabled=!zone||!capture?.readout;
-  name.value=zone?(capture?.readout?.zones[zone-1].name??''):'All banks';
-  name.placeholder=zone?'Bank '+zone:'All banks';
-  name.title=capture?.readout?'Edit the bank name. Enter saves the name in this workspace.':'Bank names are available from a UV-32 DAT, image, or cable read.';
-  name.onchange=()=>{try{onEdit('zone',{number:zone,value:name.value});}catch(error){name.value=getCapture()?.readout?.zones[zone-1].name??'';onError(error.message);}};
-  name.onkeydown=event=>{if(event.key==='Escape')name.value=getCapture()?.readout?.zones[zone-1].name??'';if(event.key==='Enter'||event.key==='Escape'){event.preventDefault();name.blur();}};
-  bankLabel.append(name);
+  name.disabled=!banks;name.value=banks?.[zone-1]?.name??'';
+  name.title='Press Enter or leave this field to save the name in the workspace.';
+  name.onchange=()=>{
+   try{
+    onEdit('zone',{number:zone,value:name.value});
+    const current=getCapture(),value=(current?.readout?.zones??current?.zones)?.[zone-1]?.name??'';
+    name.value=value;bankSelect.options[zone-1].textContent=value?zone+' · '+value:'Bank '+zone;
+    undo.disabled=!canUndo?.();
+   }catch(error){name.value=banks?.[zone-1]?.name??'';onError(error.message);}
+  };
+  name.onkeydown=event=>{
+   if(event.key==='Escape'){const current=getCapture();name.value=(current?.readout?.zones??current?.zones)?.[zone-1]?.name??'';}
+   if(event.key==='Enter'||event.key==='Escape'){event.preventDefault();name.blur();}
+  };
+  renameLabel.append(name);
   const bankActions=el('div','uv32-bank-actions');
   function clearBank(all){
-   const numbers=(getCapture()?.preview?.channels??[]).filter(row=>all||Math.ceil(row.number/100)===zone).map(row=>row.number);
-   if(numbers.length&&window.confirm(`Clear ${numbers.length} populated channel(s) from ${all?'all ten banks':'bank '+zone} in this workspace?`))apply(()=>onEdit('deleteMany',{numbers}));
+   const numbers=(getCapture()?.preview?.channels??[]).filter(row=>all||(zone===11?row.number>1000:Math.ceil(row.number/100)===zone)).map(row=>row.number);
+   if(numbers.length&&window.confirm(`Clear ${numbers.length} populated channel(s) from ${all?'the whole workspace':zone===11?'the over-capacity list':'bank '+zone} in this workspace?`))apply(()=>onEdit('deleteMany',{numbers}));
   }
   const populated=capture?.preview?.channels??[];
-  const clearAll=button('Clear all',()=>clearBank(true)),clearOne=button('Clear bank',()=>clearBank(false));
-  clearAll.disabled=!editable||!populated.length;clearOne.disabled=!editable||!zone||!populated.some(row=>Math.ceil(row.number/100)===zone);
+  const clearAll=button('Clear all',()=>clearBank(true)),clearOne=button(zone===11?'Clear extras':'Clear bank',()=>clearBank(false));
+  clearAll.disabled=!editable||!populated.length;clearOne.disabled=!editable||!zone||!populated.some(row=>zone===11?row.number>1000:Math.ceil(row.number/100)===zone);
   bankActions.append(clearAll,clearOne);
   const bankNav=el('div','uv32-bank-nav');bankNav.setAttribute('role','group');bankNav.setAttribute('aria-label','Bank navigation');
   function goBank(number){zone=number;page=0;selected.clear();render();}
   const first=button('Bank 1',()=>goBank(1)),last=button('Bank 10',()=>goBank(10));
-  const previousBank=button('‹ Previous',()=>goBank(zone-1)),nextBank=button('Next ›',()=>goBank(zone+1));previousBank.disabled=zone<=1;nextBank.disabled=!zone||zone===10;
+  const previousBank=button('‹ Previous',()=>goBank(zone-1)),nextBank=button('Next ›',()=>goBank(zone+1));previousBank.disabled=zone<=1;nextBank.disabled=!zone||zone>=10;
   first.disabled=zone===1;last.disabled=zone===10;
-  bankNav.append(first,previousBank,el('span','',zone?zone+' / 10':'All'),nextBank,last);
-  const allBanks=button('All banks',()=>goBank(0));allBanks.disabled=!zone;bankActions.append(allBanks);
+  bankNav.append(first,previousBank,el('span','',isBank?zone+' / 10':zone===11?'Extras':'All'),nextBank,last);
   const pager=el('div','uv32-page-nav'),prev=button('Previous page',()=>{page--;paint();}),next=button('Next page',()=>{page++;paint();});pager.append(prev,next);
-  bottom.append(bankLabel,bankActions,bankNav,count);if(!zone)bottom.append(pager);
+  bottom.append(bankLabel);if(isBank)bottom.append(renameLabel);bottom.append(bankActions,bankNav,count);if(!isBank)bottom.append(pager);
   card.append(bottom);
   const editor=$('uv32ChannelEditor')??el('dialog','uv32-channel-editor');editor.id='uv32ChannelEditor';if(!editor.isConnected)d.body.append(editor);content.append(card);
   const openEditor=row=>{
@@ -184,7 +210,7 @@ export function createUv32Workspace({document:d,select,getCapture,onEdit,onUndo,
    const choices={rxTone:UV32_TONES,txTone:UV32_TONES,power:['High','Low','Medium'],bandwidth:['Wide','Narrow'],scan:['Add','Skip'],squelch:['Code 0','Code 1','Code 2'],pttId:['Off','BOT','EOT','Both'],signal:Array.from({length:20},(_,i)=>String(i+1)),busyLock:['Off','On'],fhss:['Off','On']};
    const defaults={rx:'',tx:'Off',rxTone:'Off',txTone:'Off',power:'High',bandwidth:'Wide',scan:'Add',squelch:'Code 0',pttId:'Off',signal:'1',busyLock:'Off',fhss:'Off',name:''};
    let inputs,initial,error;
-   const numbers=()=>showEmpty?Array.from({length:1000},(_,i)=>i+1):(getCapture()?.preview?.channels??[]).map(item=>item.number);
+   const numbers=()=>showEmpty?Array.from({length:1000+excess},(_,i)=>i+1):(getCapture()?.preview?.channels??[]).map(item=>item.number);
    const adjacent=step=>{const list=numbers(),index=list.indexOf(number);return list[index+step]??null;};
    const save=()=>{
     const patch=Object.fromEntries(Object.entries(inputs).filter(([key,input])=>input.value!==initial[key]).map(([key,input])=>[key,input.value]));
@@ -255,16 +281,17 @@ export function createUv32Workspace({document:d,select,getCapture,onEdit,onUndo,
    if(tone||choices[key])control.onchange=()=>finish(false);
    control.focus({preventScroll:true});if(control.tagName==='INPUT')control.select();
   };
-  function paint(){const all=capture?.preview?.channels??[],populated=new Map(all.map(c=>[c.number,c]));let rows=showEmpty?Array.from({length:1000},(_,i)=>populated.get(i+1)??{number:i+1}):all;
-   if(zone)rows=rows.filter(r=>Math.floor((r.number-1)/100)+1===zone);
+  function paint(){const all=capture?.preview?.channels??[],populated=new Map(all.map(c=>[c.number,c]));let rows=showEmpty?Array.from({length:1000+excess},(_,i)=>populated.get(i+1)??{number:i+1}):all;
+   if(zone===11)rows=rows.filter(r=>r.number>1000);
+   else if(isBank)rows=rows.filter(r=>Math.floor((r.number-1)/100)+1===zone);
    if(search){const q=search.toLowerCase();rows=rows.filter(r=>`${r.number} ${r.name??''} ${r.rx??''} ${r.tx??''}`.toLowerCase().includes(q));}
-   const pageSize=zone?100:50,pages=Math.max(1,Math.ceil(rows.length/pageSize));page=Math.min(page,pages-1);body.replaceChildren();const shown=rows.slice(page*pageSize,(page+1)*pageSize);selectAll.disabled=!editable||!shown.length;selectAll.checked=shown.length>0&&shown.every(row=>selected.has(row.number));selectAll.onchange=()=>{for(const row of shown)selectAll.checked?selected.add(row.number):selected.delete(row.number);paint();};for(const row of shown){const tr=el('tr','channel-row');tr.dataset.uv32Channel=String(row.number);if(editable){tr.tabIndex=0;tr.title='Select to edit';tr.onclick=e=>inlineEdit(tr,row,e.target.closest('td')?.cellIndex??3);tr.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();inlineEdit(tr,row);}};}const selection=el('td'),check=el('input');check.type='checkbox';check.checked=selected.has(row.number);check.disabled=!editable;check.setAttribute('aria-label',`Select channel ${row.number}`);check.title=`Select channel ${row.number} for bulk delete or move.`;check.onchange=()=>{check.checked?selected.add(row.number):selected.delete(row.number);updateSelected();selectAll.checked=shown.every(item=>selected.has(item.number));};check.onclick=e=>e.stopPropagation();selection.append(check);tr.append(selection);for(const [key] of cols){const td=el('td',editable&&key!=='number'?'editable-cell':'',key==='squelch'?(SQ_LABELS[row[key]]??row[key]??''):row[key]??'');td.title=(key==='squelch'?sqHelp(row[key]):COL_HELP[key])+(editable?' Click to edit.':'');td.setAttribute('aria-label',`Channel ${row.number} ${key}: ${td.textContent||'empty'}. ${td.title}`);tr.append(td);}const actionCell=el('td','uv32-row-actions');if(editable){for(const [label,action] of [['Edit',()=>openEditor(row)],['Delete',()=>apply(()=>onEdit('channel',{number:row.number,patch:{delete:true}}))],['Ins Ch',()=>apply(()=>onEdit('insert',{number:row.number}))],['Move',()=>{const value=window.prompt(`Move channel ${row.number} to which slot in the same zone?`);if(value!==null)apply(()=>onEdit('move',{from:row.number,to:Number(value)}));}]]){const item=button(label,action);item.onclick=e=>{e.stopPropagation();action();};item.title=({Edit:'Open all settings for this channel.',Delete:'Remove this channel from the workspace.', 'Ins Ch':'Insert an empty channel here and shift later channels in this zone.',Move:'Move this channel to another slot in the same zone.'})[label];item.disabled=(label==='Delete'||label==='Move')&&row.rx===undefined;actionCell.append(item);}}tr.append(actionCell);body.append(tr);}
+   const pageSize=isBank?100:50,pages=Math.max(1,Math.ceil(rows.length/pageSize));page=Math.min(page,pages-1);body.replaceChildren();const shown=rows.slice(page*pageSize,(page+1)*pageSize);selectAll.disabled=!editable||!shown.length;selectAll.checked=shown.length>0&&shown.every(row=>selected.has(row.number));selectAll.onchange=()=>{for(const row of shown)selectAll.checked?selected.add(row.number):selected.delete(row.number);paint();};for(const row of shown){const tr=el('tr','channel-row');tr.dataset.uv32Channel=String(row.number);if(editable){tr.tabIndex=0;tr.title='Select to edit';tr.onclick=e=>inlineEdit(tr,row,e.target.closest('td')?.cellIndex??3);tr.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();inlineEdit(tr,row);}};}const selection=el('td'),check=el('input');check.type='checkbox';check.checked=selected.has(row.number);check.disabled=!editable;check.setAttribute('aria-label',`Select channel ${row.number}`);check.title=`Select channel ${row.number} for bulk delete or move.`;check.onchange=()=>{check.checked?selected.add(row.number):selected.delete(row.number);updateSelected();selectAll.checked=shown.every(item=>selected.has(item.number));};check.onclick=e=>e.stopPropagation();selection.append(check);tr.append(selection);for(const [key] of cols){const td=el('td',editable&&key!=='number'?'editable-cell':'',key==='squelch'?(SQ_LABELS[row[key]]??row[key]??''):row[key]??'');td.title=(key==='squelch'?sqHelp(row[key]):COL_HELP[key])+(editable?' Click to edit.':'');td.setAttribute('aria-label',`Channel ${row.number} ${key}: ${td.textContent||'empty'}. ${td.title}`);tr.append(td);}const actionCell=el('td','uv32-row-actions');if(editable){for(const [label,action] of [['Edit',()=>openEditor(row)],['Delete',()=>apply(()=>onEdit('channel',{number:row.number,patch:{delete:true}}))],['Ins Ch',()=>apply(()=>onEdit('insert',{number:row.number}))],['Move',()=>{const value=window.prompt(`Move channel ${row.number} to which slot in the same zone?`);if(value!==null)apply(()=>onEdit('move',{from:row.number,to:Number(value)}));}]]){if(row.number>1000&&(label==='Move'||label==='Ins Ch'))continue;const item=button(label,action);item.onclick=e=>{e.stopPropagation();action();};item.title=({Edit:'Open all settings for this channel.',Delete:'Remove this channel from the workspace.', 'Ins Ch':'Insert an empty channel here and shift later channels in this zone.',Move:'Move this channel to another slot in the same zone.'})[label];item.disabled=(label==='Delete'||label==='Move')&&row.rx===undefined;actionCell.append(item);}}tr.append(actionCell);body.append(tr);}
    if(!rows.length){const tr=el('tr'),td=el('td','empty-state',capture?'No channels in this view.':'No UV-32 capture loaded yet.');td.colSpan=cols.length+2;tr.append(td);body.append(tr);}
-   count.textContent=zone?`${rows.length} shown · slots ${(zone-1)*100+1}–${zone*100}`:`${rows.length?page*pageSize+1:0}–${Math.min((page+1)*pageSize,rows.length)} of ${rows.length}`;prev.disabled=page===0;next.disabled=page+1>=pages;
+   count.textContent=isBank?`${rows.length} shown · slots ${(zone-1)*100+1}–${zone*100}`:`${rows.length?page*pageSize+1:0}–${Math.min((page+1)*pageSize,rows.length)} of ${rows.length}`;prev.disabled=page===0;next.disabled=page+1>=pages;
    updateSelected();
   }
   function renderChannelsOnly(){paint();}
   paint();
  }
- return {render,openHelp(){section='Radio & help';render();},reset(){section='Channels';zone=1;search='';showEmpty=false;page=0;render();},restoreBrand(){const image=$('brandRadioImage');image.src='assets/mini5-blue.png';image.alt='Blue Baofeng MINI-5';image.parentElement.classList.remove('uv32-brand-image');$('brandTitle').textContent='Ham-Rx Baofeng Mini-5';}};
+ return {render,selectedBank:()=>zone>=1&&zone<=10?zone:1,openHelp(){section='Radio & help';render();},reset(bank=1){section='Channels';zone=bank;search='';showEmpty=false;page=0;render();},restoreBrand(){const image=$('brandRadioImage');image.src='assets/mini5-blue.png';image.alt='Blue Baofeng MINI-5';image.parentElement.classList.remove('uv32-brand-image');$('brandTitle').textContent='Ham-Rx Baofeng Mini-5';}};
 }

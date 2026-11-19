@@ -1,6 +1,6 @@
 // Translate fields shared by the UV32PRO factory DAT and the cable image.
 // Keep factory-only fields in the original DAT and radio-only bytes in the cable image.
-import {decodeUv32Channels,decodeUv32Tone,uv32WireDecode} from './uv32-codec.mjs';
+import {UV32_CHANNEL_BYTES,decodeUv32Channels,decodeUv32Tone,uv32WireDecode} from './uv32-codec.mjs';
 import {decodeUv32Image,UV32_IMAGE_BYTES} from './uat-uv32-image.mjs';
 import {editUv32Channel,editUv32Vfo,editUv32Dtmf,editUv32ZoneName} from './uat-uv32-edit.mjs';
 
@@ -10,6 +10,7 @@ const imageOffsets={
  rptTailDet:22,roger:23,fmEnable:25,keyLock:27,powerOnDisType:28,tone:29,voxDlyTime:32,menuQuitTime:33,
  totAlarm:40,ctsDcsScanType:43,gpsSw:48,gpsMode:49,key1Short:50,rstMenu:55,voxSw:58
 };
+export const UV32_DAT_SETTING_OFFSETS=Object.freeze(Object.values(imageOffsets));
 const power=['High','Low','Medium'];
 const ptt=['Off','BOT','EOT','Both'];
 const onOff=value=>value?'On':'Off';
@@ -117,6 +118,7 @@ export function updateUv32Dat(document,image){
    sqMode:Number(channel.squelch.slice(5)),pttid:ptt.indexOf(channel.pttId),signalGroup:bounded(Number(channel.signal)-1,19,'signaling group'),fhss:Number(channel.fhss==='On')
   });
  }));
+ if(image.length===UV32_CHANNEL_BYTES)return result;
  const settings=0x8040;
  for(const [field,offset] of Object.entries(imageOffsets))root.funCfgs[field]=image[settings+offset];
  root.funCfgs.chAWorkmode=image[settings+26]&15;

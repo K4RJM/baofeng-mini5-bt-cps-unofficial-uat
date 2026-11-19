@@ -1,5 +1,8 @@
 # AnyTone RDT channel import — v20.33
 
+The UV-32 importer in 20.88 also reads zone membership for the D168UV V1292 and D890UV V1323 layouts. Analog records keep their original source IDs during matching. If a zone table cannot be recognized, the preview reports that available slots will be used. The channel and mode checks below still apply. The MINI-5 uses its existing flat channel list.
+
+
 Use **Import file** or **Append channels** in the left toolbar to select an RDT directly. Import replaces the channel list after confirmation; Append adds selected channels to an empty destination. Both show an analog-only preview, preserve the current MINI-5 settings, and support Undo. A file import never starts radio programming.
 
 ## Supported files
@@ -17,7 +20,7 @@ RDT is model/version specific. These markers are file-format identifiers, not cl
 - High/Low power when directly representable. Turbo/Mid use the visible High/Low fallback, initially Low; no equivalent wattage is claimed.
 - Names longer than 12 encoded bytes are shortened with a preview note. Non-ASCII RDT names are excluded until their encoding is verified.
 
-Digital and mixed digital/analog channel records are filtered out and counted. Source VFO A/B records, zones, named scan lists, contacts and radio-wide settings are not imported. Missing scan inclusion defaults to Include, matching the CSV converter. Existing MINI-5 settings remain in place.
+Digital and mixed digital/analog channel records are filtered out and counted. Source VFO A/B records, named scan lists, contacts and radio-wide settings are not imported. The MINI-5 does not import zones. Missing scan inclusion defaults to Include, matching the CSV converter. Existing MINI-5 settings remain in place.
 
 Unverified analog option combinations, custom/inverted tone encodings, unsupported tones, out-of-band frequencies and off-grid values remain excluded with a reason. No value is guessed or rounded. Eight records in the supplied D890UV sample have extended/squelch options outside the verified profile and therefore remain excluded. This is an importer coverage limit, not a claim that those source channels are defective.
 

@@ -3,7 +3,7 @@
 // 19b5359693d37204e21ad11ce4e5613614de3886. See docs/UV32-READ.md.
 // Independent implementation; CHIRP attribution and GPL-3.0 project terms apply.
 import {consumeUv32ReadSession,uv32ReadSessionStatus,identifyProfile,selectSendMethod} from './uat-protocols.mjs?v=20.46';
-import {UV32_CHANNEL_BYTES,uv32ReadCommand,uv32Payload,decodeUv32Channels} from './uv32-codec.mjs';
+import {UV32_CONFIG_BLOCKS,UV32_CONFIG_BLOCK_BYTES,UV32_CHANNEL_BYTES,uv32ReadCommand,uv32Payload,decodeUv32Channels} from './uv32-codec.mjs';
 export {UV32_CHANNELS,UV32_RECORD_BYTES,UV32_BLOCK_BYTES,UV32_CHANNEL_BYTES,UV32_BLOCKS,uv32ReadCommand,uv32Payload,uv32WireDecode,DCS,decodeUv32Channels} from './uv32-codec.mjs';
 export const UV32_INTER_BLOCK_MS=20; // UAT transport-pacing candidate; physical benefit unverified.
 export const UV32_READ_PACES=Object.freeze([20,100,250]);
@@ -110,6 +110,34 @@ export async function readUv32Channels(radio,{progress=()=>{},status=()=>{},sign
  finally{if(receiver&&radio.receive===receiver){if(receiveDescriptor)Object.defineProperty(radio,'receive',receiveDescriptor);else delete radio.receive;}report.wireHex=diagnosticSweep&&!report.completed?'':hex(raw.slice(0,report.completedBlocks*blockBytes));report.bytes=report.completedBlocks*blockBytes;report.elapsedMs=Date.now()-started;if(ownsBusy)radio.busy=false;}
 }
 
+// Reuse complete blocks only on the same live connection. Bytes outside a changed field must survive a write.
+const configSnapshots=new WeakMap();
+export function cachedUv32ConfigBlocks(radio){
+ const saved=configSnapshots.get(radio);
+ return saved?.generation===radio.generation&&saved?.characteristic===radio.char?saved.blocks:new Map();
+}
+export function rememberUv32ConfigBlocks(radio,blocks){
+ configSnapshots.set(radio,{generation:radio.generation,characteristic:radio.char,blocks:new Map(blocks)});
+}
+export async function readUv32ConfigBlocks(radio,addresses,signal){
+ const generation=radio.generation,characteristic=radio.char,blocks=new Map();
+ const check=()=>{
+  if(signal?.aborted)throw Error('UV-32 settings read cancelled');
+  if(!radio.connected||radio.generation!==generation||radio.char!==characteristic)throw Error('UV-32 link changed while reading radio settings');
+ };
+ for(const address of addresses){
+  if(!UV32_CONFIG_BLOCKS.some(([a])=>a===address))throw Error('Outside UV-32 settings blocks');
+  await radio.pause(UV32_INTER_BLOCK_MS);check();
+  if(radio.rx.length)throw Error('Unexpected bytes before reading UV-32 radio settings');
+  const cmd=Uint8Array.of(0x52,address>>8,address&255,UV32_CONFIG_BLOCK_BYTES);
+  await radio.native('Reading UV-32 radio settings',()=>characteristic.writeValueWithoutResponse(cmd),radio.deadlines.send);
+  check();const reply=await radio.wait(cmd.length+UV32_CONFIG_BLOCK_BYTES);check();
+  if(cmd.some((b,i)=>reply[i]!==b)||radio.rx.length)throw Error('Unexpected UV-32 settings response');
+  blocks.set(address,reply.slice(4));
+ }
+ return blocks;
+}
+
 // OLA sends E after the last block, then waits for the bridge's separate idle
 // notification (about three seconds in the captured UV-32 session).
 export async function finishUv32Session(radio,operation){
@@ -133,7 +161,7 @@ export async function finishUv32Session(radio,operation){
  check();
  if(idle!==0||radio.rx.length)throw Error('Unexpected UV-32 status after '+operation);
 }
-export async function captureUv32Channels(radio,{connect=()=>radio.connect(),progress,status,signal,stage=()=>{},readSendMode='with-response',blockBytes=64,diagnosticSweep=false,interBlockDelayMs=UV32_INTER_BLOCK_MS}={}){
+export async function captureUv32Channels(radio,{connect=()=>radio.connect(),progress,status,signal,stage=()=>{},readSendMode='with-response',blockBytes=64,includeSettings=false,diagnosticSweep=false,interBlockDelayMs=UV32_INTER_BLOCK_MS}={}){
  const report=uv32ReadDiagnostics(radio,{readSendMode,blockBytes,interBlockDelayMs}),started=Date.now();
  const before=report.sessionAtStart;
  const cancelled=()=>{if(signal?.aborted)throw Error('UV-32 channel read cancelled');};
@@ -153,6 +181,16 @@ export async function captureUv32Channels(radio,{connect=()=>radio.connect(),pro
   const capture=await readUv32Channels(radio,{progress,status,signal,readSendMode,blockBytes,diagnosticSweep,interBlockDelayMs});
   if(capture.completed){
    stage('Closing the UV-32 channel read…');
+   radio.busy=true;
+   try{
+    if(includeSettings){
+     stage('Reading UV-32 radio settings…');
+     const blocks=await readUv32ConfigBlocks(radio,UV32_CONFIG_BLOCKS.map(([address])=>address),signal);
+     capture.settingsHex=UV32_CONFIG_BLOCKS.map(([address,,size])=>hex(blocks.get(address).subarray(0,size))).join('');
+     rememberUv32ConfigBlocks(radio,blocks);
+    }
+   }catch(error){radio.disconnect();throw error;}
+   finally{radio.busy=false;}
    radio.busy=true;
    try{await finishUv32Session(radio,'read');}
    catch(error){

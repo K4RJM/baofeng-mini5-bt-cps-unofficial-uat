@@ -77,3 +77,14 @@ test('RDT replacement enforces 999 channels, late cancelled reads cannot apply, 
  }finally{h.close();}
  const empty=await appHarness();try{empty.get('file').files=[file(rdtFixture())];await empty.get('file').onchange();empty.get('appendApply').click();assert.equal(empty.get('writeRadio').disabled,true);}finally{empty.close();}
 });
+
+for(const model of ['D168UV','D890UV'])test(model+' UV-32 zone membership uses original IDs after digital filtering',()=>{
+ const raw=rdtFixture({model,records:[{id:0,name:'WEST'},{id:3,mode:1},{id:7,name:'EAST'}]});
+ const {end}=parseRdt(raw);
+ const zone=(index,ids,name)=>[index,ids.length,...ids.flatMap(id=>[id,0]),ids[0],0,ids[0],0,...new TextEncoder().encode(name),0,...(model==='D168UV'?[0]:[])];
+ const bytes=Uint8Array.from([...raw.subarray(0,end),0,2,...zone(0,[7,3],'First'),...zone(1,[0,7],'Second')]);
+ new DataView(bytes.buffer).setUint32(5,bytes.length-14,true);
+ const imported=importRdt(bytes,{...settings,model:'UV-32'});
+ assert.equal(imported.skippedDigital,1);
+ assert.deepEqual(imported.channels.map(c=>[c.name,c.sourceZone,c.sourceMemberOrder]),[['WEST','Second',0],['EAST','First',0]]);
+});

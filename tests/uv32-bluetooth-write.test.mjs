@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {Reader} from '../read-test/reader.mjs';
 import {captureUv32Channels} from '../scripts/uat-uv32-read.mjs';
 import {writeUv32Bluetooth} from '../scripts/uat-uv32-write.mjs';
-import {editUv32Channel,uv32ChannelCaptureImage,uv32ImageFromHex,uv32Preview,uv32ImageToHex} from '../scripts/uat-uv32-edit.mjs';
+import {editUv32Setting,editUv32Vfo,editUv32Dtmf,editUv32ZoneName,editUv32Channel,uv32ChannelCaptureImage,uv32ImageFromHex,uv32Preview,uv32ImageToHex} from '../scripts/uat-uv32-edit.mjs';
 import {asyncRadio} from './async-radio.mjs';
 import {uv32Fixture} from './uv32-fixtures.mjs';
 
@@ -87,7 +87,7 @@ test('An unchanged file writes directly using an existing Bluetooth connection',
 
 test('Settings edits and a different previous Bluetooth identity send no channel writes',async t=>{
  await withRadio(t,{},async (radio,fake)=>{
-  const settings=edited.slice();settings[0x8040]^=1;
+  const settings=edited.slice();settings[0x803f]^=1;
   await assert.rejects(writeUv32Bluetooth(radio,baseline,settings),/by cable/);
   assert.equal(fake.reads,0);
   const previous={kind:'uv32-channel-read-v1',model:'UV32PRO',completed:true,completedBlocks:500,totalBlocks:500,bytes:32000,wireHex:baseline.wireHex.slice(0,64000),handshake:{id:[0],config:[0]}};
@@ -178,5 +178,77 @@ test('Top Connect, Read, then Write uses one Bluetooth connection without a seco
   assert.equal(fake.events.filter(event=>event==='chooser').length,1);
   assert.equal(fake.events.includes('disconnect'),false);
   assert.equal(radio.generation,generation);
+ });
+});
+
+test('Bluetooth captures the ten names, renames banks 1 and 10, and preserves adjacent radio bytes',async t=>{
+ await withRadio(t,{},async(radio,fake)=>{
+  // Fill the non-name area with a pattern to catch overwrites on the last block.
+  for(let i=0;i<32;i++)fake.raw[0x8320+i]=i+1;
+  const originalTail=fake.raw.slice(0x8320),read=await captureUv32Channels(radio,{blockBytes:128,readSendMode:'without-response',includeSettings:true});
+  assert.equal(fake.reads,258);assert.equal(read.settingsHex.length,0x680);
+  assert.deepEqual(fake.sent.filter(b=>b[0]===0x52).slice(-2).map(b=>[...b]),[[0x52,0xa2,0,128],[0x52,0xa2,128,128]]);
+  const before=uv32ChannelCaptureImage(read);
+  const next=editUv32ZoneName(editUv32ZoneName(before,1,'Home'),10,'Travel');
+  assert.deepEqual([uv32Preview(next).readout.zones[0].name,uv32Preview(next).readout.zones[9].name],['Home','Travel']);
+  const report=await writeUv32Bluetooth(radio,read,next);
+  assert.equal(report.acknowledged,252);assert.equal(report.renamedBanks,2);assert.equal(fake.reads,258);
+  assert.deepEqual(fake.raw.subarray(0x8320),originalTail);
+  assert.ok(fake.bankTail.every(v=>v===0xd3));
+  const stored=uv32ImageFromHex(Buffer.from(fake.raw).toString('hex'));
+  assert.deepEqual(uv32Preview(stored).readout.zones,uv32Preview(next).readout.zones);
+ });
+});
+
+test('Renaming from a file preserves other bank names from the target radio',async t=>{
+ await withRadio(t,{},async(radio,fake)=>{
+  fake.raw.fill(0x49,0x8290,0x82a0);
+  const renamed=editUv32ZoneName(original,1,'Local');
+  const report=await writeUv32Bluetooth(radio,baseline,renamed);
+  assert.equal(report.acknowledged,251);
+  const commands=fake.sent.filter(b=>b[0]===0x52);
+  assert.deepEqual(commands.map(b=>[...b]),[[0x52,0xa2,0x00,128]]);
+  assert.equal(fake.sent.at(-1)[0],0x45);
+  assert.ok(fake.raw.slice(0x8290,0x82a0).every(v=>v===0x49));
+ });
+});
+
+test('Bluetooth settings, VFO and DTMF come from the radio and edited fields persist after a write',async t=>{
+ await withRadio(t,{},async(radio,fake)=>{
+  let known=editUv32Dtmf(original,{number:1,field:'code',value:'20202'});
+  known=editUv32Dtmf(known,{field:'localId',value:'12300'});
+  known=editUv32Vfo(known,'B','Frequency MHz','146.52000');
+  known=editUv32Setting(known,'SQL','2');fake.raw.set(Buffer.from(uv32ImageToHex(known),'hex'));
+  const opts={blockBytes:128,readSendMode:'without-response',includeSettings:true};
+  const read=await captureUv32Channels(radio,opts),image=uv32ChannelCaptureImage(read),values=uv32Preview(image).readout;
+  assert.deepEqual(values,uv32Preview(known).readout);assert.equal(values.dtmf.localId,'12300');assert.equal(values.dtmf.entries[0].code,'20202');
+  let edited=editUv32Dtmf(image,{number:3,field:'name',value:'LOCAL'});
+  edited=editUv32Vfo(edited,'B','Bandwidth','Wide');edited=editUv32Setting(edited,'SQL','3');
+  const result=await writeUv32Bluetooth(radio,read,edited);
+  assert.equal(result.acknowledged,253);assert.equal(fake.reads,258);
+  const again=uv32ChannelCaptureImage(await captureUv32Channels(radio,opts));
+  assert.deepEqual(uv32Preview(again).readout,uv32Preview(edited).readout);
+ });
+});
+
+test('A file can program its DTMF and bank names without a preliminary manual read or a file edit',async t=>{
+ await withRadio(t,{},async(radio,fake)=>{
+  let image=editUv32Dtmf(original,{field:'localId',value:'12300'});image=editUv32ZoneName(image,10,'Travel');
+  const input={wireHex:uv32ImageToHex(image)};
+  const report=await writeUv32Bluetooth(radio,input,image,{fileSettings:new Set([57])});
+  assert.equal(report.acknowledged,252);
+  assert.deepEqual(fake.sent.filter(b=>b[0]===0x52).map(b=>b[1]*256+b[2]),[0x8000,0x9000,0xa000,0xa080,0xa100,0xa200,0xa280]);
+  const stored=uv32Preview(uv32ImageFromHex(Buffer.from(fake.raw).toString('hex'))).readout;
+  assert.equal(stored.dtmf.localId,'12300');assert.equal(stored.zones[9].name,'Travel');assert.ok(fake.bankTail.every(v=>v===0xd3));
+ });
+});
+
+test('Imported channel lists write all channels without a prior read or configuration changes',async t=>{
+ await withRadio(t,{},async (radio,fake)=>{
+  const image=original.slice(0,32000),file={kind:'uv32-channel-file',wireHex:uv32ImageToHex(image)};
+  const report=await writeUv32Bluetooth(radio,file,image);
+  assert.equal(report.acknowledged,250);
+  assert.equal(fake.reads,0);
+  assert.equal(fake.writes,250);
  });
 });

@@ -1,4 +1,14 @@
-# Channel-list import — v20.32 UAT
+# Channel-list import
+
+## UV-32
+
+In version 20.88, **Import file** replaces the channel list and **Append channels** keeps existing channels. Both work in a blank workspace or after a Bluetooth read. Use a UV-32 DAT, a compatible CHIRP image, a supported analog channel CSV, TSV, HMK or AnyTone RDT. Open a full UV-32 capture JSON with **Import file**.
+
+For an AnyTone CSV export, select the channel CSV and its matching zone CSV together. Supported RDT files carry their zone table inside the file. Labeled channel lists can also provide a bank, zone or group column. Open **Source zone placement** in the preview to see where each group will go. Overlapping membership uses the first source zone. Whole groups go into available space first. Larger groups can span banks. Appending preserves occupied slots and existing bank names.
+
+The workspace can hold more than the radio's ten banks of 100 channels. **Review extra channels** opens the excess rows. Removing a banked channel moves the next excess row into its place. Delete or undo changes in the workspace until the list fits, then write by Bluetooth or cable using the normal requirements for that connection. DAT and CHIRP image exports also require the list to fit.
+
+## MINI-5
 
 **v20.33 update:** Digital channels are now filtered out before the selectable preview, with a separate summary count. Digital exclusions alone require no acknowledgement; other invalid analog rows still do. Import and Append also accept [supported AnyTone RDT files](RDT-IMPORT.md).
 

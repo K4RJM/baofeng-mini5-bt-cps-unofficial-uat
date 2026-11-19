@@ -85,16 +85,6 @@ function frequency(value,hz=false){
  return Number(whole)*100000+Number(frac.slice(0,5).padEnd(5,'0'));
 }
 const mhz=n=>(Math.floor(n/100000)+'.'+String(n%100000).padStart(5,'0'));
-function checkedFrequency(n){const value=mhz(n),error=channelFrequencyError(value);if(error)fail(error);return value;}
-function directTx(value,hz,notes){if(off(value)){notes.push('Transmit disabled.');return '';}return checkedFrequency(frequency(value,hz));}
-function duplexTx(rx,dir,offset,notes){
- const d=upper(dir);if(['OFF','TX OFF'].includes(d)){notes.push('Transmit disabled.');return '';}
- if(['','SIMPLEX','OFF-RPT'].includes(d))return checkedFrequency(rx);
- if(['SPLIT'].includes(d))return checkedFrequency(frequency(offset));
- if(['+','DUP+','+RPT'].includes(d))return checkedFrequency(rx+frequency(offset));
- if(['-','DUP-','-RPT'].includes(d))return checkedFrequency(rx-frequency(offset));
- fail('Unsupported offset direction: '+dir+'.');
-}
 function enabled(value,label){const v=upper(value);if(['1','YES','ON','TRUE'].includes(v))return true;if(off(v)||v==='FALSE')return false;fail('Unsupported '+label+': '+value+'.');}
 function tone(value,choices,{dcs=false,polarity='N',btech=false}={}){
  let v=upper(value).replace(/\s*HZ$/,'').trim();if(off(v))return 'OFF';
@@ -103,7 +93,7 @@ function tone(value,choices,{dcs=false,polarity='N',btech=false}={}){
  if(m)v='D'+m[1].padStart(3,'0')+(m[2]||polarity);
  else if(/^\d{2,3}(\.\d+)?$/.test(v)){if(Number(v)!==Number(Number(v).toFixed(1)))fail('Unsupported CTCSS precision.');v=Number(v).toFixed(1);}
  else fail('Unsupported tone: '+value+'.');
- if(!choices.has(v))fail('Tone is not supported by MINI-5: '+value+'.');return v;
+ if(!choices.has(v))fail('Unsupported channel tone: '+value+'.');return v;
 }
 function tonesByMode(mode,{tx,rx,dc,rdc,pol='NN',cross=''},choices){
  const m=upper(mode).replace(/[\s_-]/g,'');let t='OFF',r='OFF';
@@ -123,12 +113,13 @@ function tonesByMode(mode,{tx,rx,dc,rdc,pol='NN',cross=''},choices){
 }
 function nameFor(value,charset,notes){
  let out='',bytes=0;for(const char of value.trim()){
-  const cp=char.codePointAt(0),range=charset.find(([a,b])=>cp>=a&&cp<=b);if(!range)fail('Name contains characters MINI-5 cannot store.');
+  const cp=char.codePointAt(0),range=charset.find(([a,b])=>cp>=a&&cp<=b);if(!range)fail('Name contains characters this radio cannot store.');
   if(bytes+range[2]>12){notes.push('Name shortened to 12 encoded bytes.');break;}out+=char;bytes+=range[2];
  }return out;
 }
-function power(value,defaultPower,notes){const p=upper(value);if(['HIGH','H'].includes(p))return 0;if(['LOW','L'].includes(p))return 1;
- notes.push((p?'Power “'+value+'” has no exact MINI-5 equivalent':'Power not specified')+'; using '+(defaultPower?'Low':'High')+'.');return defaultPower;
+function power(value,defaultPower,notes,model){const p=upper(value);if(['HIGH','H'].includes(p))return 0;if(['LOW','L'].includes(p))return 1;
+ if(model==='UV-32'&&['MID','MED','MEDIUM','M'].includes(p))return 2;
+ notes.push((p?'Power “'+value+'” has no exact '+model+' equivalent':'Power not specified')+'; using '+(defaultPower?'Low':'High')+'.');return defaultPower;
 }
 function bandwidth(value,notes){const v=upper(value).replace(/[\s]/g,'');if(['FM','25','25K','25.0KHZ','25KHZ','25000','WIDE'].includes(v))return 0;if(['NFM','FMN','FMNARROW','12.5','12.5K','12.5KHZ','12500','NARROW'].includes(v))return 1;
  if(!v){notes.push('Bandwidth not specified; using Wide FM.');return 0;}fail('Unsupported bandwidth or mode: '+value+'.');
@@ -138,7 +129,17 @@ function analog(mode,mixed,notes){const m=upper(mode);if(['FM','NFM','FMN','FM N
  if(/(?:^|[^A-Z0-9])(?:D-DIGITAL|DIGITAL|DMR|DV|D-STAR|DSTAR|C4FM|DN|VW|NXDN|P25|DPMR|YSF|FUSION)(?:$|[^A-Z0-9])/.test(m)||['A+D TX A','D+A TX D'].includes(m)){const error=Error('Digital channel filtered out.');error.skipDigital=true;throw error;}
  fail('Unsupported non-FM mode: '+(mode||'unspecified')+'.');}
 
-function convert(profile,cells,options,charset,defaultPower){
+function convert(profile,cells,options,charset,defaultPower,model,validateFrequency){
+ function checkedFrequency(n){const value=mhz(n),error=validateFrequency(value);if(error)fail(error);return value;}
+ function directTx(value,hz,notes){if(off(value)){notes.push('Transmit disabled.');return '';}return checkedFrequency(frequency(value,hz));}
+ function duplexTx(rx,dir,offset,notes){
+  const d=upper(dir);if(['OFF','TX OFF'].includes(d)){notes.push('Transmit disabled.');return '';}
+  if(['','SIMPLEX','OFF-RPT'].includes(d))return checkedFrequency(rx);
+  if(['SPLIT'].includes(d))return checkedFrequency(frequency(offset));
+  if(['+','DUP+','+RPT'].includes(d))return checkedFrequency(rx+frequency(offset));
+  if(['-','DUP-','-RPT'].includes(d))return checkedFrequency(rx-frequency(offset));
+  fail('Unsupported offset direction: '+dir+'.');
+ }
  const notes=[],ch=emptyChannel(),choices=new Set(options['KDH.Channel'].strRxCtsDcs.map(x=>x[0]));
  const g=profile.heads?reader(profile.heads,cells):i=>(cells[i]||'').trim(),id=profile.id;
  let rx,tx,name,mode,bw,p,scan='',txTone='OFF',rxTone='OFF',rxOnly=false;
@@ -201,12 +202,17 @@ function convert(profile,cells,options,charset,defaultPower){
  ch.rxFreq=checkedFrequency(frequency(rx,id==='btech'));
  ch.txFreq=rxOnly?'':(['chirp','icom','hmk','kenwood','generic'].includes(id)?tx:directTx(tx,id==='btech',notes));if(rxOnly)notes.push('Transmit disabled by source.');
  if(id==='adms'&&ch.txFreq!==duplexTx(frequency(rx),g(4),g(3),[]))fail('ADMS transmit frequency conflicts with its offset.');
- ch.name=nameFor(name,charset,notes);ch.strRxCtsDcs=rxTone;ch.strTxCtsDcs=txTone;ch.txPower=power(p,defaultPower,notes);ch.bandwide=bandwidth(bw,notes);
+ ch.name=nameFor(name,charset,notes);ch.strRxCtsDcs=rxTone;ch.strTxCtsDcs=txTone;ch.txPower=power(p,defaultPower,notes,model);ch.bandwide=bandwidth(bw,notes);
  if(['','OFF','0','NO'].includes(upper(scan)))ch.scanAdd=1;else if(['S','SKIP','ON','1','YES','P','PSKIP'].includes(upper(scan)))ch.scanAdd=0;else fail('Unsupported scan setting: '+scan+'.');
+ if(model==='UV-32'&&profile.heads){
+  const grouping=g('Zone Name')||g('Zone')||g('Bank Name')||g('Bank')||g('Group Name')||(id==='kenwood'?g('Group'):'');
+  const number=g('Group No')||(id==='kenwood'?g('Gn'):'');
+  if(grouping||number)ch.sourceZone=grouping||'Group '+number;
+ }
  return {channel:ch,notes,sourceName:name};
 }
 
-export function importChannelCsv(text,{options,charset,defaultPower=1}={}){
+export function importChannelCsv(text,{options,charset,defaultPower=1,model='MINI-5',validateFrequency=channelFrequencyError}={}){
  if(!options?.['KDH.Channel']||!charset)fail('Channel choices are not loaded.');if(![0,1].includes(defaultPower))fail('Choose High or Low for unspecified power.');
  if(typeof text!=='string'||text.length>MAX_CSV_BYTES)fail('Channel file must be smaller than 2 MB.');
  let lineOffset=0;const clean=text.replace(/^\uFEFF/,'');
@@ -218,21 +224,57 @@ export function importChannelCsv(text,{options,charset,defaultPower=1}={}){
  const rows=[];for(const record of profile.records){
   // ADMS exports include numbered blank memory rows; don't turn them into errors.
   if(profile.id==='adms'&&!record.cells[1]&&record.cells.slice(1,53).every(c=>!c.trim())){emptyRows++;continue;}
-  try{if(profile.heads&&record.cells.length!==profile.heads.length)fail('Column count does not match the header.');const converted=convert(profile,record.cells,options,charset,defaultPower);rows.push({line:record.line+lineOffset,...converted,error:''});}
+  try{if(profile.heads&&record.cells.length!==profile.heads.length)fail('Column count does not match the header.');const converted=convert(profile,record.cells,options,charset,defaultPower,model,validateFrequency);rows.push({line:record.line+lineOffset,...converted,error:''});}
   catch(e){if(e.skipDigital){skippedDigital++;continue;}rows.push({line:record.line+lineOffset,sourceName:'',channel:null,notes:[],error:e.message});}
  }
  if(!rows.length&&!skippedDigital)fail('No populated channel rows were found.');
- const notes=['Digital channels are filtered out automatically. Only analog channel fields are imported. Source channel numbers, comments, locations, contacts, zones and digital settings are not copied.','Missing scan inclusion defaults to Include. Missing or unrepresentable power uses the selected fallback. Other MINI-5 signaling options start Off.'];
+ const notes=['Digital channels are filtered out automatically. Only analog channel fields are imported. Source channel numbers, comments, locations, contacts and digital settings are not copied.','Missing scan inclusion defaults to Include. Missing or unrepresentable power uses the selected fallback. Other '+model+' signaling options start Off.'];
  if(profile.mapping)notes.unshift('Mapped columns: '+Object.entries(profile.mapping).map(([k,i])=>k+' = '+profile.originalHeads[i]).join('; ')+'.');
  return {kind:'csv',format:profile.label,rows,emptyRows,skippedDigital,channels:rows.filter(r=>r.channel).map(r=>r.channel),notes};
 }
 
-export async function readCsvFile(file,settings){
+export async function readCsvText(file){
  if(!file||!Number.isFinite(file.size)||file.size>=MAX_CSV_BYTES)fail('CSV must be smaller than 2 MB.');
  const bytes=new Uint8Array(await file.arrayBuffer());if(bytes.length>=MAX_CSV_BYTES)fail('CSV must be smaller than 2 MB.');
  let text,encoding='UTF-8';
  if(bytes[0]===255&&bytes[1]===254){text=new TextDecoder('utf-16le',{fatal:true}).decode(bytes);encoding='UTF-16 LE';}
  else if(bytes[0]===254&&bytes[1]===255){text=new TextDecoder('utf-16be',{fatal:true}).decode(bytes);encoding='UTF-16 BE';}
  else{try{text=new TextDecoder('utf-8',{fatal:true}).decode(bytes);}catch{text=new TextDecoder('windows-1252').decode(bytes);encoding='Windows-1252';}}
- const result=importChannelCsv(text,settings);return {...result,encoding};
+ return {text,encoding};
+}
+export async function readCsvFile(file,settings){
+ const {text,encoding}=await readCsvText(file);
+ return {...importChannelCsv(text,settings),encoding};
+}
+
+export async function readUv32ZoneFiles(files,settings){
+ if(files.length!==2||files.some(f=>!/\.csv$/i.test(f.name)))fail('Choose a channel CSV and its matching zone CSV together.');
+ const texts=await Promise.all(files.map(readCsvText));
+ const parsed=texts.map(({text})=>parseCsv(text).rows);
+ const zoneIndex=parsed.findIndex(rows=>rows[0].cells.map(key).includes('zonechannelmember'));
+ if(zoneIndex<0||parsed[1-zoneIndex][0].cells.map(key).includes('zonechannelmember'))fail('Choose one channel CSV and one zone membership CSV.');
+ const result=importChannelCsv(texts[1-zoneIndex].text,settings);
+ const [head,...zones]=parsed[zoneIndex],heads=head.cells.map(key);
+ if(!heads.includes('zonename'))fail('The zone CSV needs a Zone Name column.');
+ const byName=new Map(),assigned=new Set();
+ for(const row of result.rows){
+  if(!row.channel)continue;
+  if(!byName.has(row.sourceName))byName.set(row.sourceName,[]);
+  byName.get(row.sourceName).push(row.channel);
+ }
+ zones.forEach(({cells},zone)=>{
+  const g=reader(heads,cells),name=g('Zone Name'),members=g('Zone Channel Member').split('|');
+  if(!name)return;
+  const rx=g('Zone Channel Member RX Frequency').split('|'),tx=g('Zone Channel Member TX Frequency').split('|');
+  members.forEach((member,order)=>{
+   let matches=byName.get(member.trim())??[];
+   if(rx[order])matches=matches.filter(ch=>Number(ch.rxFreq)===Number(rx[order]));
+   if(matches.length>1&&tx[order])matches=matches.filter(ch=>ch.txFreq&&Number(ch.txFreq)===Number(tx[order]));
+   if(matches.length!==1||assigned.has(matches[0]))return;
+   Object.assign(matches[0],{sourceZone:name,sourceZoneOrder:zone,sourceMemberOrder:order});assigned.add(matches[0]);
+  });
+ });
+ if(result.channels.length&&!assigned.size)fail('These files have no matching analog zone members. Choose a matching export pair or import the channel CSV alone.');
+ result.notes.push(assigned.size+' analog channels matched to source zones. '+(result.channels.length-assigned.size)+' will use the next available slots.');
+ return result;
 }
