@@ -245,9 +245,9 @@ dialog#appendDialog.csv-import-dialog{width:min(1160px,96vw);padding:18px}
 .radio-picker select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
 .radio-picker:hover,.radio-picker:focus-within{border-color:var(--blue)}
 .radio-picker:focus-within{outline:2px solid var(--blue);outline-offset:-2px}
-.workspace-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:4px 10px}
+.workspace-head{--risk-width:42rem;display:grid;grid-template-columns:auto minmax(min-content,max-content) minmax(var(--risk-width),1fr) auto;align-items:center;gap:4px 10px}
 .workspace-head p{white-space:normal;overflow:visible}
-.workspace-head .risk-banner{position:static;flex:1 1 20rem;min-width:0;display:block;margin:0;padding:3px 8px;border:1px solid color-mix(in srgb,var(--warning-text) 25%,transparent);font-size:11px;line-height:1.22}
+.workspace-head .risk-banner{position:static;justify-self:center;width:min(100%,var(--risk-width));min-width:0;display:block;margin:0;text-align:center;text-wrap:balance;padding:3px 8px;border:1px solid color-mix(in srgb,var(--warning-text) 25%,transparent);font-size:11px;line-height:1.22}
 .workspace-head .risk-banner strong{display:inline;white-space:normal;margin-right:.5em}
 .workspace-head .tag{margin-left:auto}
 @media(min-width:751px){
@@ -258,8 +258,13 @@ dialog#appendDialog.csv-import-dialog{width:min(1160px,96vw);padding:18px}
  aside .side-bottom{margin-top:0;padding-top:0}
  aside .side-bottom p{margin-top:2px;line-height:1.35}
 }
+@media(max-width:1199px){
+ .workspace-head{grid-template-columns:auto minmax(0,1fr) auto}
+ .workspace-head .risk-banner{grid-column:1/-1;grid-row:2}
+ .workspace-head .tag{grid-column:3;grid-row:1}
+}
 @media(max-width:750px){
- .workspace-head .risk-banner{order:1;flex-basis:100%}
+ .workspace-head{grid-template-columns:auto minmax(0,1fr)}
  .radio-heading .brand-meta{margin:0}
 }
 .vfo-columns{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
