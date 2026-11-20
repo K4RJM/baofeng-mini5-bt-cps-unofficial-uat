@@ -225,20 +225,20 @@ export {toneBytes,tone};
   function channelBlocks(oldB, newB, base, limit, includeUnchanged) {
     const out = [];
     for (let o = 0; o < Math.min(newB.length, limit); o += BLOCK) {
-      const a = oldB.subarray(o, o + BLOCK), b = newB.subarray(o, o + BLOCK);
-      if (includeUnchanged || !eq(a, b)) out.push({ addr: base + o, data: new Uint8Array(b) });
+      const b = newB.subarray(o, o + BLOCK);
+      if (includeUnchanged || !oldB || !eq(oldB.subarray(o, o + BLOCK), b)) out.push({ addr: base + o, data: new Uint8Array(b) });
     }
     return out;
   }
   function planWrites(image, target, layout, allowHigh, includeUnchanged = false) {
     const L = LAYOUTS[layout];
-    let blocks = channelBlocks(image.ch, target.ch, CH_ADDR, L.chMax, includeUnchanged);
+    let blocks = channelBlocks(image?.ch, target.ch, CH_ADDR, L.chMax, includeUnchanged);
     if (blocks.some(b => b.addr >= LOW_LIMIT) && !allowHigh) throw new Error("plan touches channels 961-990 without permission");
-    if (L.zoneNames) blocks = blocks.concat(channelBlocks(image.zn, target.zn, ZN_ADDR, L.zones * 16, includeUnchanged));
+    if (L.zoneNames) blocks = blocks.concat(channelBlocks(image?.zn, target.zn, ZN_ADDR, L.zones * 16, includeUnchanged));
     for (const b of blocks) if (!(b.addr < 0x7C00 || (b.addr >= ZN_ADDR && b.addr < ZN_ADDR + ZN_LEN))) throw new Error("internal: illegal address " + b.addr);
     for(const region of sections){
-      if(!image[region.key]||!target[region.key])continue;
-      for(const b of channelBlocks(image[region.key],target[region.key],region.addr,region.length,false)){
+      if(!target[region.key])continue;
+      for(const b of channelBlocks(image?.[region.key],target[region.key],region.addr,region.length,false)){
         blocks.push({...b,region:region.key,read:region.read,write:region.write});
       }
     }

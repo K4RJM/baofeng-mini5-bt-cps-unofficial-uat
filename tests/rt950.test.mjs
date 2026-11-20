@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {workspaceBlocks} from '../scripts/rt950-workspace.mjs';
 import {BLOCK, EMPTY_REC, LAYOUTS, ZN_ADDR, planWrites} from '../scripts/rt950-core.mjs';
 import {appendCsv,blankImage,channel,editRecord,openBackup,overlayChanges,record,renameZone,saveBackup,zoneName} from '../scripts/rt950-channels.mjs';
 
@@ -68,4 +69,27 @@ test('RT-950 CSV targets named zones, skips digital and fails atomically on over
  const many='Name,Frequency\n'+Array(100).fill('A,146.52').join('\n');
  assert.throws(()=>appendCsv(image,'990',1,many,'Zone01_LOCAL.csv'));
  assert.equal(channel(record(image,'990',0)).rx,'');
+});
+
+test('direct writes use only supplied blocks and keep edits after reconnect or interruption',()=>{
+ const radio=blankImage();
+ radio.settings=new Uint8Array(BLOCK).fill(255);
+ radio.aprs=new Uint8Array(BLOCK);
+ const restored=workspaceBlocks(radio,'990',true);
+ assert.deepEqual(restored.slice(-2).map(b=>b.region),['settings','aprs']);
+ assert.equal(restored.length,252);
+ assert.equal(workspaceBlocks(blankImage(),'960',true).length,240);
+ assert.deepEqual(workspaceBlocks(blankImage(),'990',false),[]);
+
+ const draft={...radio,ch:radio.ch.slice()};
+ record(draft,'990',4).set(editRecord(EMPTY_REC,sample));
+ const delta=workspaceBlocks(draft,'990',true,{baseline:radio});
+ assert.deepEqual(delta.map(b=>b.addr),[BLOCK]);
+ const undo=workspaceBlocks(radio,'990',true,{baseline:radio,pending:delta});
+ assert.equal(undo.length,1);assert.deepEqual(undo[0].data,radio.ch.slice(BLOCK,2*BLOCK));
+ const scratch={...blankImage(),ch:draft.ch};
+ assert.deepEqual(workspaceBlocks(scratch,'990',false).map(b=>b.addr),[BLOCK]);
+ assert.deepEqual(workspaceBlocks(scratch,'990',false,{baseline:scratch}).map(b=>b.addr),[BLOCK]);
+ record(scratch,'990',989).set(editRecord(EMPTY_REC,sample));
+ assert.throws(()=>workspaceBlocks(scratch,'990',false),/bytes beyond/);
 });

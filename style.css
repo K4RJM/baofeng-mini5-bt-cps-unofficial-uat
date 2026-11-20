@@ -321,6 +321,10 @@ dialog#radioBookmarkDialog{width:min(27rem,94vw);padding:18px}
 .rt950-channels .toolbar{flex-wrap:wrap}
 .rt950-channels .table-bottom{justify-content:flex-start;flex-wrap:wrap;gap:8px}
 .rt950-zones label input{width:14ch}
+.rt950-channels .rt950-zones{align-items:center;gap:6px 9px}
+.rt950-zones label{flex-direction:row;white-space:nowrap}
+.rt950-zones label select{width:auto;max-width:21ch}
+.rt950-channels .rt950-zones :is(button,input,select){box-sizing:border-box;height:2.25rem;margin:0;padding:0 .65rem;font:inherit;line-height:normal}
 .rt950-dialog{width:min(40rem,94vw);max-height:90dvh;overflow:auto}
 .rt950-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(15rem,100%),1fr));gap:8px 14px}
 .rt950-fields label{display:grid;grid-template-columns:5em minmax(0,1fr)}

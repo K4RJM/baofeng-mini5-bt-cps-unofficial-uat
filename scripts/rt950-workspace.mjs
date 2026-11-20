@@ -1,13 +1,38 @@
-import {EMPTY_REC, LAYOUTS, LOW_LIMIT, blockBefore, sections, eq, planWrites, readImage, verifyBlocks, webBluetoothLink, writeBlocks} from './rt950-core.mjs';
+import {BLOCK, EMPTY_REC, LAYOUTS, LOW_LIMIT, REC, ZN_ADDR, blockBefore, sections, eq, planWrites, readImage, webBluetoothLink, writeBlocks} from './rt950-core.mjs';
 import {appendCsv, blankImage, channel, fullChannel, channelMenus, editRecord, exportZoneCsv, openBackup, overlayChanges, powers, record, renameZone, saveBackup, zoneName} from './rt950-channels.mjs';
 import {renderSection} from './rt950-forms.mjs';
 import {validateSettings} from './rt950-sections.mjs';
+import {renderRt950Help} from './rt950-help.mjs';
 
 const columns=[['name','Name'],['rx','RX MHz'],['tx','TX MHz'],['rxTone','RX tone'],['txTone','TX tone'],['signal','Signalling'],['ptt','PTT-ID'],['power','TX power'],['scramble','Scramble'],['learn','Learn FHSS'],['bandwidth','Bandwidth'],['encryption','Encryption'],['lock','Busy lockout'],['scan','Scan add'],['rxMode','RX modulation'],['fhss','FHSS code']];
 const pages={'Channels':'☷','Optional Features':'⚙','VFO A / B / C':'⇄','DTMF':'▦','FM / AM / SSB':'♫','APRS':'⌖','Radio & help':'ⓘ'};
 const layoutNames={'990':'0.24+ · 10 zones × 99','960':'Earlier · 15 zones × 64'};
 const sameImage=(a,b)=>eq(a.ch,b.ch)&&eq(a.zn,b.zn)&&sections.every(({key})=>
  a[key]===b[key]||(a[key]&&b[key]&&eq(a[key],b[key])));
+const emptyImage=blankImage();
+
+export function workspaceBlocks(target,layout,hasChannelImage,state){
+ const baseline=state?.baseline;
+ const pending=state?.pending??[];
+ const unchanged=baseline&&sameImage(baseline,target);
+ // With no radio snapshot, a backup owns its supplied sections. A new channel
+ // list owns only the blocks populated in the editor.
+ const reference=hasChannelImage?baseline:(unchanged||!baseline?emptyImage:baseline);
+ const blocks=planWrites(reference,target,layout,true,unchanged&&hasChannelImage&&!pending.length);
+ if(!hasChannelImage){
+  const {zones,per}=LAYOUTS[layout];
+  for(const b of blocks){
+   const end=b.addr>=ZN_ADDR?ZN_ADDR+zones*16:zones*per*REC;
+   if(b.addr+BLOCK>end)throw Error('This last block includes bytes beyond the editable slots. Open a saved radio backup to preserve those bytes when writing it.');
+  }
+ }
+ if(!pending.length)return blocks;
+ // An edit undone after an interruption may already have reached the radio.
+ const address=b=>(b.region||'memory')+'/'+b.addr;
+ const retry=new Map(pending.filter(b=>!b.region||target[b.region]).map(b=>[address(b),blockBefore(target,b)]));
+ for(const b of blocks)retry.set(address(b),b);
+ return [...retry.values()].sort((a,b)=>Number(a.region==='aprs')-Number(b.region==='aprs')||a.addr-b.addr);
+}
 export function createRt950Workspace({run,refresh,message,fileTools}){
  const $=id=>document.getElementById(id);
  function el(tag,text,cls){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;}
@@ -22,7 +47,13 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
  const write=sidebar('rt950Write','↑ Write Bluetooth',()=>run(writeRadio));
  const backup=sidebar('rt950Backup','↧ Save read backup',()=>download(original,'rt950pro-radio-backup.json'));
  let layout='990',zone=1,screen='Channels',search='',showEmpty=false,link=null,active=false;
- let base=blankImage(),draft=base,original=null,radioBase=null,history=[],restoreFile=false,uncertain=false;
+ let base=emptyImage,draft=base,original=null,history=[],restoreFile=false,hasChannelImage=false;
+ // A dropped GATT connection still belongs to the same browser device. Keep its
+ // last acknowledged image and any interrupted blocks until the next user action.
+ const radios=new Map();
+ const deviceKey=device=>device?.id||device;
+ const radioState=()=>radios.get(deviceKey(link?.device));
+ const hasWorkspace=()=>hasChannelImage||!sameImage(emptyImage,draft)||!!radioState()?.pending?.length||!sameImage(base,draft);
  let status='Choose the firmware layout shown in Menu › About. Connect to read your radio, or edit channels here.';
  const note=text=>{status=text;if(active)message(text);};
  function download(image,name){if(image)fileTools.save(saveBackup(image,layout),name,'application/json');}
@@ -31,56 +62,66 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
   note(text);if(repaint)render();refresh();
  }
  function undoEdit(){if(!history.length)return;draft=history.pop();render();refresh();note('Last edit undone.');}
- function disconnect(){const old=link;link=null;radioBase=null;old?.disconnect();}
- async function connect(){
-  if(link?.device?.gatt.connected){disconnect();note('Bluetooth disconnected.');return;}
+ function disconnect(){const old=link;link=null;old?.disconnect();}
+ async function chooseRadio(){
   disconnect();
   const next=webBluetoothLink(()=>{});link=next;
   try{await next.choose(false);}catch(error){disconnect();throw error;}
   next.device.addEventListener('gattserverdisconnected',()=>{
    if(link!==next)return;
-   radioBase=null;note('Bluetooth disconnected. Connect and read again before writing.');refresh();
+   note(hasWorkspace()?'Bluetooth disconnected. Your workspace is ready. Choose Write Bluetooth to reconnect and send it.':'Bluetooth disconnected.');refresh();
   });
-  note('Connected. Choose Read Bluetooth to load channels and radio settings.');
+  return next;
+ }
+ async function connect(){
+  if(link?.device?.gatt.connected){disconnect();note('Bluetooth disconnected. Your workspace is retained.');return;}
+  await chooseRadio();
+  note(hasWorkspace()?'Connected. Your workspace is ready to write.':'Connected. Read the radio, open a workspace or add channels.');
  }
  const opts={allowedModels:['RT-950']};
  function progress(verb){return (done,total)=>{const bar=$('progress');bar.max=total;bar.value=done;note(verb+' · '+done+' / '+total+' blocks');};}
  async function readRadio(){
   const session=link;
   if(!session?.device?.gatt.connected)throw Error('Use Connect at the top before reading.');
+  const uncertain=!!radioState()?.pending?.length;
   const merge=!uncertain&&(restoreFile||!sameImage(base,draft));
   if(uncertain&&!confirm('Read the current radio contents and replace the uncertain workspace? Save the workspace first to retain your edits.'))return;
   if(merge&&!confirm('Read this radio and stage your current workspace edits over its channels and settings?'))return;
-  radioBase=null;
   const fresh=await readImage(session,opts,progress('Reading'));
   if(link!==session||!session.device.gatt.connected)throw Error('The radio disconnected. Connect and read again.');
   const missing=fresh.unavailable||[];
   if(merge&&missing.some(k=>draft[k]&&(restoreFile||!base[k]||!eq(base[k],draft[k])))){
-   throw Error('Some settings could not be read. Your staged edits were kept. Read again before writing.');
+   throw Error('Some settings could not be read. Your staged workspace was kept.');
   }
   const next=merge?overlayChanges(fresh,restoreFile?fresh:base,draft,layout):fresh;
-  base=fresh;original=fresh;radioBase=fresh;draft=next;history=[];restoreFile=false;uncertain=false;
+  base=fresh;original=fresh;hasChannelImage=true;draft=next;history=[];restoreFile=false;
+  radios.set(deviceKey(session.device),{baseline:fresh,complete:true});
   note(missing.length?'Channels read. Unavailable settings: '+missing.join(', ')+'.':merge?'Read complete. Review the staged changes before writing.':'Channels and radio settings read. The original radio backup is available.');
   render();
  }
  async function writeRadio(){
-  if(!radioBase||!link?.device?.gatt.connected||uncertain)throw Error('Connect and read this radio before writing.');
-  const baseline=radioBase,target=draft,session=link;
-  validateSettings(target,baseline);
-  const unchanged=sameImage(baseline,target);
-  const blocks=planWrites(baseline,target,layout,true,unchanged);
+  if(!hasWorkspace())throw Error('Open a workspace or add channels to write.');
+  const session=link?.device?link:await chooseRadio();
+  const key=deviceKey(session.device),state=radios.get(key),baseline=state?.baseline,target=draft;
+  validateSettings(target,base);
+  const unchanged=baseline&&sameImage(baseline,target);
+  const blocks=workspaceBlocks(target,layout,hasChannelImage,state);
+  if(!blocks.length)throw Error('There are no workspace blocks to write.');
   const high=blocks.some(b=>!b.region&&b.addr>=LOW_LIMIT&&b.addr<0x7c00);
   const count=blocks.length+' block'+(blocks.length===1?'':'s');
-  const action=unchanged?'Write back the channel table'+(LAYOUTS[layout].zoneNames?' and zone names':'')+' exactly as read ('+count+')':'Write '+count+' of changes';
-  if(!confirm(action+' to this RT-950 Pro using '+layoutNames[layout]+'?'+(high?' This includes channels 961–990. Confirm that this radio has firmware 0.24 or later.':'')))return;
-  const expected=blocks.map(b=>blockBefore(baseline,b));
-  let changed;
-  try{changed=await verifyBlocks(session,opts,expected,progress('Checking radio contents before writing'));}
-  catch(error){radioBase=null;throw error;}
-  if(changed.length||radioBase!==baseline){radioBase=null;throw Error('The radio contents or connection changed. Read it again before writing.');}
-  try{await writeBlocks(session,opts,blocks,progress('Writing'));}
-  catch(error){uncertain=true;radioBase=null;note('Write incomplete. Read the radio before retrying. '+error.message);throw Error(status);}
-  base=target;radioBase=session.device.gatt.connected?target:null;history=[];restoreFile=false;
+  const scope=!baseline&&hasChannelImage?'Replace the channel table and all sections present in this workspace':
+   unchanged&&hasChannelImage&&!state?.pending?.length?'Write back the channel table'+(LAYOUTS[layout].zoneNames?' and zone names':''):'Write the selected workspace blocks';
+  const detail=!hasChannelImage?' Each channel block replaces four adjacent slots, including any empty slots in the block.':'';
+  if(!confirm(scope+' ('+count+') on '+(session.device.name||'this RT-950 Pro')+' using '+layoutNames[layout]+'?'+detail+(high?' This includes channels 961–990. Confirm firmware 0.24 or later.':'')))return;
+  let acknowledged=0;
+  note(session.device.gatt.connected?'Starting write…':'Reconnecting to write…');
+  const showProgress=progress('Writing');
+  try{await writeBlocks(session,opts,blocks,(done,total)=>{acknowledged=done;showProgress(done,total);});}
+  catch(error){
+   radios.set(key,{...state,pending:blocks});
+   note('Write incomplete. '+acknowledged+' of '+count+' acknowledged. Your workspace is retained. Choose Write Bluetooth to retry. '+error.message);throw Error(status);
+  }
+  base=target;radios.set(key,{baseline:target,complete:hasChannelImage});history=[];restoreFile=false;
   note('Write complete. The radio acknowledged '+count+'.');render();
  }
  input.onchange=()=>{
@@ -93,10 +134,17 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
     commit(added.image,'Added '+added.count+' analog channels.'+(added.skipped?' Skipped '+added.skipped+' unsupported modes.':''));return;
    }
    const saved=openBackup(text,layout);
-   if(radioBase&&saved.layout!==layout)throw Error('The backup uses a different firmware layout from this radio workspace.');
+   const state=radioState(),radioBase=state?.complete?state.baseline:null;
+   if(link?.device?.gatt.connected&&radioBase&&saved.layout!==layout)throw Error('The backup uses a different firmware layout from this radio workspace.');
    if(!confirm('Open this backup and replace the channels and settings it contains?'))return;
-   if(!radioBase){layout=saved.layout;base=blankImage();draft=saved.image;restoreFile=true;original=null;history=[];}
-   else{draft=overlayChanges(radioBase,radioBase,saved.image,layout);history=[];}
+   if(saved.layout!==layout){radios.clear();original=null;}
+   else for(const [key,known] of radios)if(!known.complete)radios.delete(key);
+   if(!radioBase||saved.layout!==layout){layout=saved.layout;base=saved.image;draft=base;}
+   else{
+    base=radioBase;draft=overlayChanges(radioBase,radioBase,saved.image,layout);
+    for(const {key} of sections)if(saved.image[key]&&!draft[key])draft[key]=saved.image[key];
+   }
+   history=[];hasChannelImage=true;restoreFile=true;
    zone=1;screen='Channels';render();note('Backup opened. Review the workspace before writing.');
   });
  };
@@ -146,10 +194,7 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
   const card=el('section',undefined,'card'+(screen==='Channels'?' channel-card rt950-channels':''));
   $('content').replaceChildren(card);
   if(screen==='Radio & help'){
-   card.append(el('h3','Bluetooth programming'),el('p','Check Menu › About on your radio. Firmware 0.24 and later has 10 zones of 99 channels. Earlier firmware has 15 zones of 64 channels with fixed zone names.'),
-    el('p','Choose the matching firmware in Channels, then Connect and Read Bluetooth. Save read backup keeps the original channels, zones and settings. Write Bluetooth sends changed blocks. With no edits, it writes back the channel table and supported zone names as read.'),
-    el('p','Import file opens an RT-950 JSON backup or appends analog channels from a CHIRP CSV to empty slots. A file named Zone03_LOCAL.csv targets zone 3. A plain CSV starts in the selected zone and continues into later zones as needed.'));
-   const ref=el('a','RT-950 Pro protocol reference ↗');ref.href='https://github.com/facenot/bj9000-programmer';ref.target='_blank';ref.rel='noopener noreferrer';card.append(ref);return;
+   renderRt950Help($('content'),draft);return;
   }
   if(screen!=='Channels'){
    $('pageDescription').textContent='';
@@ -161,7 +206,7 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
   const firmware=choices([['990',layoutNames['990']],['960',layoutNames['960']]],layout);firmware.id='rt950Firmware';
   firmware.onchange=()=>{
    if((original||restoreFile||!sameImage(base,draft))&&!confirm('Change firmware layout and clear this RT-950 workspace?')){firmware.value=layout;return;}
-   layout=firmware.value;zone=1;base=blankImage();draft=base;original=radioBase=null;history=[];restoreFile=uncertain=false;note('Firmware layout changed.');render();refresh();
+   layout=firmware.value;zone=1;base=emptyImage;draft=base;original=null;radios.clear();history=[];restoreFile=hasChannelImage=false;note('Firmware layout changed.');render();refresh();
   };
   const find=el('input');find.type='search';find.placeholder='Search channels';find.setAttribute('aria-label','Search channels');find.value=search;
   const empty=el('input');empty.type='checkbox';empty.checked=showEmpty;
@@ -228,9 +273,9 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
    $('connection').textContent=connected?'Connected':'Not connected';$('connectionHint').textContent=navigator.bluetooth?'Bluetooth programming':'File editing available';
    $('linkDot').classList.toggle('online',connected);$('connect').textContent=connected?'Disconnect':'Connect';
    $('connect').disabled=busy||!navigator.bluetooth||!window.isSecureContext;
-   $('sourceTag').textContent=uncertain?'Write incomplete':radioBase?'RT-950 Pro radio read':restoreFile?'RT-950 Pro backup':'RT-950 Pro workspace';
-   read.disabled=busy||!connected;write.disabled=busy||!connected||!radioBase||uncertain;
-   write.title=!radioBase?'Connect and read the radio before writing.':sameImage(radioBase,draft)?'Write the channel table back as read.':'Write changed channel, zone and settings blocks.';
+   $('sourceTag').textContent=radioState()?.pending?.length?'Write incomplete':restoreFile?'RT-950 Pro backup':original?'RT-950 Pro radio read':'RT-950 Pro workspace';
+   read.disabled=busy||!connected;write.disabled=busy||!navigator.bluetooth||!window.isSecureContext||!hasWorkspace();
+   write.title=hasWorkspace()?'Send the current workspace over Bluetooth.':'Open a workspace or add channels to write.';
    backup.disabled=busy||!original;
   }
  };
