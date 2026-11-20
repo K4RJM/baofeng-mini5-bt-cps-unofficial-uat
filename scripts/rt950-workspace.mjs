@@ -1,9 +1,13 @@
-import {BLOCK, EMPTY_REC, LAYOUTS, LOW_LIMIT, ZN_ADDR, eq, planWrites, readImage, verifyBlocks, webBluetoothLink, writeBlocks} from './rt950-core.mjs';
-import {appendCsv, blankImage, channel, editRecord, modes, openBackup, overlayChanges, powers, record, renameZone, saveBackup, zoneName} from './rt950-channels.mjs';
+import {EMPTY_REC, LAYOUTS, LOW_LIMIT, blockBefore, sections, eq, planWrites, readImage, verifyBlocks, webBluetoothLink, writeBlocks} from './rt950-core.mjs';
+import {appendCsv, blankImage, channel, fullChannel, channelMenus, editRecord, exportZoneCsv, openBackup, overlayChanges, powers, record, renameZone, saveBackup, zoneName} from './rt950-channels.mjs';
+import {renderSection} from './rt950-forms.mjs';
+import {validateSettings} from './rt950-sections.mjs';
 
-const columns=[['name','Name'],['rx','RX MHz'],['tx','TX MHz'],['rxTone','RX tone'],['txTone','TX tone'],['mode','Mode'],['power','Power'],['scan','Scan']];
+const columns=[['name','Name'],['rx','RX MHz'],['tx','TX MHz'],['rxTone','RX tone'],['txTone','TX tone'],['signal','Signalling'],['ptt','PTT-ID'],['power','TX power'],['scramble','Scramble'],['learn','Learn FHSS'],['bandwidth','Bandwidth'],['encryption','Encryption'],['lock','Busy lockout'],['scan','Scan add'],['rxMode','RX modulation'],['fhss','FHSS code']];
+const pages={'Channels':'☷','Optional Features':'⚙','VFO A / B / C':'⇄','DTMF':'▦','FM / AM / SSB':'♫','APRS':'⌖','Radio & help':'ⓘ'};
 const layoutNames={'990':'0.24+ · 10 zones × 99','960':'Earlier · 15 zones × 64'};
-const sameImage=(a,b)=>eq(a.ch,b.ch)&&eq(a.zn,b.zn);
+const sameImage=(a,b)=>eq(a.ch,b.ch)&&eq(a.zn,b.zn)&&sections.every(({key})=>
+ a[key]===b[key]||(a[key]&&b[key]&&eq(a[key],b[key])));
 export function createRt950Workspace({run,refresh,message,fileTools}){
  const $=id=>document.getElementById(id);
  function el(tag,text,cls){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;}
@@ -22,10 +26,11 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
  let status='Choose the firmware layout shown in Menu › About. Connect to read your radio, or edit channels here.';
  const note=text=>{status=text;if(active)message(text);};
  function download(image,name){if(image)fileTools.save(saveBackup(image,layout),name,'application/json');}
- function commit(next,text){
+ function commit(next,text,repaint=true){
   if(!sameImage(draft,next)){history.push(draft);if(history.length>20)history.shift();draft=next;}
-  note(text);render();refresh();
+  note(text);if(repaint)render();refresh();
  }
+ function undoEdit(){if(!history.length)return;draft=history.pop();render();refresh();note('Last edit undone.');}
  function disconnect(){const old=link;link=null;radioBase=null;old?.disconnect();}
  async function connect(){
   if(link?.device?.gatt.connected){disconnect();note('Bluetooth disconnected.');return;}
@@ -36,7 +41,7 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
    if(link!==next)return;
    radioBase=null;note('Bluetooth disconnected. Connect and read again before writing.');refresh();
   });
-  note('Connected. Choose Read Bluetooth to load the channels.');
+  note('Connected. Choose Read Bluetooth to load channels and radio settings.');
  }
  const opts={allowedModels:['RT-950']};
  function progress(verb){return (done,total)=>{const bar=$('progress');bar.max=total;bar.value=done;note(verb+' · '+done+' / '+total+' blocks');};}
@@ -45,25 +50,30 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
   if(!session?.device?.gatt.connected)throw Error('Use Connect at the top before reading.');
   const merge=!uncertain&&(restoreFile||!sameImage(base,draft));
   if(uncertain&&!confirm('Read the current radio contents and replace the uncertain workspace? Save the workspace first to retain your edits.'))return;
-  if(merge&&!confirm('Read this radio and stage your current workspace edits over its channels?'))return;
+  if(merge&&!confirm('Read this radio and stage your current workspace edits over its channels and settings?'))return;
   radioBase=null;
   const fresh=await readImage(session,opts,progress('Reading'));
   if(link!==session||!session.device.gatt.connected)throw Error('The radio disconnected. Connect and read again.');
+  const missing=fresh.unavailable||[];
+  if(merge&&missing.some(k=>draft[k]&&(restoreFile||!base[k]||!eq(base[k],draft[k])))){
+   throw Error('Some settings could not be read. Your staged edits were kept. Read again before writing.');
+  }
   const next=merge?overlayChanges(fresh,restoreFile?fresh:base,draft,layout):fresh;
   base=fresh;original=fresh;radioBase=fresh;draft=next;history=[];restoreFile=false;uncertain=false;
-  note(merge?'Read complete. Review the staged channel changes before writing.':'Read complete. The original radio backup is available.');
+  note(missing.length?'Channels read. Unavailable settings: '+missing.join(', ')+'.':merge?'Read complete. Review the staged changes before writing.':'Channels and radio settings read. The original radio backup is available.');
   render();
  }
  async function writeRadio(){
   if(!radioBase||!link?.device?.gatt.connected||uncertain)throw Error('Connect and read this radio before writing.');
   const baseline=radioBase,target=draft,session=link;
+  validateSettings(target,baseline);
   const unchanged=sameImage(baseline,target);
   const blocks=planWrites(baseline,target,layout,true,unchanged);
-  const high=blocks.some(b=>b.addr>=LOW_LIMIT&&b.addr<ZN_ADDR);
+  const high=blocks.some(b=>!b.region&&b.addr>=LOW_LIMIT&&b.addr<0x7c00);
   const count=blocks.length+' block'+(blocks.length===1?'':'s');
   const action=unchanged?'Write back the channel table'+(LAYOUTS[layout].zoneNames?' and zone names':'')+' exactly as read ('+count+')':'Write '+count+' of changes';
   if(!confirm(action+' to this RT-950 Pro using '+layoutNames[layout]+'?'+(high?' This includes channels 961–990. Confirm that this radio has firmware 0.24 or later.':'')))return;
-  const expected=blocks.map(({addr})=>({addr,data:addr>=ZN_ADDR?baseline.zn.slice(addr-ZN_ADDR,addr-ZN_ADDR+BLOCK):baseline.ch.slice(addr,addr+BLOCK)}));
+  const expected=blocks.map(b=>blockBefore(baseline,b));
   let changed;
   try{changed=await verifyBlocks(session,opts,expected,progress('Checking radio contents before writing'));}
   catch(error){radioBase=null;throw error;}
@@ -84,20 +94,21 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
    }
    const saved=openBackup(text,layout);
    if(radioBase&&saved.layout!==layout)throw Error('The backup uses a different firmware layout from this radio workspace.');
-   if(!confirm('Open this backup and replace the workspace channels?'))return;
+   if(!confirm('Open this backup and replace the channels and settings it contains?'))return;
    if(!radioBase){layout=saved.layout;base=blankImage();draft=saved.image;restoreFile=true;original=null;history=[];}
    else{draft=overlayChanges(radioBase,radioBase,saved.image,layout);history=[];}
-   zone=1;screen='Channels';render();note('Backup opened. Review the channels before writing.');
+   zone=1;screen='Channels';render();note('Backup opened. Review the workspace before writing.');
   });
  };
  function editor(slot){
-  const bytes=record(draft,layout,slot),initial=channel(bytes),adding=!initial.rx;
-  if(adding)Object.assign(initial,{rxTone:'Off',txTone:'Off',mode:'FM',power:'High',scan:true});
+  const bytes=record(draft,layout,slot),initial=fullChannel(bytes),adding=!initial.rx;
+  if(adding)Object.assign(initial,Object.fromEntries(Object.entries(channelMenus).map(([k,opts])=>[k,opts[0]])),{rxTone:'Off',txTone:'Off',power:'High',scan:true,fhss:''});
   const dlg=el('dialog',undefined,'rt950-dialog'),form=el('form');
-  const title=el('h3',(adding?'Add':'Edit')+' channel '+(slot%LAYOUTS[layout].per+1)+' · Zone '+zone);
+  const per=LAYOUTS[layout].per;
+  const title=el('h3',(adding?'Add':'Edit')+' channel '+(slot%per+1)+' · Zone '+(Math.floor(slot/per)+1));
   const fields=el('div',undefined,'rt950-fields'),controls={};
   for(const [key,name] of columns){
-   const value=initial[key],options=key==='mode'?modes:key==='power'?powers:null;
+   const value=initial[key],options=key==='power'?powers:channelMenus[key];
    const control=options?choices([...new Set([...options,value])].map(x=>[x,x]),value):el('input');
    if(!options){if(key==='scan'){control.type='checkbox';control.checked=value;}else{control.value=value;if(key==='name')control.maxLength=12;}}
    if(key==='rx')control.required=true;
@@ -126,18 +137,25 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
   if(!active)return;
   $('brandTitle').textContent='Ham-Rx Radtel RT-950 Pro';
   document.documentElement.dataset.screen=screen==='Channels'?'channels':'other';
-  $('tabs').replaceChildren(...['Channels','Radio & help'].map((s,i)=>{
-   const b=button((i?'ⓘ ':'☷ ')+s,()=>{screen=s;render();});b.classList.toggle('active',s===screen);if(s===screen)b.setAttribute('aria-current','page');return b;
+  $('tabs').replaceChildren(...Object.entries(pages).map(([s,icon])=>{
+   const b=button(icon+' '+s,()=>{screen=s;render();});b.classList.toggle('active',s===screen);if(s===screen)b.setAttribute('aria-current','page');return b;
   }));
-  $('pageTitle').textContent=screen==='Channels'?'Channels · Zone '+zone:screen;
-  $('pageDescription').textContent=screen==='Channels'?'Edit RT-950 Pro channels by zone.':'Radtel RT-950 Pro programming';
+  const allChannels=draft.settings?.[38]!==255&&(draft.settings?.[38]&15)===1;
+  $('pageTitle').textContent=screen==='Channels'?(allChannels?'Channels · All':'Channels · Zone '+zone):screen;
+  $('pageDescription').textContent=screen==='Channels'?(allChannels?'All CH Mode':'Edit RT-950 Pro channels by zone.'):'Radtel RT-950 Pro programming';
   const card=el('section',undefined,'card'+(screen==='Channels'?' channel-card rt950-channels':''));
   $('content').replaceChildren(card);
-  if(screen!=='Channels'){
+  if(screen==='Radio & help'){
    card.append(el('h3','Bluetooth programming'),el('p','Check Menu › About on your radio. Firmware 0.24 and later has 10 zones of 99 channels. Earlier firmware has 15 zones of 64 channels with fixed zone names.'),
-    el('p','Choose the matching firmware in Channels, then Connect and Read Bluetooth. Save read backup keeps the original channels and zone data. Write Bluetooth sends edited blocks. With no edits, it writes the channel table back as read, including zone names on firmware 0.24 and later. The radio acknowledges each block.'),
+    el('p','Choose the matching firmware in Channels, then Connect and Read Bluetooth. Save read backup keeps the original channels, zones and settings. Write Bluetooth sends changed blocks. With no edits, it writes back the channel table and supported zone names as read.'),
     el('p','Import file opens an RT-950 JSON backup or appends analog channels from a CHIRP CSV to empty slots. A file named Zone03_LOCAL.csv targets zone 3. A plain CSV starts in the selected zone and continues into later zones as needed.'));
    const ref=el('a','RT-950 Pro protocol reference ↗');ref.href='https://github.com/facenot/bj9000-programmer';ref.target='_blank';ref.rel='noopener noreferrer';card.append(ref);return;
+  }
+  if(screen!=='Channels'){
+   $('pageDescription').textContent='';
+   card.classList.add('rt950-config');
+   renderSection(card,screen,{el,field,button,image:()=>draft,update:(img,msg)=>commit(img,msg,false),undo:undoEdit,canUndo:()=>history.length>0,note,layout});
+   return;
   }
   const bar=el('div',undefined,'toolbar'),controls=el('div',undefined,'toolbar-controls');
   const firmware=choices([['990',layoutNames['990']],['960',layoutNames['960']]],layout);firmware.id='rt950Firmware';
@@ -150,23 +168,24 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
   const show=el('label',undefined,'check');show.append(empty,'Show empty slots');
   controls.append(field('Firmware',firmware),find,show);bar.append(controls);
   const actions=el('div',undefined,'toolbar-actions');
-  const per=LAYOUTS[layout].per,start=(zone-1)*per;
+  const bankSize=LAYOUTS[layout].per;
+  const per=allChannels?bankSize*LAYOUTS[layout].zones:bankSize,start=allChannels?0:(zone-1)*bankSize;
   const add=button('＋ Add channel',()=>{for(let i=start;i<start+per;i++)if(!channel(record(draft,layout,i)).rx){editor(i);return;}note('This zone is full. Choose another zone.');});
-  const undo=button('Undo',()=>{draft=history.pop();render();refresh();note('Last channel or zone edit undone.');});undo.disabled=!history.length;actions.append(add,undo);bar.append(actions);
+  const undo=button('Undo',undoEdit);undo.disabled=!history.length;actions.append(add,undo);bar.append(actions);
   const wrap=el('div',undefined,'table-wrap');wrap.id='channelTableWrap';const table=el('table',undefined,'rt950-table'),head=table.createTHead().insertRow();
   for(const caption of ['Ch',...columns.map(c=>c[1]),'Actions'])head.append(el('th',caption));
   const body=table.createTBody();wrap.append(table);
   function paint(){
    body.replaceChildren();
    for(let i=start;i<start+per;i++){
-    const row=channel(record(draft,layout,i)),n=i-start+1;
+    const row=fullChannel(record(draft,layout,i)),n=i-start+1;
     if(!showEmpty&&!row.rx)continue;
     if(![n,row.name,row.rx,row.tx].join(' ').toLowerCase().includes(search.toLowerCase()))continue;
     const tr=body.insertRow();tr.className='channel-row';tr.insertCell().textContent=n;
     for(const [key] of columns)tr.insertCell().textContent=row.rx?(key==='scan'?(row.scan?'Add':'Skip'):row[key]||(key==='tx'?'RX only':'')):'';
     const cell=tr.insertCell();cell.append(button(row.rx?'Edit':'Add',()=>editor(i)));
     if(row.rx)cell.append(button('Delete',()=>{
-     if(!confirm('Delete channel '+n+' from zone '+zone+'?'))return;
+     if(!confirm('Delete channel '+n+(allChannels?'':' from zone '+zone)+'?'))return;
      const next={...draft,ch:draft.ch.slice()};record(next,layout,i).set(EMPTY_REC);commit(next,'Channel deleted from the workspace.');
     }));
     tr.ondblclick=e=>{if(!e.target.closest('button'))editor(i);};
@@ -177,12 +196,21 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
   const foot=el('div',undefined,'table-bottom rt950-zones'),zones=LAYOUTS[layout].zones;
   function navigate(n){zone=(n-1+zones)%zones+1;render();}
   const picker=choices(Array.from({length:zones},(_,i)=>[String(i+1),'Zone '+(i+1)+(zoneName(draft,layout,i+1)?' · '+zoneName(draft,layout,i+1):'')]),String(zone));
-  picker.onchange=()=>navigate(Number(picker.value));foot.append(button('‹ Previous',()=>navigate(zone-1)),field('Zone',picker),button('Next ›',()=>navigate(zone+1)));
-  if(LAYOUTS[layout].zoneNames){
+  picker.onchange=()=>navigate(Number(picker.value));
+  if(!allChannels)foot.append(button('‹ Previous',()=>navigate(zone-1)),field('Zone',picker),button('Next ›',()=>navigate(zone+1)));
+  if(!allChannels&&LAYOUTS[layout].zoneNames){
    const name=el('input');name.maxLength=12;name.value=zoneName(draft,layout,zone);
    const rename=()=>{try{const next={...draft,zn:draft.zn.slice()};renameZone(next,layout,zone,name.value);commit(next,'Zone name saved to the workspace.');}catch(error){note(error.message);}};
    name.onkeydown=e=>{if(e.key==='Enter')rename();};foot.append(field('Zone name',name),button('Rename',rename));
   }
+  const scope=allChannels?'all zones':'zone '+zone;
+  foot.append(button('Export CHIRP CSV',()=>fileTools.save(exportZoneCsv(draft,layout,allChannels?null:zone),allChannels?'RT950Pro_all_channels.csv':'Zone'+String(zone).padStart(2,'0')+'_'+(zoneName(draft,layout,zone)||'Channels')+'.csv','text/csv')),
+   button(allChannels?'Clear list':'Clear zone',()=>{
+    if(!confirm('Clear all channels in '+scope+' from the workspace?'))return;
+    const next={...draft,ch:draft.ch.slice()};
+    for(let i=start;i<start+per;i++)record(next,layout,i).set(EMPTY_REC);
+    commit(next,'Cleared channels in '+scope+'.');
+   }));
   card.append(bar,wrap,foot);
  }
  return {
@@ -202,7 +230,7 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
    $('connect').disabled=busy||!navigator.bluetooth||!window.isSecureContext;
    $('sourceTag').textContent=uncertain?'Write incomplete':radioBase?'RT-950 Pro radio read':restoreFile?'RT-950 Pro backup':'RT-950 Pro workspace';
    read.disabled=busy||!connected;write.disabled=busy||!connected||!radioBase||uncertain;
-   write.title=!radioBase?'Connect and read the radio before writing.':sameImage(radioBase,draft)?'Write the channel table back as read.':'Write changed channel and zone blocks.';
+   write.title=!radioBase?'Connect and read the radio before writing.':sameImage(radioBase,draft)?'Write the channel table back as read.':'Write changed channel, zone and settings blocks.';
    backup.disabled=busy||!original;
   }
  };

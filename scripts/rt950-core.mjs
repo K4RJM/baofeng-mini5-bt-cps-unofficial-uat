@@ -60,6 +60,15 @@ SOFTWARE.
     .map(s => Array.from(s, c => c.charCodeAt(0)));
   const CH_ADDR = 0x0000, CH_LEN = 0x8000, ZN_ADDR = 0xC000, ZN_LEN = 0x100;
   const LOW_LIMIT = 0x7800;
+  // APRS has its own address space. Its address zero is unrelated to channel zero.
+  const sections = [
+    {key:'vfo', addr:0x8000, length:BLOCK},
+    {key:'settings', addr:0x9000, length:BLOCK},
+    {key:'dtmf', addr:0xa000, length:3*BLOCK},
+    {key:'receiver', addr:0xb000, length:2*BLOCK},
+    {key:'names', addr:0xd000, length:6*BLOCK},
+    {key:'aprs', addr:0, length:BLOCK, read:0x54, write:0x58}
+  ];
   const LAYOUTS = {
     "990": { zones: 10, per: 99, chMax: 0x7C00, zoneNames: true },
     "960": { zones: 15, per: 64, chMax: 0x7800, zoneNames: false },
@@ -165,6 +174,20 @@ SOFTWARE.
     return `${name.padEnd(9)} RX ${rx.toFixed(4)} TX ${tx.toFixed(4)} ${f & 2 ? "" : "RX-only "}${f & 1 ? "AM" : f & 0x40 ? "NFM" : "FM"}`;
   }
 
+function toneBytes(value){
+ if(!value||/^off$/i.test(value))return [0,0];
+ const dcs=/^D([0-7]{3})([NIR])$/i.exec(value);
+ if(dcs)return encDcs(dcs[1],dcs[2]);
+ if(!/^\d{2,3}(?:\.\d)?$/.test(value)||Number(value)<60||Number(value)>260)throw Error('Enter Off, a CTCSS tone in Hz, or a DCS code such as D023N.');
+ return encCtcss(value);
+}
+function tone(raw){
+ const n=raw[0]+256*raw[1];
+ if(!n||n===65535)return 'Off';
+ return DCS_CODES[n-1]??(n>=600&&n<=2600?(n/10).toFixed(1):'Raw '+n);
+}
+export {toneBytes,tone};
+
   // --------------------------------------------------------------- CSV
   function parseCSV(text) {
     const rows = []; let row = [], f = "", q = false;
@@ -213,7 +236,20 @@ SOFTWARE.
     if (blocks.some(b => b.addr >= LOW_LIMIT) && !allowHigh) throw new Error("plan touches channels 961-990 without permission");
     if (L.zoneNames) blocks = blocks.concat(channelBlocks(image.zn, target.zn, ZN_ADDR, L.zones * 16, includeUnchanged));
     for (const b of blocks) if (!(b.addr < 0x7C00 || (b.addr >= ZN_ADDR && b.addr < ZN_ADDR + ZN_LEN))) throw new Error("internal: illegal address " + b.addr);
+    for(const region of sections){
+      if(!image[region.key]||!target[region.key])continue;
+      for(const b of channelBlocks(image[region.key],target[region.key],region.addr,region.length,false)){
+        blocks.push({...b,region:region.key,read:region.read,write:region.write});
+      }
+    }
     return blocks;
+  }
+
+  function blockBefore(image,block){
+    const region=sections.find(r=>r.key===block.region);
+    const offset=region?block.addr-region.addr:block.addr>=ZN_ADDR?block.addr-ZN_ADDR:block.addr;
+    const bytes=region?image[region.key]:block.addr>=ZN_ADDR?image.zn:image.ch;
+    return {...block,data:bytes.slice(offset,offset+BLOCK)};
   }
 
   /* link: { write(Uint8Array) -> Promise, onData = fn(Uint8Array) set by us,
@@ -306,19 +342,21 @@ SOFTWARE.
       }
       return out;
     }
-    async writeBlock(a, data) {
+    async writeBlock(a, data, cmd=0x57) {
       if (data.length !== BLOCK) throw new Error("block size");
       const frame = new Uint8Array(4 + BLOCK);
-      frame.set([0x57, a >> 8, a & 0xFF, BLOCK]); frame.set(this._xor(data), 4);
+      frame.set([cmd, a >> 8, a & 0xFF, BLOCK]); frame.set(this._xor(data), 4);
       this.clear();
-      await this._w(frame);
+      const aprs=cmd===0x58;
+      await this._w(frame,{withResponse:aprs});
       // radio answers a single 0x06; tolerate an echoed header byte or two before it
-      const got = [...(await this._r(1, a >= 0x8000 ? 10000 : 8000))];
+      const got = [...(await this._r(1, aprs ? 30000 : a >= 0x8000 ? 10000 : 8000))];
       for (let i = 0; i < 4 && !got.includes(ACK); i++) {
         try { got.push(...(await this._r(1, 600))); } catch (e) { break; }
       }
       if (!got.includes(ACK)) throw new Error(`no ACK for block 0x${a.toString(16)} (got ${toHex(got)})`);
-      if (a >= 0x8000) await sleep(50);
+      if (aprs) await sleep(600);
+      else if (a >= 0x8000) await sleep(50);
     }
     async end() { try { await this._w(new Uint8Array([0x45])); } catch (e) { /* link may drop */ } this.key = null; }
   }
@@ -331,24 +369,39 @@ SOFTWARE.
     try { return await fn(t); } finally { await t.end(); await sleep(300); }
   }
   async function readImage(link, opts, progress) {
-    const total = (CH_LEN + ZN_LEN) / BLOCK; let done = 0;
+    const total = (CH_LEN + ZN_LEN + sections.reduce((n,r)=>n+r.length,0)) / BLOCK; let done = 0;
     const tick = () => { done++; if (progress) progress(done, total); };
-    return session(link, opts, async t => {
+    const image=await session(link, opts, async t => {
       const ch = await t.read(CH_ADDR, CH_LEN, tick);
       const zn = await t.read(ZN_ADDR, ZN_LEN, tick);
-      return { ch, zn, model: t.model };
+      const image={ch,zn,model:t.model};
+      for(const r of sections){
+        try{image[r.key]=await t.read(r.addr,r.length,tick,r.read);}
+        catch(error){image.unavailable=[r.key];opts?.log?.(error.message);break;}
+      }
+      return image;
     });
+    // After a failed optional region, start a fresh session before requesting
+    // another region. Channel-only firmware can still use its completed read.
+    if(image.unavailable){
+      const first=sections.findIndex(r=>r.key===image.unavailable[0]);
+      for(const r of sections.slice(first+1)){
+        try{image[r.key]=await session(link,opts,t=>t.read(r.addr,r.length,tick,r.read));}
+        catch(error){image.unavailable.push(r.key);opts?.log?.(error.message);}
+      }
+    }
+    return image;
   }
   async function writeBlocks(link, opts, blocks, progress) {
     return session(link, opts, async t => {
-      for (let i = 0; i < blocks.length; i++) { await t.writeBlock(blocks[i].addr, blocks[i].data); if (progress) progress(i + 1, blocks.length); }
+      for (let i = 0; i < blocks.length; i++) { await t.writeBlock(blocks[i].addr, blocks[i].data, blocks[i].write); if (progress) progress(i + 1, blocks.length); }
     });
   }
   async function verifyBlocks(link, opts, blocks, progress) {
     return session(link, opts, async t => {
       const bad = [];
       for (let i = 0; i < blocks.length; i++) {
-        const got = await t.read(blocks[i].addr, BLOCK);
+        const got = await t.read(blocks[i].addr, BLOCK, null, blocks[i].read);
         if (!eq(got, blocks[i].data)) bad.push(blocks[i].addr);
         if (progress) progress(i + 1, blocks.length);
       }
@@ -357,8 +410,12 @@ SOFTWARE.
   }
   function backupJSON(image) {   // compatible with bj9000_upload.py backups
     const ts = new Date().toISOString().replace(/[-:]/g, "").replace("T", "_").slice(0, 15);
-    return { name: `bj9000_backup_${ts}.json`, text: JSON.stringify({ tool: `bj9000_web ${VERSION}`, model: image.model, saved: ts, segments: { "0000": toHex(image.ch), "C000": toHex(image.zn) } }) };
+    const segments={"0000":toHex(image.ch),"C000":toHex(image.zn)};
+    for(const r of sections)if(image[r.key])segments[segmentKey(r)]=toHex(image[r.key]);
+    return { name: `bj9000_backup_${ts}.json`, text: JSON.stringify({ tool: `bj9000_web ${VERSION}`, model: image.model, saved: ts, segments }) };
   }
+  const segmentKey=r=>r.key==='aprs'?'APRS':r.addr.toString(16).toUpperCase();
+  export {sections, segmentKey, blockBefore};
   function chunkedWriter(sendChunk) {
     return async (bytes, o) => {
       for (let i = 0; i < bytes.length; i += BLE.CHUNK) await sendChunk(bytes.slice(i, i + BLE.CHUNK), o || {});
