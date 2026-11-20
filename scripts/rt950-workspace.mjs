@@ -160,38 +160,34 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
    zone=1;screen='Channels';render();note('Backup opened. Review the workspace before writing.');
   });
  };
- function editor(slot){
-  const bytes=record(draft,layout,slot),initial=fullChannel(bytes),adding=!initial.rx;
-  if(adding)Object.assign(initial,Object.fromEntries(Object.entries(channelMenus).map(([k,opts])=>[k,opts[0]])),{rxTone:'Off',txTone:'Off',power:'High',scan:true,fhss:''});
-  const dlg=el('dialog',undefined,'rt950-dialog'),form=el('form');
-  const per=LAYOUTS[layout].per;
-  const title=el('h3',(adding?'Add':'Edit')+' channel '+(slot%per+1)+' · Zone '+(Math.floor(slot/per)+1));
-  const fields=el('div',undefined,'rt950-fields'),controls={};
-  for(const [key,name] of columns){
-   const value=initial[key],options=key==='power'?powers:channelMenus[key];
-   const control=options?choices([...new Set([...options,value])].map(x=>[x,x]),value):el('input');
-   if(!options){if(key==='scan'){control.type='checkbox';control.checked=value;}else{control.value=value;if(key==='name')control.maxLength=12;}}
-   if(key==='rx')control.required=true;
-   if(key==='tx')control.placeholder='Blank for receive only';
-   if(key.endsWith('Tone'))control.title='Off, CTCSS in Hz, or DCS such as D023N';
-   controls[key]=control;fields.append(field(name,control));
+ function channelValues(slot){
+  const row=fullChannel(record(draft,layout,slot));
+  if(!row.rx)Object.assign(row,Object.fromEntries(Object.entries(channelMenus).map(([key,options])=>[key,options[0]])),{name:'',tx:'',rxTone:'Off',txTone:'Off',power:'High',scan:true,fhss:''});
+  return row;
+ }
+ function channelControl(key,value,inline=false){
+  const options=key==='power'?powers:channelMenus[key];
+  if(options)return choices([...new Set([...options,value])].map(x=>[x,x]),value);
+  const control=el('input');control.value=value;
+  if(key==='scan'){
+   if(inline)return choices([['add','Add'],['skip','Skip']],value?'add':'skip');
+   control.type='checkbox';control.checked=value;
   }
-  const err=el('p','');err.setAttribute('role','alert');
-  const actions=el('div',undefined,'dialog-actions'),apply=el('button','Save channel','primary');apply.type='submit';
-  actions.append(button('Cancel',()=>dlg.close()),apply);form.append(title,fields,err,actions);dlg.append(form);
-  form.onsubmit=e=>{
-   e.preventDefault();
-   try{
-    const patch={};
-    for(const [key,node] of Object.entries(controls)){
-     const val=key==='scan'?node.checked:node.value.trim();
-     if(adding||val!==initial[key])patch[key]=val;
-    }
-    const next=editRecord(bytes,patch),image={...draft,ch:draft.ch.slice()};
-    record(image,layout,slot).set(next);dlg.close();commit(image,'Channel saved to the workspace.');
-   }catch(error){err.textContent=error.message;}
-  };
-  dlg.onclose=()=>dlg.remove();document.body.append(dlg);dlg.showModal();
+  if(key==='name')control.maxLength=12;
+  if(key==='rx'||key==='tx')control.inputMode='decimal';
+  if(key==='tx')control.placeholder='Blank for receive only';
+  if(key.endsWith('Tone'))control.title='Off, CTCSS in Hz, or DCS such as D023N';
+  return control;
+ }
+ const channelValue=(key,control)=>key==='scan'?(control.type==='checkbox'?control.checked:control.value==='add'):control.value;
+ function saveChannel(slot,initial,patch){
+  const bytes=record(draft,layout,slot);
+  if(!initial.rx&&!patch.rx)throw Error('Enter an RX frequency to add a channel.');
+  const values=initial.rx?patch:{...Object.fromEntries(columns.map(([key])=>[key,initial[key]])),...patch};
+  const next=editRecord(bytes,values);
+  if(eq(bytes,next))return;
+  const image={...draft,ch:draft.ch.slice()};record(image,layout,slot).set(next);
+  commit(image,'Channel saved to the workspace.',false);
  }
  function render(){
   if(!active)return;
@@ -232,20 +228,130 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
   const wrap=el('div',undefined,'table-wrap');wrap.id='channelTableWrap';const table=el('table',undefined,'rt950-table'),head=table.createTHead().insertRow();
   for(const caption of ['Ch',...columns.map(c=>c[1]),'Actions'])head.append(el('th',caption));
   const body=table.createTBody();wrap.append(table);
+  function editor(slot){
+   const dlg=el('dialog',undefined,'rt950-dialog'),form=el('form'),title=el('h3'),fields=el('div',undefined,'rt950-fields');
+   title.id='rt950ChannelTitle';dlg.setAttribute('aria-labelledby',title.id);
+   const err=el('p','');err.setAttribute('role','alert');
+   const actions=el('div',undefined,'dialog-actions'),apply=el('button','Save channel','primary');apply.type='submit';
+   const previous=button('← Previous',()=>move(-1)),next=button('Next →',()=>move(1));
+   for(const b of [previous,next])b.title='Save changes to this channel and move to the adjacent channel.';
+   actions.append(previous,next,button('Cancel',()=>dlg.close()),apply);form.append(title,fields,err,actions);dlg.append(form);
+   let initial,controls,changed=false;
+   function adjacent(step){
+    for(let i=slot+step;i>=start&&i<start+per;i+=step)if(showEmpty||channel(record(draft,layout,i)).rx)return i;
+    return null;
+   }
+   function populate(){
+    initial=channelValues(slot);controls=new Map();fields.replaceChildren();err.textContent='';
+    title.textContent=(initial.rx?'Edit':'Add')+' channel '+(slot-start+1)+' · Zone '+(Math.floor(slot/bankSize)+1);
+    for(const [key,name] of columns){
+     const control=channelControl(key,initial[key]);controls.set(key,control);fields.append(field(name,control));
+    }
+    previous.disabled=adjacent(-1)===null;next.disabled=adjacent(1)===null;
+   }
+   function saveCurrent(moving){
+    const patch={};
+    for(const [key,node] of controls){
+     const value=channelValue(key,node);if(value!==initial[key])patch[key]=value;
+    }
+    if(!Object.keys(patch).length&&(initial.rx||moving))return true;
+    try{saveChannel(slot,initial,patch);changed=true;return true;}
+    catch(error){err.textContent=error.message;return false;}
+   }
+   function move(step){
+    const target=adjacent(step);if(target===null||!saveCurrent(true))return;
+    slot=target;populate();controls.get(initial.rx?'name':'rx').focus();
+   }
+   form.onsubmit=e=>{e.preventDefault();if(saveCurrent(false))dlg.close();};
+   dlg.onclose=()=>{
+    dlg.remove();if(!changed)return;
+    paint();(body.querySelector('tr[data-slot="'+slot+'"] button')??add).focus({preventScroll:true});
+   };
+   populate();document.body.append(dlg);dlg.showModal();controls.get(initial.rx?'name':'rx').focus();
+  }
+  function matches(row,n){
+   return (showEmpty||!!row.rx)&&[n,row.name,row.rx,row.tx].join(' ').toLowerCase().includes(search.toLowerCase());
+  }
+  function updateRow(tr,row){
+   const slot=Number(tr.dataset.slot),n=slot-start+1;
+   tr.cells[0].textContent=n;
+   for(const [index,[key]] of columns.entries()){
+    const value=key==='scan'?(row.scan?'Add':'Skip'):row[key]||(key==='tx'?'RX only':'');
+    tr.cells[index+1].firstChild.textContent=row.rx?value:'';
+   }
+   const actions=tr.lastElementChild,occupied=String(!!row.rx);
+   if(actions.dataset.occupied===occupied)return;
+   actions.dataset.occupied=occupied;actions.replaceChildren(button(row.rx?'Edit':'Add',()=>editor(slot)));
+   if(row.rx)actions.append(button('Delete',()=>{
+    if(!confirm('Delete channel '+n+(allChannels?'':' from zone '+zone)+'?'))return;
+    const next={...draft,ch:draft.ch.slice()};record(next,layout,slot).set(EMPTY_REC);commit(next,'Channel deleted from the workspace.');
+   }));
+  }
+  function inlineEdit(cell){
+   const tr=cell.parentElement,slot=Number(tr.dataset.slot),initial=channelValues(slot);
+   if(!initial.rx)cell=tr.cells[2];
+   const index=cell.cellIndex,[key,label]=columns[index-1],control=channelControl(key,initial[key],true);
+   control.className='inline-control';control.setAttribute('aria-label','Channel '+(slot-start+1)+' '+label);
+   cell.append(control);control.focus();if(control.tagName==='INPUT')control.select();
+   let finished=false;
+   function finish(cancel=false,keepInvalid=false){
+    if(finished)return true;
+    const value=channelValue(key,control);
+    if(!cancel&&value!==initial[key]){
+     try{saveChannel(slot,initial,{[key]:value});}
+     catch(error){note(error.message);if(keepInvalid)return false;}
+    }
+    finished=true;control.remove();
+    const row=fullChannel(record(draft,layout,slot));
+    if(matches(row,slot-start+1))updateRow(tr,row);
+    else if(body.rows.length===1)paint();
+    else tr.remove();
+    undo.disabled=!history.length;return true;
+   }
+   control.onblur=()=>finish();
+   const focusRow=()=>{(tr.isConnected?tr:find).focus({preventScroll:true});};
+   if(control.tagName==='SELECT')control.onchange=()=>{if(finish(false,true))focusRow();};
+   control.onkeydown=e=>{
+    e.stopPropagation();
+    if(e.key==='Escape'||e.key==='Enter'){
+     e.preventDefault();if(finish(e.key==='Escape',true))focusRow();return;
+    }
+    if(e.key!=='Tab')return;
+    const step=e.shiftKey?-1:1;
+    const neighbor=index+step;
+    let target=tr.cells[neighbor];
+    if(neighbor<1||neighbor>columns.length||(!initial.rx&&control.value.trim()==='')){
+     const nextRow=step>0?tr.nextElementSibling:tr.previousElementSibling;
+     target=nextRow?.cells[step>0?1:columns.length];
+    }
+    if(!target){
+     // At the table edge let Tab continue to the surrounding controls.
+     if(!finish(false,true))e.preventDefault();else focusRow();return;
+    }
+    e.preventDefault();if(finish(false,true)){if(target.isConnected)inlineEdit(target);else find.focus();}
+   };
+  }
+  body.onclick=e=>{
+   const cell=e.target.closest('td.editable-cell');
+   if(cell&&!cell.querySelector('.inline-control'))inlineEdit(cell);
+  };
+  body.ondblclick=e=>{
+   const cell=e.target.closest('td');if(cell?.cellIndex===0&&cell.parentElement.hasAttribute('data-slot'))editor(Number(cell.parentElement.dataset.slot));
+  };
+  body.onkeydown=e=>{
+   const tr=e.target;
+   if(tr.matches('tr[data-slot]')&&(e.key==='Enter'||e.key==='F2')){e.preventDefault();inlineEdit(tr.cells[1]);}
+  };
   function paint(){
-   body.replaceChildren();
+   body.replaceChildren();undo.disabled=!history.length;
    for(let i=start;i<start+per;i++){
     const row=fullChannel(record(draft,layout,i)),n=i-start+1;
-    if(!showEmpty&&!row.rx)continue;
-    if(![n,row.name,row.rx,row.tx].join(' ').toLowerCase().includes(search.toLowerCase()))continue;
-    const tr=body.insertRow();tr.className='channel-row';tr.insertCell().textContent=n;
-    for(const [key] of columns)tr.insertCell().textContent=row.rx?(key==='scan'?(row.scan?'Add':'Skip'):row[key]||(key==='tx'?'RX only':'')):'';
-    const cell=tr.insertCell();cell.append(button(row.rx?'Edit':'Add',()=>editor(i)));
-    if(row.rx)cell.append(button('Delete',()=>{
-     if(!confirm('Delete channel '+n+(allChannels?'':' from zone '+zone)+'?'))return;
-     const next={...draft,ch:draft.ch.slice()};record(next,layout,i).set(EMPTY_REC);commit(next,'Channel deleted from the workspace.');
-    }));
-    tr.ondblclick=e=>{if(!e.target.closest('button'))editor(i);};
+    if(!matches(row,n))continue;
+    const tr=body.insertRow();tr.className='channel-row';tr.dataset.slot=i;tr.tabIndex=0;tr.insertCell();
+    for(const [,label] of columns){
+     const cell=tr.insertCell();cell.className='editable-cell';cell.title='Click to edit '+label;cell.append(el('span'));
+    }
+    tr.insertCell();updateRow(tr,row);
    }
    if(!body.rows.length){const td=body.insertRow().insertCell();td.colSpan=columns.length+2;td.textContent=search?'No matching channels in this zone.':'This zone is empty. Add a channel, import a file, or read your radio.';}
   }

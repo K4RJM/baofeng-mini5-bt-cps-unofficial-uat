@@ -36,7 +36,21 @@ export function renderRt950Help(target,image){
   for(const [i,attr] of ['x','y','width','height'].entries())frame.setAttribute(attr,bounds[i]);
  }
  setView(fullView);
- frame.append(svg('image',{href:'assets/rt950pro-controls.jpg',width:1600,height:1600,'aria-hidden':true}));
+ // Trace only the housing in the product photograph. Keep the white lettering,
+ // display and button artwork intact in both the full and keypad views.
+ const defs=svg('defs',{}),outline=svg('clipPath',{id:'rt950-help-housing'});
+ outline.append(svg('path',{d:[
+  'M433 0 H518 V17 L520 19 V24 L518 26 V89 L531 106 V131 L528 134 L531 137 V162 L536 164 L541 182 H561 Q579 187 609 209 V284 L599 295 L593 297',
+  'V319 Q593 324 587 331 Q572 345 563 376 H571 Q578 382 578 391 V749 L569 760 L560 762',
+  'V1212 Q560 1245 535 1255 Q526 1260 512 1259 H196 Q173 1259 159 1243 Q148 1231 148 1214',
+  'V954 L137 947 V925 L135 924 V861 L137 860 V839 L135 837 V775 L137 773 V760 Q137 752 122 744 L126 730 Q130 698 128 630 L132 612 L130 585',
+  'V432 Q129 406 125 391 L122 377 L138 359 Q130 340 119 329 Q114 323 114 317',
+  'V297 L109 295 L99 285 V209 Q110 198 128 190 L134 144 Q136 140 143 141 L156 143 Q160 144 162 153 Q165 166 176 167',
+  'H201 V165 H180 Q169 164 167 156 L170 84 Q170 76 180 64 L210 63 L216 57 H234 L240 63 L269 65 Q278 72 279 83 L283 155 Q281 162 272 166 H280 L284 181',
+  'H293 L296 167 H308 L298 158 L301 56 L306 19 Q308 16 315 16 H335 L342 8 H359 L366 16 H391 Q397 18 398 25',
+  'L402 58 L403 157 L393 164 L406 167 L419 163 V137 L422 134 L420 130 V106 L433 89 Z'
+ ].join(' ')}));
+ defs.append(outline);frame.append(defs,svg('image',{href:'assets/rt950pro-controls.jpg',width:1600,height:1600,'clip-path':'url(#rt950-help-housing)','aria-hidden':true}));
  const panel=el('section',null,'radio-tutorial-panel');panel.id='rt950-key-help';panel.setAttribute('aria-live','polite');
  const upper=svg('g',{}),keys=svg('g',{});frame.append(upper,keys);
  const controls=[];
