@@ -28,6 +28,23 @@ test('RT-950 layout boundaries, zone names and high channels',()=>{
  assert.deepEqual(blocks.map(b=>b.addr),[0x7b80,ZN_ADDR+BLOCK]);
  assert.deepEqual(blocks[0].data.slice(64),orig.ch.slice(0x7bc0,0x7c00));
 });
+test('RT-950 unchanged write-back sends the selected layout and preserves every byte',()=>{
+ const image=blankImage();
+ for(const bytes of [image.ch,image.zn])for(let i=0;i<bytes.length;i++)bytes[i]=(i*29+3)&255;
+ for(const [layout,last,count] of [['960',0x7800,240],['990',0x7c00,250]]){
+  const blocks=planWrites(image,image,layout,true,true);
+  const addresses=Array.from({length:last/BLOCK},(_,i)=>i*BLOCK);
+  if(layout==='990')addresses.push(ZN_ADDR,ZN_ADDR+BLOCK);
+  assert.equal(blocks.length,count);
+  assert.deepEqual(blocks.map(b=>b.addr),addresses);
+  for(const {addr,data} of blocks){
+   const offset=addr>=ZN_ADDR?addr-ZN_ADDR:addr,source=addr>=ZN_ADDR?image.zn:image.ch;
+   assert.deepEqual(data,source.slice(offset,offset+BLOCK));
+  }
+  assert.deepEqual(planWrites(image,image,layout,true),[]);
+ }
+ assert.throws(()=>planWrites(image,image,'990',false,true));
+});
 test('RT-950 backup restore touches only mapped records and merges offline edits',()=>{
  const radio=blankImage(),backup=copy(radio);
  radio.ch[19]=88;radio.ch[0x7bf0]=7;radio.zn[238]=9;

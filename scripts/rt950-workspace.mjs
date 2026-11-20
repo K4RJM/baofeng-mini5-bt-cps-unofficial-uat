@@ -57,19 +57,21 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
  async function writeRadio(){
   if(!radioBase||!link?.device?.gatt.connected||uncertain)throw Error('Connect and read this radio before writing.');
   const baseline=radioBase,target=draft,session=link;
-  const blocks=planWrites(baseline,target,layout,true);
-  if(!blocks.length)return;
+  const unchanged=sameImage(baseline,target);
+  const blocks=planWrites(baseline,target,layout,true,unchanged);
   const high=blocks.some(b=>b.addr>=LOW_LIMIT&&b.addr<ZN_ADDR);
-  if(!confirm('Write '+blocks.length+' changed block(s) to this RT-950 Pro using '+layoutNames[layout]+'?'+(high?' This includes channels 961–990. Confirm that this radio has firmware 0.24 or later.':'')))return;
+  const count=blocks.length+' block'+(blocks.length===1?'':'s');
+  const action=unchanged?'Write back the channel table'+(LAYOUTS[layout].zoneNames?' and zone names':'')+' exactly as read ('+count+')':'Write '+count+' of changes';
+  if(!confirm(action+' to this RT-950 Pro using '+layoutNames[layout]+'?'+(high?' This includes channels 961–990. Confirm that this radio has firmware 0.24 or later.':'')))return;
   const expected=blocks.map(({addr})=>({addr,data:addr>=ZN_ADDR?baseline.zn.slice(addr-ZN_ADDR,addr-ZN_ADDR+BLOCK):baseline.ch.slice(addr,addr+BLOCK)}));
   let changed;
-  try{changed=await verifyBlocks(session,opts,expected,progress('Checking changed blocks against the original'));}
+  try{changed=await verifyBlocks(session,opts,expected,progress('Checking radio contents before writing'));}
   catch(error){radioBase=null;throw error;}
   if(changed.length||radioBase!==baseline){radioBase=null;throw Error('The radio contents or connection changed. Read it again before writing.');}
   try{await writeBlocks(session,opts,blocks,progress('Writing'));}
   catch(error){uncertain=true;radioBase=null;note('Write incomplete. Read the radio before retrying. '+error.message);throw Error(status);}
   base=target;radioBase=session.device.gatt.connected?target:null;history=[];restoreFile=false;
-  note('Write complete. The radio acknowledged all '+blocks.length+' changed block(s).');render();
+  note('Write complete. The radio acknowledged '+count+'.');render();
  }
  input.onchange=()=>{
   const file=input.files?.[0];input.value='';if(!file)return;
@@ -133,7 +135,7 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
   $('content').replaceChildren(card);
   if(screen!=='Channels'){
    card.append(el('h3','Bluetooth programming'),el('p','Check Menu › About on your radio. Firmware 0.24 and later has 10 zones of 99 channels. Earlier firmware has 15 zones of 64 channels with fixed zone names.'),
-    el('p','Choose the matching firmware in Channels, then Connect and Read Bluetooth. Save read backup keeps the original channels and zone data. Write Bluetooth sends the edited blocks and finishes when the radio acknowledges them.'),
+    el('p','Choose the matching firmware in Channels, then Connect and Read Bluetooth. Save read backup keeps the original channels and zone data. Write Bluetooth sends edited blocks. With no edits, it writes the channel table back as read, including zone names on firmware 0.24 and later. The radio acknowledges each block.'),
     el('p','Import file opens an RT-950 JSON backup or appends analog channels from a CHIRP CSV to empty slots. A file named Zone03_LOCAL.csv targets zone 3. A plain CSV starts in the selected zone and continues into later zones as needed.'));
    const ref=el('a','RT-950 Pro protocol reference ↗');ref.href='https://github.com/facenot/bj9000-programmer';ref.target='_blank';ref.rel='noopener noreferrer';card.append(ref);return;
   }
@@ -199,8 +201,8 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
    $('linkDot').classList.toggle('online',connected);$('connect').textContent=connected?'Disconnect':'Connect';
    $('connect').disabled=busy||!navigator.bluetooth||!window.isSecureContext;
    $('sourceTag').textContent=uncertain?'Write incomplete':radioBase?'RT-950 Pro radio read':restoreFile?'RT-950 Pro backup':'RT-950 Pro workspace';
-   read.disabled=busy||!connected;write.disabled=busy||!connected||!radioBase||uncertain||sameImage(radioBase,draft);
-   write.title=!radioBase?'Connect and read the radio before writing.':'Write changed channel and zone blocks.';
+   read.disabled=busy||!connected;write.disabled=busy||!connected||!radioBase||uncertain;
+   write.title=!radioBase?'Connect and read the radio before writing.':sameImage(radioBase,draft)?'Write the channel table back as read.':'Write changed channel and zone blocks.';
    backup.disabled=busy||!original;
   }
  };

@@ -199,19 +199,19 @@ SOFTWARE.
     for (let i = 0; i < 10; i++) { let s = ""; for (const b of seg.subarray(i * 16, i * 16 + 16)) { if (b === 0 || b === 0xFF) break; s += String.fromCharCode(b); } out.push(s.trim()); }
     return out;
   }
-  function changedBlocks(oldB, newB, base, limit) {
+  function channelBlocks(oldB, newB, base, limit, includeUnchanged) {
     const out = [];
     for (let o = 0; o < Math.min(newB.length, limit); o += BLOCK) {
       const a = oldB.subarray(o, o + BLOCK), b = newB.subarray(o, o + BLOCK);
-      if (!eq(a, b)) out.push({ addr: base + o, data: new Uint8Array(b) });
+      if (includeUnchanged || !eq(a, b)) out.push({ addr: base + o, data: new Uint8Array(b) });
     }
     return out;
   }
-  function planWrites(image, target, layout, allowHigh) {
+  function planWrites(image, target, layout, allowHigh, includeUnchanged = false) {
     const L = LAYOUTS[layout];
-    let blocks = changedBlocks(image.ch, target.ch, CH_ADDR, L.chMax);
+    let blocks = channelBlocks(image.ch, target.ch, CH_ADDR, L.chMax, includeUnchanged);
     if (blocks.some(b => b.addr >= LOW_LIMIT) && !allowHigh) throw new Error("plan touches channels 961-990 without permission");
-    if (L.zoneNames) blocks = blocks.concat(changedBlocks(image.zn, target.zn, ZN_ADDR, ZN_LEN));
+    if (L.zoneNames) blocks = blocks.concat(channelBlocks(image.zn, target.zn, ZN_ADDR, L.zones * 16, includeUnchanged));
     for (const b of blocks) if (!(b.addr < 0x7C00 || (b.addr >= ZN_ADDR && b.addr < ZN_ADDR + ZN_LEN))) throw new Error("internal: illegal address " + b.addr);
     return blocks;
   }
