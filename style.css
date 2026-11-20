@@ -315,3 +315,18 @@ dialog#radioBookmarkDialog{width:min(27rem,94vw);padding:18px}
 #radioBookmarkUrl{width:100%;margin-top:6px}
 
 @media(min-width:751px){footer .mobile-facebook-link{display:none}}
+
+.radio-brand-crop.rt950-brand-image img{width:285%;height:auto;left:-106%;top:0}
+.rt950-channels .toolbar label,.rt950-zones label,.rt950-fields label{display:flex;align-items:center;gap:6px}
+.rt950-channels .toolbar{flex-wrap:wrap}
+.rt950-channels .table-bottom{justify-content:flex-start;flex-wrap:wrap;gap:8px}
+.rt950-zones label input{width:14ch}
+.rt950-dialog{width:min(40rem,94vw);max-height:90dvh;overflow:auto}
+.rt950-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(15rem,100%),1fr));gap:8px 14px}
+.rt950-fields label{display:grid;grid-template-columns:5em minmax(0,1fr)}
+.rt950-fields :is(input,select),.rt950-zones :is(input,select){min-width:0;border-radius:2px;font:inherit}
+.rt950-fields input[type=checkbox]{justify-self:start}
+.rt950-dialog [role=alert]{color:var(--danger);margin-block:8px}
+#channelTableWrap .rt950-table{width:100%;min-width:45rem;table-layout:auto}
+#channelTableWrap .rt950-table :is(td,th){padding:4px 6px}
+.rt950-table td button{min-width:0;padding:3px 6px;font:inherit;margin-right:3px}

@@ -18,7 +18,7 @@ if(!html.includes('<h3>'+base+' ·'))throw Error('Add What’s new notes for ver
 if(!live)html=html.replace('<body>','<body>\n<div role="note" style="padding:4px 18px;background:#663d00;color:#fff3d4;display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:12px;line-height:1.15"><strong>UAT · DEVELOPMENT</strong><span>Build '+version+'</span><a style="color:inherit;margin-left:auto" href="https://k4rjm.github.io/baofeng-mini5-bt-cps-unofficial/" target="_blank" rel="noopener noreferrer">Open LIVE ↗</a></div>').replace('Version '+base,'UAT · build '+version);
 if(live)html=html.replace(/<section class="release-entry"><h3>20\.(?:3[4-9]|4[0-6]|6[6-9]) ·[^<]*<\/h3><p>[^<]*<\/p><\/section>/g,'');
 html=html.replace('href="https://github.com/K4RJM/baofeng-mini5-bt-cps-unofficial" target="_blank"','href="https://github.com/'+repository+'" target="_blank"');
-const chooser='<div class="radio-picker"><span class="radio-brand-crop"><img id="brandRadioImage" src="assets/mini5-blue.png" width="1254" height="1254" alt=""></span><h1 id="brandTitle">CHOOSE RADIO</h1><select id="uatProtocol" aria-label="Choose radio" autocomplete="off" disabled><option value="" selected disabled>CHOOSE RADIO</option><option value="mini5">Ham-Rx Baofeng Mini-5</option><option value="uv32">Ham-Rx Baofeng UV-32</option></select></div>';
+const chooser='<div class="radio-picker"><span class="radio-brand-crop"><img id="brandRadioImage" src="assets/mini5-blue.png" width="1254" height="1254" alt=""></span><h1 id="brandTitle">CHOOSE RADIO</h1><select id="uatProtocol" aria-label="Choose radio" autocomplete="off" disabled><option value="" selected disabled>CHOOSE RADIO</option><option value="mini5">Ham-Rx Baofeng Mini-5</option><option value="uv32">Ham-Rx Baofeng UV-32</option><option value="rt950pro">Ham-Rx Radtel RT-950 Pro</option></select></div>';
 const actions='<div class="uat-uv32-actions"><button id="uatUv32Import" type="button" hidden>↥ Open UV-32 capture</button><input id="uatUv32ImportFile" type="file" accept=".json,application/json" hidden><button id="uatUv32Read" type="button" disabled hidden>↓ Read Bluetooth</button><button id="uatUv32CableRead" type="button" disabled hidden>↓ Read Cable</button><button id="uatUv32CableWrite" type="button" disabled hidden>↑ Write Cable</button><button id="uatUv32View" type="button" disabled hidden>View UV-32 read</button><button id="uatUv32Save" type="button" disabled hidden>↧ Save UV-32 capture</button><button id="uatUv32Cancel" type="button" hidden>Cancel operation</button></div>';
 html=replaceOnce(html,'<span class="radio-brand-crop"><img src="assets/mini5-blue.png" width="1254" height="1254" alt="Blue Baofeng MINI-5"></span><div><h1>Ham-Rx Baofeng Mini-5</h1>','<div class="radio-heading">'+chooser);
 html=replaceOnce(html,'<button id="connect" class="primary">','<button id="connect" class="primary" disabled>');
@@ -56,7 +56,7 @@ app=app.replace(/<li><strong>Save diagnostic report<\/strong>.*?<\/li>/g,'')
  .replace(/\$\('report'\)\.onclick=\(\)=>save\(JSON\.stringify\(\{build:[^\r\n]*(?=\r?\n)/,'');
 await writeFile('dist/app.mjs',app);
 const bluetoothModules=['uat-protocols.mjs','uat-uv32-read.mjs','uat-uv32-write.mjs'];
-for(const file of [...bluetoothModules,'radio-bookmark.mjs','uv32-codec.mjs','uv32-files.mjs','uv32-dat.mjs','uv32-dat-image.mjs','uat-uv32-image.mjs','uat-uv32-serial.mjs','uat-uv32-capture.mjs','uat-uv32-edit.mjs','uat-uv32-help.mjs','uat-uv32-tones.mjs','uat-uv32-workspace.mjs','uat-uv32-ui.mjs'])await writeFile('dist/'+file,await readFile('scripts/'+file,'utf8'));
+for(const file of [...bluetoothModules,'rt950-core.mjs','rt950-channels.mjs','rt950-workspace.mjs','radio-bookmark.mjs','uv32-codec.mjs','uv32-files.mjs','uv32-dat.mjs','uv32-dat-image.mjs','uat-uv32-image.mjs','uat-uv32-serial.mjs','uat-uv32-capture.mjs','uat-uv32-edit.mjs','uat-uv32-help.mjs','uat-uv32-tones.mjs','uat-uv32-workspace.mjs','uat-uv32-ui.mjs'])await writeFile('dist/'+file,await readFile('scripts/'+file,'utf8'));
 // A page and its dependencies must all use the same browser cache key.
 for(const file of [...(await readdir('dist')).filter(name=>name.endsWith('.mjs')),'scripts/mini5-serial.mjs','read-test/reader.mjs','read-test/memory.mjs']){
  const path='dist/'+file;
@@ -65,5 +65,5 @@ for(const file of [...(await readdir('dist')).filter(name=>name.endsWith('.mjs')
  if(updated!==source)await writeFile(path,updated);
 }
 execFileSync(process.execPath,['--check','dist/app.mjs'],{stdio:'inherit'});
-await writeFile('dist/deployment.json',JSON.stringify({environment,version,sourceSha:sha,repository,protocolProfiles:['mini5','uv32']},null,2)+'\n');
+await writeFile('dist/deployment.json',JSON.stringify({environment,version,sourceSha:sha,repository,protocolProfiles:['mini5','uv32','rt950pro']},null,2)+'\n');
 console.log('Packaged '+version+' for '+repository);

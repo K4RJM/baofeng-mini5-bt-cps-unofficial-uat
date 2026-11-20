@@ -1,10 +1,10 @@
-const modelNames=new Map([['mini5','MINI-5'],['uv32','UV-32']]);
+const modelNames=new Map([['mini5','MINI-5'],['uv32','UV-32'],['rt950pro','RT-950 Pro']]);
 
 export function installRadioBookmark(select){
  const byId=id=>document.getElementById(id);
  const button=byId('bookmarkRadio'),dialog=byId('radioBookmarkDialog');
  const link=byId('radioBookmarkLink'),status=byId('radioBookmarkStatus'),urlField=byId('radioBookmarkUrl');
- const requested=new URL(location.href).searchParams.get('radio')?.toLowerCase().replace('-','');
+ const requested=new URL(location.href).searchParams.get('radio')?.toLowerCase().replace(/[\s-]+/g,'');
  select.value=modelNames.has(requested)?requested:'';
  const updateButton=()=>{
   button.disabled=!select.value;
