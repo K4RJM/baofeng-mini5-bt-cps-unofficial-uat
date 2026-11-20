@@ -478,7 +478,7 @@ export function createRt950Workspace({run,refresh,message,fileTools,profile=rt95
    $('linkDot').classList.toggle('online',connected);$('connect').textContent=connected?'Disconnect':'Connect';
    $('connect').disabled=busy||!navigator.bluetooth||!window.isSecureContext;
    const source=(radioState()?.pending?.length||radios.get(lastCablePort)?.pending?.length)?'Write incomplete':restoreFile?(draft.factoryDat?'Radtel CPS DAT':profile.short+' backup'):original?profile.short+' radio read':profile.short+' workspace';
-   $('sourceTag').textContent=source+' · Testing';
+   $('sourceTag').textContent=source;
    dat.disabled=busy||!!draft.overflow?.length;dat.title=draft.overflow?.length?capacityMessage():'Download a native RT-950 Pro factory CPS file.';
    read.disabled=busy||!connected;write.disabled=busy||!!draft.overflow?.length||!navigator.bluetooth||!window.isSecureContext||!hasWorkspace();
    write.title=hasWorkspace()?'Send the current workspace over Bluetooth.':'Open a workspace or add channels to write.';
