@@ -1,5 +1,6 @@
 // UAT UV-32 controls live in the existing Ham-Rx header and left sidebar.
 // A UV-32 read populates its own main workspace without loading MINI-5 data.
+import {rt950Models} from './rt950-models.mjs';
 import {createRt950Workspace} from './rt950-workspace.mjs';
 import {installRadioBookmark} from './radio-bookmark.mjs';
 import {readUv32SerialImage,writeUv32SerialImage} from './uat-uv32-serial.mjs?v=20.66';
@@ -22,12 +23,13 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
  const datSettings=new Set([...UV32_DAT_SETTING_OFFSETS,26,44,46,57]);
  const imageSettings=new Set(Array.from({length:64},(_,i)=>i));
  const topConnect=$('connect');
- const rt=createRt950Workspace({run,refresh,message,fileTools});
+ const family=new Map(Object.values(rt950Models).map(profile=>[profile.id,createRt950Workspace({run,refresh,message,fileTools,profile})]));
+ const selectedFamily=()=>family.get(select.value);
  const hasWriteConnection=()=>radio.connected&&writeDevice===radio.device;
  if(bluetooth){
   const defaultConnect=topConnect.onclick;
   topConnect.onclick=()=>{
-   if(select.value==='rt950pro')return rt.connect();
+   if(selectedFamily())return selectedFamily().connect();
    if(select.value!=='uv32')return defaultConnect();
    if(hasWriteConnection()){
     writeDevice=null;
@@ -267,9 +269,9 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
   });
  };
  const showSelectedWorkspace=()=>{
-  const radtel=select.value==='rt950pro';
-  rt.select(radtel);
-  if(radtel){refresh();return;}
+  const current=selectedFamily();
+  for(const model of family.values())if(model!==current)model.select(false);
+  if(current){current.select(true);refresh();return;}
   if(select.value==='uv32'){workspace.reset();refresh();note('UV-32 · Ready to read or open a capture');}
   else{workspace.restoreBrand();renderMini5();refresh();workspaceStatus();}
  };
@@ -280,7 +282,7 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
   showSelectedWorkspace();
  });
  if(select.value)showSelectedWorkspace();
- return {openHelp(){if(select.value==='rt950pro'){rt.help();return true;}if(select.value!=='uv32')return false;workspace.openHelp();return true;},sync(busy){const uv=select.value==='uv32';
+ return {openHelp(){if(selectedFamily()){selectedFamily().help();return true;}if(select.value!=='uv32')return false;workspace.openHelp();return true;},sync(busy){const uv=select.value==='uv32';
   if(!radio.connected&&!controller)writeDevice=null;
   for(const id of ['uatUv32CableRead','uatUv32CableWrite','uatUv32View','uatUv32Save','uatUv32Import'])$(id).hidden=!uv;
   view.hidden=true;
@@ -298,7 +300,7 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
    bluetoothWrite.disabled=busy||!!writeBlocked;
    bluetoothWrite.title=writeBlocked||'Write channels and edited settings over Bluetooth.';
   }
-  for(const id of ['open','appendChannels','save','saveImg','readRadio','writeRadio','readMini5Cable','writeMini5Cable','verify','backup'])$(id).hidden=uv||select.value==='rt950pro';
+  for(const id of ['open','appendChannels','save','saveImg','readRadio','writeRadio','readMini5Cable','writeMini5Cable','verify','backup'])$(id).hidden=uv||!!selectedFamily();
   if(!select.value){
    for(const id of ['connect','readRadio','writeRadio','readMini5Cable','writeMini5Cable','verify'])$(id).disabled=true;
   }
@@ -318,6 +320,6 @@ export function installUv32Reader({radio,run,connect,message,refresh,renderMini5
    $('connectionHint').textContent=bluetooth?'Bluetooth programming':radio.connected?'Disconnect MINI-5 to use the UV-32 cable':'UV-32 cable programming';
    if(!bluetooth&&!radio.connected)$('connection').textContent=navigator.serial&&window.isSecureContext?'USB programming cable':'Cable unavailable in this browser';
   }
-  rt.sync(select.value==='rt950pro',busy);
+  for(const [id,model] of family)model.sync(select.value===id,busy);
  }};
 }

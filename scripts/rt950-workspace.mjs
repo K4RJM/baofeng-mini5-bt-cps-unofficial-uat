@@ -1,5 +1,7 @@
 import {BLOCK, EMPTY_REC, LAYOUTS, LOW_LIMIT, REC, ZN_ADDR, blockBefore, sections, eq, hex, planWrites, readImage, webBluetoothLink, writeBlocks} from './rt950-core.mjs';
 import {blankImage, channel, fullChannel, channelMenus, editRecord, exportZoneCsv, openBackup, overlayChanges, powers, record, renameZone, saveBackup, zoneName} from './rt950-channels.mjs';
+import {rt950Models} from './rt950-models.mjs';
+import {withRt950Serial} from './rt950-serial.mjs';
 import {importChannels} from './rt950-import.mjs';
 import {openNative,saveNative} from './rt950-native.mjs';
 import {renderSection,toneSelect} from './rt950-forms.mjs';
@@ -54,36 +56,39 @@ export function workspaceBlocks(target,layout,hasChannelImage,state){
  for(const b of blocks)retry.set(address(b),b);
  return [...retry.values()].sort(transferOrder).map(preserveTail);
 }
-export function createRt950Workspace({run,refresh,message,fileTools}){
+export function createRt950Workspace({run,refresh,message,fileTools,profile=rt950Models.rt950pro}){
  const $=id=>document.getElementById(id);
  function el(tag,text,cls){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;}
  function button(text,action){const b=el('button',text);b.type='button';b.onclick=action;return b;}
  function field(label,control){control.setAttribute('aria-label',label);const wrap=el('label');wrap.append(el('span',label),control);return wrap;}
  function choices(options,value){const input=el('select');for(const [key,title] of options)input.add(new Option(title,key));input.value=value;return input;}
- function sidebar(id,title,action){const b=button(title,action);b.id=id;b.hidden=true;$('uatUv32Import').before(b);return b;}
+ function sidebar(id,title,action){const b=button(title,action);b.id=profile.id==='rt950pro'?id:id.replace(/^rt950/,profile.id);b.hidden=true;$('uatUv32Import').before(b);return b;}
  const input=el('input');input.type='file';input.multiple=true;input.accept='.dat,.json,.csv,.tsv,.hmk,.rdt,.img';input.hidden=true;$('uatUv32Import').before(input);
  const open=sidebar('rt950Open','↥ Import file',()=>input.click());
- const dat=sidebar('rt950SaveDat','↧ Save CPS .dat',()=>run(async()=>{
+ const dat=sidebar('rt950SaveDat',profile.id==='rt950pro'?'↧ Save CPS .dat':'↧ Save Radtel .dat',()=>run(async()=>{
   if(draft.overflow?.length)throw Error(capacityMessage());
   fileTools.save(saveNative(draft,layout,nativeTemplate),'rt950pro-edited.dat','application/octet-stream');
   note('Saved Radtel CPS DAT.'+(layout==='960'?' CPS 1.3.3 displays the 960 channel slots in its 10-zone layout.':''));
  }));
- const save=sidebar('rt950Save','↧ Save workspace',()=>download(draft,'rt950pro-edited.json'));
+ const save=sidebar('rt950Save','↧ Save workspace',()=>download(draft,profile.id+'-edited.json'));
  const read=sidebar('rt950Read','↓ Read Bluetooth',()=>run(readRadio));
+ const cableRead=sidebar('rt950CableRead','↓ Read Cable',()=>run(()=>viaCable(readRadio)));
  const write=sidebar('rt950Write','↑ Write Bluetooth',()=>run(writeRadio));
- const backup=sidebar('rt950Backup','↧ Save read backup',()=>download(original,'rt950pro-radio-backup.json'));
+ const cableWrite=sidebar('rt950CableWrite','↑ Write Cable',()=>run(()=>viaCable(writeRadio)));
+ const backup=sidebar('rt950Backup','↧ Save read backup',()=>download(original,profile.id+'-radio-backup.json'));
  let layout='990',zone=1,screen='Channels',search='',showEmpty=false,link=null,active=false;
  let base=emptyImage,draft=base,original=null,history=[],restoreFile=false,hasChannelImage=false,nativeTemplate=null;
  const capacityMessage=()=>draft.overflow?.length+' channels over capacity. Place or remove them before writing or saving a CPS DAT.';
  // A dropped GATT connection still belongs to the same browser device. Keep its
  // last acknowledged image and any interrupted blocks until the next user action.
  const radios=new Map();
+ let lastCablePort=null;
  const deviceKey=device=>device?.id||device;
  const radioState=()=>radios.get(deviceKey(link?.device));
- const hasWorkspace=()=>hasChannelImage||!!draft.overflow?.length||!sameImage(emptyImage,draft)||!!radioState()?.pending?.length||!sameImage(base,draft);
+ const hasWorkspace=()=>hasChannelImage||!!draft.overflow?.length||!sameImage(emptyImage,draft)||!!radioState()?.pending?.length||!!radios.get(lastCablePort)?.pending?.length||!sameImage(base,draft);
  let status='Choose the firmware layout shown in Menu › About. Connect to read your radio, or edit channels here.';
  const note=text=>{status=text;if(active)message(text);};
- function download(image,name){if(image)fileTools.save(saveBackup(image,layout),name,'application/json');}
+ function download(image,name){if(image)fileTools.save(saveBackup(image,layout,profile),name,'application/json');}
  function commit(next,text,repaint=true){
   if(!sameImage(draft,next)||draft.overflow!==next.overflow){history.push(draft);if(history.length>20)history.shift();draft=next;}
   note(text);if(repaint)render();refresh();
@@ -105,17 +110,25 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
   await chooseRadio();
   note(hasWorkspace()?'Connected. Your workspace is ready to write.':'Connected. Read the radio, open a workspace or add channels.');
  }
- const opts={allowedModels:['RT-950']};
+ const opts={allowedModels:profile.models};
  function progress(verb){return (done,total)=>{const bar=$('progress');bar.max=total;bar.value=done;note(verb+' · '+done+' / '+total+' blocks');};}
- async function readRadio(){
-  const session=link;
-  if(!session?.device?.gatt.connected)throw Error('Use Connect at the top before reading.');
-  const uncertain=!!radioState()?.pending?.length;
+ async function viaCable(action){
+  let port;
+  try{port=await navigator.serial.requestPort();}
+  catch(error){if(error.name==='NotFoundError')return;throw error;}
+  lastCablePort=port;
+  await action(port);
+ }
+ async function readRadio(port){
+  const session=link,key=port??deviceKey(session?.device);
+  if(!port&&!session?.device?.gatt.connected)throw Error('Use Connect at the top before reading.');
+  const uncertain=!!radios.get(key)?.pending?.length;
   const merge=!uncertain&&(restoreFile||!!draft.overflow?.length||!sameImage(base,draft));
   if(uncertain&&!confirm('Read the current radio contents and replace the uncertain workspace? Save the workspace first to retain your edits.'))return;
   if(merge&&!confirm('Read this radio and stage your current workspace edits over its channels and settings?'))return;
-  const fresh=await readImage(session,opts,progress('Reading'));
-  if(link!==session||!session.device.gatt.connected)throw Error('The radio disconnected. Connect and read again.');
+  const readFrom=transport=>readImage(transport,opts,progress(port?'Reading cable':'Reading'));
+  const fresh=port?await withRt950Serial(port,readFrom):await readFrom(session);
+  if(!port&&(link!==session||!session.device.gatt.connected))throw Error('The radio disconnected. Connect and read again.');
   const missing=fresh.unavailable||[];
   if(merge&&missing.some(k=>draft[k]&&(restoreFile||!base[k]||!eq(base[k],draft[k])))){
    throw Error('Some settings could not be read. Your staged workspace was kept.');
@@ -125,15 +138,18 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
   if(merge&&draft.factoryDat)next.factoryDat=true;
   if(!merge)nativeTemplate=null;
   base=fresh;original=fresh;hasChannelImage=true;draft=next;history=[];restoreFile=false;
-  radios.set(deviceKey(session.device),{baseline:fresh,complete:true});
+  if(port)radios.delete(port);
+  else radios.set(key,{baseline:fresh,complete:true});
   note(missing.length?'Channels read. Unavailable settings: '+missing.join(', ')+'.':merge?'Read complete. Review the staged changes before writing.':'Channels and radio settings read. The original radio backup is available.');
   render();
  }
- async function writeRadio(){
+ async function writeRadio(port){
   if(draft.overflow?.length)throw Error(capacityMessage());
   if(!hasWorkspace())throw Error('Open a workspace or add channels to write.');
-  const session=link?.device?link:await chooseRadio();
-  const key=deviceKey(session.device),state=radios.get(key),baseline=state?.baseline,target=draft;
+  const session=port?null:(link?.device?link:await chooseRadio());
+  // A USB port identifies an adapter. Another radio can be plugged into it
+  // between operations, so never use a cached radio image for a cable write.
+  const key=port??deviceKey(session.device),state=radios.get(key),baseline=state?.baseline,target=draft;
   validateSettings(target,base);
   const unchanged=baseline&&sameImage(baseline,target);
   const blocks=workspaceBlocks(target,layout,hasChannelImage,state);
@@ -143,16 +159,28 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
   const scope=!baseline&&hasChannelImage?'Replace the channel table and all sections present in this workspace':
    unchanged&&hasChannelImage&&!state?.pending?.length?'Write back the channel table'+(LAYOUTS[layout].zoneNames?' and zone names':''):'Write the selected workspace blocks';
   const detail=!hasChannelImage?' Each channel block replaces four adjacent slots, including any empty slots in the block.':'';
-  if(!confirm(scope+' ('+count+') on '+(session.device.name||'this RT-950 Pro')+' using '+layoutNames[layout]+'?'+detail+(high?' This includes channels 961–990. Confirm firmware 0.24 or later.':'')))return;
+  if(!confirm(scope+' ('+count+') on '+(port?'the RT-950 Pro on the selected cable':profile.name+(session.device.name?' ('+session.device.name+')':''))+' using '+layoutNames[layout]+'?'+detail+(high?' This includes channels 961–990. Confirm firmware 0.24 or later.':'')))return;
   let acknowledged=0;
-  note(session.device.gatt.connected?'Starting write…':'Reconnecting to write…');
+  note(port?'Starting cable write…':session.device.gatt.connected?'Starting write…':'Reconnecting to write…');
   const showProgress=progress('Writing');
-  try{await writeBlocks(session,opts,blocks,(done,total)=>{acknowledged=done;showProgress(done,total);});}
+  let attempted=false;
+  const onWriteAttempt=()=>{
+   if(attempted)return;
+   attempted=true;
+   // Cable and Bluetooth may address the same radio. Preserve interrupted
+   // blocks, but don't compare against a baseline invalidated by a cable write.
+   if(port)for(const [id,known] of radios)if(known.baseline)radios.set(id,{pending:known.pending});
+  };
+  const send=transport=>writeBlocks(transport,{...opts,onWriteAttempt},blocks,(done,total)=>{acknowledged=done;showProgress(done,total);});
+  try{if(port)await withRt950Serial(port,send);else await send(session);}
   catch(error){
+   if(!attempted)throw error;
    radios.set(key,{...state,pending:blocks});
-   note('Write incomplete. '+acknowledged+' of '+count+' acknowledged. Your workspace is retained. Choose Write Bluetooth to retry. '+error.message);throw Error(status);
+   note('Write incomplete. '+acknowledged+' of '+count+' acknowledged. Your workspace is retained. Choose '+(port?'Write Cable':'Write Bluetooth')+' to retry. '+error.message);throw Error(status);
   }
-  base=target;radios.set(key,{baseline:target,complete:hasChannelImage});history=[];restoreFile=false;
+  base=target;
+  if(port)radios.delete(key);else radios.set(key,{baseline:target,complete:hasChannelImage});
+  history=[];restoreFile=false;
   note('Write complete. The radio acknowledged '+count+'.');render();
  }
  input.onchange=()=>{
@@ -161,13 +189,13 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
    let saved;
    if(files.length===1&&/\.json$/i.test(file.name)){
     if(file.size>4*1024*1024)throw Error('Select a workspace smaller than 4 MB.');
-    saved=openBackup(await file.text(),layout);
+    saved=openBackup(await file.text(),layout,profile);
    }else if(files.length===1&&/\.dat$/i.test(file.name)&&new TextDecoder().decode(await file.slice(0,140).arrayBuffer()).includes('BT-RT950PRO_CPS,')){
     if(file.size>=2000000)throw Error('Select a Radtel DAT smaller than 2 MB.');
     saved=openNative(new Uint8Array(await file.arrayBuffer()));
    }else{
     const image=draft;
-    await importChannels({files,layout,zone,image,fileTools,apply:(next,plan,first)=>{
+    await importChannels({files,layout,zone,image,fileTools,modelName:profile.short,apply:(next,plan,first)=>{
      if(!active||draft!==image)throw Error('The workspace changed. Reopen the channel import.');
      zone=first;search='';screen='Channels';
      commit(next,plan.channels.length+' analog channels imported.'+(next.overflow.length?' '+next.overflow.length+' over capacity.':''));
@@ -221,18 +249,18 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
  }
  function render(){
   if(!active)return;
-  $('brandTitle').textContent='Ham-Rx Radtel RT-950 Pro';
+  $('brandTitle').textContent='Ham-Rx '+profile.name;
   document.documentElement.dataset.screen=screen==='Channels'?'channels':'other';
   $('tabs').replaceChildren(...Object.entries(pages).map(([s,icon])=>{
    const b=button(icon+' '+s,()=>{screen=s;render();});b.classList.toggle('active',s===screen);if(s===screen)b.setAttribute('aria-current','page');return b;
   }));
   const allChannels=draft.settings?.[38]!==255&&(draft.settings?.[38]&15)===1;
   $('pageTitle').textContent=screen==='Channels'?(allChannels?'Channels · All':'Channels · Zone '+zone):screen;
-  $('pageDescription').textContent=screen==='Channels'?(allChannels?'All CH Mode':'Edit RT-950 Pro channels by zone.'):'Radtel RT-950 Pro programming';
+  $('pageDescription').textContent=screen==='Channels'?(allChannels?'All CH Mode':'Edit '+profile.short+' channels by zone.'):profile.name+' programming';
   const card=el('section',undefined,'card'+(screen==='Channels'?' channel-card rt950-channels':''));
   $('content').replaceChildren(card);
   if(screen==='Radio & help'){
-   renderRt950Help($('content'),draft);return;
+   renderRt950Help($('content'),draft,profile);return;
   }
   if(screen!=='Channels'){
    $('pageDescription').textContent='';
@@ -243,7 +271,7 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
   const bar=el('div',undefined,'toolbar'),controls=el('div',undefined,'toolbar-controls');
   const firmware=choices([['990',layoutNames['990']],['960',layoutNames['960']]],layout);firmware.id='rt950Firmware';
   firmware.onchange=()=>{
-   if((original||restoreFile||!!draft.overflow?.length||!sameImage(base,draft))&&!confirm('Change firmware layout and clear this RT-950 workspace?')){firmware.value=layout;return;}
+   if((original||restoreFile||!!draft.overflow?.length||!sameImage(base,draft))&&!confirm('Change firmware layout and clear this '+profile.short+' workspace?')){firmware.value=layout;return;}
    layout=firmware.value;zone=1;base=emptyImage;draft=base;original=null;nativeTemplate=null;radios.clear();history=[];restoreFile=hasChannelImage=false;note('Firmware layout changed.');render();refresh();
   };
   const find=el('input');find.type='search';find.placeholder='Search channels';find.setAttribute('aria-label','Search channels');find.value=search;
@@ -397,7 +425,7 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
    name.onkeydown=e=>{if(e.key==='Enter')rename();};foot.append(field('Zone name',name),button('Rename',rename));
   }
   const scope=allChannels?'all zones':'zone '+zone;
-  foot.append(button('Export CHIRP CSV',()=>fileTools.save(exportZoneCsv(draft,layout,allChannels?null:zone),allChannels?'RT950Pro_all_channels.csv':'Zone'+String(zone).padStart(2,'0')+'_'+(zoneName(draft,layout,zone)||'Channels')+'.csv','text/csv')),
+  foot.append(button('Export CHIRP CSV',()=>fileTools.save(exportZoneCsv(draft,layout,allChannels?null:zone),allChannels?profile.id+'_all_channels.csv':'Zone'+String(zone).padStart(2,'0')+'_'+(zoneName(draft,layout,zone)||'Channels')+'.csv','text/csv')),
    button(allChannels?'Clear list':'Clear zone',()=>{
     if(!confirm('Clear all channels in '+scope+' from the workspace?'))return;
     const next={...draft,ch:draft.ch.slice()};
@@ -425,10 +453,14 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
   select(selected){
    const image=$('brandRadioImage'),holder=image.parentElement;
    if(active&&!selected){
-    disconnect();holder.querySelector('svg')?.remove();holder.classList.remove('rt950-brand-image');
+    disconnect();
+    // The other profile can address this same radio while this workspace is inactive.
+    for(const [key,state] of radios)if(state.baseline)radios.set(key,{pending:state.pending});
+    holder.hidden=false;holder.querySelector('svg')?.remove();holder.classList.remove('rt950-brand-image');
    }
    active=selected;if(!active)return;
-   if(!holder.querySelector('svg')){
+   holder.hidden=profile.id!=='rt950pro';
+   if(!holder.hidden&&!holder.querySelector('svg')){
     const photo=rt950Photo(image.ownerDocument,'rt950-picker-housing');
     photo.setAttribute('aria-hidden','true');holder.append(photo);
    }
@@ -438,16 +470,22 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
   connect:()=>run(connect),
   help(){screen='Radio & help';render();},
   sync(selected,busy){
-   for(const b of [open,dat,save,read,write,backup]){b.hidden=!selected;b.disabled=busy;}
+   for(const b of [open,dat,save,read,cableRead,write,cableWrite,backup]){b.hidden=!selected;b.disabled=busy;}
    if(!selected)return;
+   cableRead.hidden=cableWrite.hidden=!profile.cable;
    const connected=!!link?.device?.gatt.connected;
-   $('connection').textContent=connected?'Connected':'Not connected';$('connectionHint').textContent=navigator.bluetooth?'Bluetooth programming':'File editing available';
+   $('connection').textContent=connected?'Connected':'Not connected';$('connectionHint').textContent=navigator.bluetooth?'Bluetooth programming':profile.cable&&navigator.serial?'Cable programming available':'File editing available';
    $('linkDot').classList.toggle('online',connected);$('connect').textContent=connected?'Disconnect':'Connect';
    $('connect').disabled=busy||!navigator.bluetooth||!window.isSecureContext;
-   $('sourceTag').textContent=radioState()?.pending?.length?'Write incomplete':restoreFile?(draft.factoryDat?'Radtel CPS DAT':'RT-950 Pro backup'):original?'RT-950 Pro radio read':'RT-950 Pro workspace';
+   const source=(radioState()?.pending?.length||radios.get(lastCablePort)?.pending?.length)?'Write incomplete':restoreFile?(draft.factoryDat?'Radtel CPS DAT':profile.short+' backup'):original?profile.short+' radio read':profile.short+' workspace';
+   $('sourceTag').textContent=source+' · Testing';
    dat.disabled=busy||!!draft.overflow?.length;dat.title=draft.overflow?.length?capacityMessage():'Download a native RT-950 Pro factory CPS file.';
    read.disabled=busy||!connected;write.disabled=busy||!!draft.overflow?.length||!navigator.bluetooth||!window.isSecureContext||!hasWorkspace();
    write.title=hasWorkspace()?'Send the current workspace over Bluetooth.':'Open a workspace or add channels to write.';
+   const serial=window.isSecureContext&&!!navigator.serial;
+   cableRead.disabled=busy||!serial;
+   cableWrite.disabled=busy||!serial||!!draft.overflow?.length||!hasWorkspace();
+   cableRead.title=cableWrite.title=serial?'RT-950 Pro programming cable · hardware testing pending':'Cable programming requires a browser with Web Serial support.';
    backup.disabled=busy||!original;
   }
  };

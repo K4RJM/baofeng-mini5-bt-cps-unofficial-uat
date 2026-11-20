@@ -270,6 +270,7 @@ export {toneBytes,tone};
     clear() { this.buf.length = 0; }
     async _w(bytes, o) { this.txCount += bytes.length; await this.link.write(bytes, o); }
     async _r(n, timeoutMs = 3000) {
+      if (this.link.readExactly) return this.link.readExactly(n,timeoutMs);
       const t0 = Date.now();
       while (this.buf.length < n) {
         const left = timeoutMs - (Date.now() - t0);
@@ -288,6 +289,10 @@ export {toneBytes,tone};
       return o;
     }
     async handshake() {
+      if(this.link.readExactly){
+        try{return await this._handshakeOnce();}
+        catch(error){if(this.entered)await this.end();throw error;}
+      }
       let last;
       for (let attempt = 1; attempt <= 3; attempt++) {
         try { return await this._handshakeOnce(); }
@@ -299,9 +304,10 @@ export {toneBytes,tone};
       this.clear(); await sleep(200);
       await this._w(new Uint8Array(HANDSHAKE));
       if ((await this._r(1, 2500))[0] !== ACK) throw new Error("no ACK to PROGRAMBT9000U");
+      this.entered=true;
       await this._w(new Uint8Array([0x46]));                // 'F'
       let ident = await this._r(16, 2500), strips = 0;
-      while (ident[0] === ACK && strips < 4) {               // stray late ACK on cold BLE link
+      while (!this.link.readExactly && ident[0] === ACK && strips < 4) {               // stray late ACK on cold BLE link
         ident = new Uint8Array([...ident.subarray(1), ...(await this._r(1, 2500))]); strips++;
       }
       await this._w(new Uint8Array([0x4D]));                // 'M'
@@ -309,8 +315,8 @@ export {toneBytes,tone};
       this.model = String.fromCharCode(...m).replace(/[\x00 ]+$/, "").replace(/^[\x00 ]+/, "");
       this.log(`Radio model: "${this.model}"`);
       if (!this.allowed.includes(this.model)) {
-        await this._w(new Uint8Array([0x45]));
-        const e = new Error(`model "${this.model}" not allowed (allowed: ${this.allowed.join(", ")}). Choose the RT-950 Pro in the Bluetooth device picker.`);
+        await this.end();
+        const e = new Error(`model "${this.model}" not allowed (allowed: ${this.allowed.join(", ")}). ${this.link.readExactly?'Check the radio connected to the cable.':'Check the selected model and Bluetooth device.'}`);
         e.modelRefused = true; throw e;
       }
       const frame = new Uint8Array(25);
@@ -335,7 +341,9 @@ export {toneBytes,tone};
             const blk = await this._r(4 + BLOCK, 4000);
             if (blk[3] !== BLOCK || blk[1] !== (a >> 8) || blk[2] !== (a & 0xFF)) throw new Error(`reply header ${toHex(blk.subarray(0, 4))} does not match address 0x${a.toString(16)}`);
             out.set(this._xor(blk.subarray(4)), a - addr); ok = true;
-          } catch (e) { lastErr = e; this.log(`retry read 0x${a.toString(16)}: ${e.message}`); }
+          } catch (e) {
+            if(this.link.readExactly)throw Error('RT-950 Pro cable read at 0x'+a.toString(16)+': '+e.message,{cause:e});
+            lastErr = e; this.log(`retry read 0x${a.toString(16)}: ${e.message}`); }
         }
         if (!ok) throw lastErr;
         if (onBlock) onBlock();
@@ -351,14 +359,14 @@ export {toneBytes,tone};
       await this._w(frame,{withResponse:aprs});
       // radio answers a single 0x06; tolerate an echoed header byte or two before it
       const got = [...(await this._r(1, aprs ? 30000 : a >= 0x8000 ? 10000 : 8000))];
-      for (let i = 0; i < 4 && !got.includes(ACK); i++) {
+      for (let i = 0; i < 4 && !this.link.readExactly && !got.includes(ACK); i++) {
         try { got.push(...(await this._r(1, 600))); } catch (e) { break; }
       }
       if (!got.includes(ACK)) throw new Error(`no ACK for block 0x${a.toString(16)} (got ${toHex(got)})`);
       if (aprs) await sleep(600);
       else if (a >= 0x8000) await sleep(50);
     }
-    async end() { try { await this._w(new Uint8Array([0x45])); } catch (e) { /* link may drop */ } this.key = null; }
+    async end() { try { await this._w(new Uint8Array([0x45])); } catch (e) { /* link may drop */ } this.key = null; this.entered=false; }
   }
 
   // ---------------------------------------------------------- high level ops
@@ -377,7 +385,7 @@ export {toneBytes,tone};
       const image={ch,zn,model:t.model};
       for(const r of sections){
         try{image[r.key]=await t.read(r.addr,r.length,tick,r.read);}
-        catch(error){image.unavailable=[r.key];opts?.log?.(error.message);break;}
+        catch(error){if(link.readExactly)throw error;image.unavailable=[r.key];opts?.log?.(error.message);break;}
       }
       return image;
     });
@@ -400,6 +408,7 @@ export {toneBytes,tone};
           const existing=await t.read(block.addr,BLOCK,null,block.read);
           data=data.slice();data.set(existing.subarray(block.preserveFrom),block.preserveFrom);
         }
+        opts?.onWriteAttempt?.();
         await t.writeBlock(block.addr,data,block.write);
         if(progress)progress(i+1,blocks.length);
       }

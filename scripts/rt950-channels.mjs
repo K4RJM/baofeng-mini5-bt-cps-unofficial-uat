@@ -1,3 +1,4 @@
+import {rt950Models} from './rt950-models.mjs';
 import {CH_LEN, EMPTY_REC, LAYOUTS, REC, ZN_LEN, backupJSON, buildRecord, decFreq, encFreq, encName, eq, hex, parseCSV, zoneFromFilename, sections, segmentKey, tone, toneBytes} from './rt950-core.mjs';
 import {overlaySettings} from './rt950-sections.mjs';
 
@@ -149,18 +150,19 @@ export function overlayChanges(target,before,after,layout){
  }
  return result;
 }
-export function saveBackup(image,layout){
+export function saveBackup(image,layout,profile=rt950Models.rt950pro){
  layoutFor(layout);
- return JSON.stringify({...JSON.parse(backupJSON(image).text),firmwareLayout:layout,...(image.factoryDat?{factoryDat:true}:{}),...(image.overflow?.length?{overCapacity:image.overflow}:{})});
+ return JSON.stringify({...JSON.parse(backupJSON(image).text),radioProfile:profile.id,firmwareLayout:layout,...(image.factoryDat?{factoryDat:true}:{}),...(image.overflow?.length?{overCapacity:image.overflow}:{})});
 }
-export function openBackup(text,fallback){
+export function openBackup(text,fallback,profile=rt950Models.rt950pro){
  const obj=JSON.parse(text);
- if(obj.model!=='RT-950')throw Error('Choose a backup with the RT-950 model identifier.');
+ if(obj.radioProfile!==undefined&&obj.radioProfile!==profile.id)throw Error('This backup belongs to '+(rt950Models[obj.radioProfile]?.name||'another radio')+'. Choose that radio to open it.');
+ if(!profile.models.includes(obj.model))throw Error('The backup model identifier does not match '+profile.name+'.');
  const layout=obj.firmwareLayout??fallback;
  layoutFor(layout);
  const decode=(key,len)=>{
   const s=obj.segments?.[key];
-  if(typeof s!=='string'||s.length!==len*2||!/^[0-9a-f]+$/i.test(s))throw Error('Incomplete RT-950 backup segment '+key+'.');
+  if(typeof s!=='string'||s.length!==len*2||!/^[0-9a-f]+$/i.test(s))throw Error('Incomplete backup segment '+key+'.');
   return hex(s);
  };
  const image={model:obj.model,ch:decode('0000',CH_LEN),zn:decode('C000',ZN_LEN)};

@@ -17,7 +17,7 @@ function importedBytes(c){
  writeValue(bytes,{type:'name',offset:20,length:12,label:'Channel name'},c.name??'');
  return bytes;
 }
-export function importChannels({files,layout,zone,image,fileTools,apply}){
+export function importChannels({files,layout,zone,image,fileTools,apply,modelName='RT-950 Pro'}){
  const {zones,per}=LAYOUTS[layout],named=files.length===1?zoneFromFilename(files[0].name):null;
  if(named&&(named.zone<1||named.zone>zones))throw Error('The CSV zone is outside this firmware layout.');
  const start=named?.zone??zone;
@@ -26,7 +26,7 @@ export function importChannels({files,layout,zone,image,fileTools,apply}){
  return fileTools.openChannelAppend({
   mode:'append',initialFile:files,capacity:zones*per,getData:()=>current,bankImport:{start,count:zones,label:'Zone',plan:makePlan},
   async readFile(file,settings){
-   const target={...settings,model:'RT-950 Pro',charset:[[32,126,1]],validateFrequency:v=>Number(v)>=18&&Number(v)<1000?'':'Frequency must be from 18 to below 1000 MHz.'};
+   const target={...settings,model:modelName,charset:[[32,126,1]],validateFrequency:v=>Number(v)>=18&&Number(v)<1000?'':'Frequency must be from 18 to below 1000 MHz.'};
    let result;
    if(file.zoneFiles)result=await fileTools.readZoneFiles(file.zoneFiles,target);
    else if(/\.(dat|img)$/i.test(file.name)){

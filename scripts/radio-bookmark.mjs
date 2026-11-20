@@ -1,4 +1,4 @@
-const modelNames=new Map([['mini5','MINI-5'],['uv32','UV-32'],['rt950pro','RT-950 Pro']]);
+const modelNames=new Map([['mini5','MINI-5'],['uv32','UV-32'],['rt950pro','RT-950 Pro'],['bj9000','BJ-9000']]);
 
 export function installRadioBookmark(select){
  const byId=id=>document.getElementById(id);

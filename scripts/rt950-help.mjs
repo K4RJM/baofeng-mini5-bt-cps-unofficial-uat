@@ -1,3 +1,4 @@
+import {rt950Models} from './rt950-models.mjs';
 import {getValue, settings} from './rt950-sections.mjs';
 import {renderKeyChoices} from './rt950-forms.mjs';
 
@@ -31,7 +32,7 @@ export function rt950Photo(d,clipId){
  return frame;
 }
 
-export function renderRt950Help(target,image){
+export function renderRt950Help(target,image,profile=rt950Models.rt950pro){
  const d=target.ownerDocument;
  function el(tag,text,cls){
   const node=d.createElement(tag);if(text)node.textContent=text;if(cls)node.className=cls;return node;
@@ -49,7 +50,7 @@ export function renderRt950Help(target,image){
  const tutorial=el('section',null,'help-tutorial-host radio-tutorial-card');
  const head=el('div',null,'uv32-tutorial-head');
  const zoom=el('button','Zoom into keypad','uv32-keypad-zoom');zoom.type='button';zoom.setAttribute('aria-pressed','false');
- head.append(el('h3','Radio button tutorials'),el('p','Hover, focus or tap a control for instructions.','muted'),zoom);
+ head.append(el('h3',profile.id==='bj9000'?'Button guide · Radtel reference photo':'Radio button tutorials'),el('p','Hover, focus or tap a control for instructions.','muted'),zoom);
  const layout=el('div',null,'radio-tutorial-layout'),drawing=el('div',null,'radio-drawing');
  const fullView=[-105,0,725,1268],keypadView=[195,765,320,405];
  const photo=svg('svg',{role:'group','aria-label':'Radtel RT-950 Pro controls'});
@@ -117,12 +118,14 @@ export function renderRt950Help(target,image){
  const reference=el('div',null,'help-reference');
  const docs=el('section',null,'card');
  docs.append(el('h3','RT-950 Pro manual'),link('Open the Radtel user manual ↗',manual),el('p','Side-key and numeric long-press assignments shown here come from Optional Features in your workspace.','muted'),link('Radtel product and control photo ↗',product));
+ if(profile.id==='bj9000')docs.prepend(el('h3','Bajeton BJ-9000'),el('p','The guide uses the RT-950 Pro as a reference. The BJ-9000 shares its Bluetooth programming protocol and can identify itself as RT-950.'));
  const programming=el('section',null,'card');
- programming.append(el('h3','Bluetooth programming'),
+ programming.append(el('h3','Radio programming'),
   el('p','Choose the layout under Channels that matches Menu › About on the radio. Firmware 0.24 and later uses 10 zones of 99 channels. Earlier firmware uses 15 zones of 64 channels.'),
   el('p','Import file opens a Radtel CPS DAT or HAM-Rx JSON workspace. For channel lists, choose CSV, TSV, Kenwood HMK, a supported AnyTone RDT, or a supported Baofeng DAT or IMG. Review the analog channels and their destination zones before adding them.'),
-  el('p','Save CPS .dat downloads a file for Radtel CPS 1.3.3. A channel-only workspace uses factory defaults for the other settings. Save workspace keeps the HAM-Rx JSON, including over-capacity channels.'),
+  el('p',(profile.id==='bj9000'?'Save Radtel .dat':'Save CPS .dat')+' downloads a file for Radtel CPS 1.3.3. A channel-only workspace uses factory defaults for the other settings. Save workspace keeps the HAM-Rx JSON, including over-capacity channels.'),
   el('p','Choose Write Bluetooth to send the workspace. After a dropped connection, Write reconnects to the selected radio. Edits to a previously read radio send the changed blocks. Opening a backup for a different radio writes the sections present in that backup.'),
+  ...(profile.cable?[el('p','For USB programming, connect the powered-on RT-950 Pro with its programming cable. Close any other program using the port. Choose Read Cable or Write Cable, then select the port. You can write a saved workspace directly. Cable support follows factory CPS 1.3.3 and has been tested with a simulated radio. A physical cable test is pending.')]:[]),
   link('Bluetooth protocol reference ↗','https://github.com/facenot/bj9000-programmer'));
  reference.append(docs,programming);workspace.append(tutorial,reference);target.replaceChildren(workspace);
 }

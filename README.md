@@ -2,6 +2,8 @@
 
 Free, noncommercial browser software by K4RJM, hosted on GitHub Pages.
 
+The radio selector supports Baofeng MINI-5, Baofeng UV-32, Radtel RT-950 Pro (Testing), and Bajeton BJ-9000 (Testing). The Radtel and Bajeton models share a Bluetooth driver and offer independent workspaces and bookmarks. The layout follows the firmware version in the radio’s About menu. [Shared Bluetooth programmer and hardware test notes](https://github.com/facenot/bj9000-programmer).
+
 **Version 20.33.** Open native DAT, CHIRP UV-5R Mini and legacy Mini 5 Studio images; export genuine CHIRP images. **Import file** and **Append channels** are separate left-toolbar buttons for DAT, IMG, CSV, TSV, HMK and supported AnyTone RDT files. Digital channels are filtered out automatically. Import opens DAT/IMG configurations or previews channel-list replacement; Append adds channels with empty-slot previews, duplicate skipping and Undo, preserving the current radio settings. [Image compatibility, preservation limits and evidence](docs/IMG-COMPATIBILITY.md). [Channel-list formats, conversion rules and verification](docs/CSV-IMPORT.md). High-contrast text from v20.28 is retained. Compact channel editing and Radio & Help, all 23 button tutorials, expandable Known Firmware Limitations, and a locally hosted Ham-Rx PDF guide. The radio manual opens Baofeng’s official PDF in a new tab.
 
 Releases are verified in the permanent [UAT site](https://k4rjm.github.io/baofeng-mini5-bt-cps-unofficial-uat/) before publication to [LIVE](https://k4rjm.github.io/baofeng-mini5-bt-cps-unofficial/). The on-screen version and UAT banner identify the environment. [RDT support, verified samples and release/rollback evidence](docs/RDT-IMPORT.md).
@@ -114,4 +116,4 @@ Live site: [Ham-Rx Baofeng Mini-5](https://k4rjm.github.io/baofeng-mini5-bt-cps-
 
 Reviewed core SHA-256 hashes and the retained build 18 provenance are tracked in docs/protected-core.json. Changes require explicit safety review and approval before use on a radio.
 
-Derived from [Mini 5 Studio by replicationbench](https://github.com/replicationbench/Mini5); [CHIRP](https://github.com/kk7ds/chirp) informed the approved BLE layout and native CPS captures informed DAT mapping. Modified source and notices are supplied under GPL v3; see [LICENSE](LICENSE). Not affiliated with Baofeng, Radtel, or RepeaterBook.
+Derived from [Mini 5 Studio by replicationbench](https://github.com/replicationbench/Mini5); [CHIRP](https://github.com/kk7ds/chirp) informed the approved BLE layout and native CPS captures informed DAT mapping. Modified source and notices are supplied under GPL v3; see [LICENSE](LICENSE). Not affiliated with Baofeng, Bajeton, Radtel, or RepeaterBook.
