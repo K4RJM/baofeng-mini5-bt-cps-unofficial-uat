@@ -394,7 +394,15 @@ export {toneBytes,tone};
   }
   async function writeBlocks(link, opts, blocks, progress) {
     return session(link, opts, async t => {
-      for (let i = 0; i < blocks.length; i++) { await t.writeBlock(blocks[i].addr, blocks[i].data, blocks[i].write); if (progress) progress(i + 1, blocks.length); }
+      for (const [i,block] of blocks.entries()) {
+        let data=block.data;
+        if(block.preserveFrom!==undefined){
+          const existing=await t.read(block.addr,BLOCK,null,block.read);
+          data=data.slice();data.set(existing.subarray(block.preserveFrom),block.preserveFrom);
+        }
+        await t.writeBlock(block.addr,data,block.write);
+        if(progress)progress(i+1,blocks.length);
+      }
     });
   }
   async function verifyBlocks(link, opts, blocks, progress) {

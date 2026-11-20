@@ -1,4 +1,19 @@
 import {settings,vfos,dtmf,dtmfGroups,receiver,stationRows,aprs,getValue,editField} from './rt950-sections.mjs';
+import {DCS_CODES} from './rt950-core.mjs';
+
+const ctcss='67.0 69.3 71.9 74.4 77.0 79.7 82.5 85.4 88.5 91.5 94.8 97.4 100.0 103.5 107.2 110.9 114.8 118.8 123.0 127.3 131.8 136.5 141.3 146.2 151.4 156.7 159.8 162.2 165.5 167.9 171.3 173.8 177.3 179.9 183.5 186.2 189.9 192.8 196.6 199.5 203.5 206.5 210.7 218.1 225.7 229.1 233.6 241.8 250.3 254.1'.split(' ');
+export function toneSelect(el,value){
+ const select=el('select');select.add(new Option('Off','Off'));
+ for(const [label,choices] of [['CTCSS (Hz)',ctcss],['DCS normal',DCS_CODES.filter(v=>v.endsWith('N'))],['DCS inverted',DCS_CODES.filter(v=>v.endsWith('I'))]]){
+  const group=el('optgroup');group.label=label;
+  for(const v of choices)group.append(new Option(label==='CTCSS (Hz)'?v+' Hz':v,v));
+  select.append(group);
+ }
+ if(value!=='Off'&&!ctcss.includes(value)&&!DCS_CODES.includes(value)){
+  const current=new Option(value||'Read radio',value);current.disabled=true;select.prepend(current);
+ }
+ select.value=value;return select;
+}
 
 const optionalGroups=[
  ['Radio','SQL SaveMode TDR TOT Scan RTone TailNoiseClear PassRepetNoiseClear PassRepetNoiseDetect SoundTxEnd RadioRxInterruption FMRadio ABUVTransfer SoundTransfer'],
@@ -42,7 +57,7 @@ export function renderSection(card,screen,{el,field,button,image,update,undo,can
  const controls=new Map();
  function input(f,context=''){
   const bytes=image()[f.region],raw=getValue(bytes,f);
-  const control=el(f.options?'select':'input');
+  const control=f.type==='tone'?toneSelect(el,raw):el(f.options?'select':'input');
   control.dataset.field=f.key;
   if(f.options){
    const list=(/^CurWorkZone/.test(f.key)&&layout==='990')?f.options.slice(0,10):f.options;
@@ -53,9 +68,8 @@ export function renderSection(card,screen,{el,field,button,image,update,undo,can
    }
   }else if(f.type==='number'||f.type==='digits'){
    control.type='number';control.min=f.min;control.max=f.max;control.step=f.decimals?10**(-f.decimals):1/(f.scale||1);
-  }else {
-   control.type='text';if(f.type!=='tone')control.maxLength=f.length;
-   if(f.type==='tone')control.title='Off, CTCSS in Hz, or DCS such as D023N';
+  }else if(f.type!=='tone'){
+   control.type='text';control.maxLength=f.length;
   }
   if(f.key==='OffsetDir')control.title='Plus puts transmit above receive by the offset. Minus puts transmit below receive.';
   control.value=bytes?raw:'';control.disabled=!bytes||!!f.readonly;

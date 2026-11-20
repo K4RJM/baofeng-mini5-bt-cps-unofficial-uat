@@ -1,6 +1,8 @@
-import {BLOCK, EMPTY_REC, LAYOUTS, LOW_LIMIT, REC, ZN_ADDR, blockBefore, sections, eq, planWrites, readImage, webBluetoothLink, writeBlocks} from './rt950-core.mjs';
-import {appendCsv, blankImage, channel, fullChannel, channelMenus, editRecord, exportZoneCsv, openBackup, overlayChanges, powers, record, renameZone, saveBackup, zoneName} from './rt950-channels.mjs';
-import {renderSection} from './rt950-forms.mjs';
+import {BLOCK, EMPTY_REC, LAYOUTS, LOW_LIMIT, REC, ZN_ADDR, blockBefore, sections, eq, hex, planWrites, readImage, webBluetoothLink, writeBlocks} from './rt950-core.mjs';
+import {blankImage, channel, fullChannel, channelMenus, editRecord, exportZoneCsv, openBackup, overlayChanges, powers, record, renameZone, saveBackup, zoneName} from './rt950-channels.mjs';
+import {importChannels} from './rt950-import.mjs';
+import {openNative,saveNative} from './rt950-native.mjs';
+import {renderSection,toneSelect} from './rt950-forms.mjs';
 import {validateSettings} from './rt950-sections.mjs';
 import {renderRt950Help,rt950Photo} from './rt950-help.mjs';
 
@@ -38,12 +40,19 @@ export function workspaceBlocks(target,layout,hasChannelImage,state){
    if(b.addr+BLOCK>end)throw Error('This last block includes bytes beyond the editable slots. Open a saved radio backup to preserve those bytes when writing it.');
   }
  }
- if(!pending.length)return blocks;
+ // A factory DAT describes 990 memories and 10 names. Preserve the radio's
+ // padding in the two partly occupied blocks, even when reconnecting.
+ function preserveTail(b){
+  if(!target.factoryDat||b.region)return b;
+  const end=b.addr>=ZN_ADDR?ZN_ADDR+LAYOUTS[layout].zones*16:LAYOUTS[layout].zones*LAYOUTS[layout].per*REC;
+  return b.addr+BLOCK>end?{...b,preserveFrom:end-b.addr}:b;
+ }
+ if(!pending.length)return target.factoryDat?blocks.map(preserveTail):blocks;
  // An edit undone after an interruption may already have reached the radio.
  const address=b=>(b.region||'memory')+'/'+b.addr;
  const retry=new Map(pending.filter(b=>!b.region||target[b.region]).map(b=>[address(b),blockBefore(target,b)]));
  for(const b of blocks)retry.set(address(b),b);
- return [...retry.values()].sort(transferOrder);
+ return [...retry.values()].sort(transferOrder).map(preserveTail);
 }
 export function createRt950Workspace({run,refresh,message,fileTools}){
  const $=id=>document.getElementById(id);
@@ -52,25 +61,31 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
  function field(label,control){control.setAttribute('aria-label',label);const wrap=el('label');wrap.append(el('span',label),control);return wrap;}
  function choices(options,value){const input=el('select');for(const [key,title] of options)input.add(new Option(title,key));input.value=value;return input;}
  function sidebar(id,title,action){const b=button(title,action);b.id=id;b.hidden=true;$('uatUv32Import').before(b);return b;}
- const input=el('input');input.type='file';input.accept='.json,.csv';input.hidden=true;$('uatUv32Import').before(input);
+ const input=el('input');input.type='file';input.multiple=true;input.accept='.dat,.json,.csv,.tsv,.hmk,.rdt,.img';input.hidden=true;$('uatUv32Import').before(input);
  const open=sidebar('rt950Open','↥ Import file',()=>input.click());
+ const dat=sidebar('rt950SaveDat','↧ Save CPS .dat',()=>run(async()=>{
+  if(draft.overflow?.length)throw Error(capacityMessage());
+  fileTools.save(saveNative(draft,layout,nativeTemplate),'rt950pro-edited.dat','application/octet-stream');
+  note('Saved Radtel CPS DAT.'+(layout==='960'?' CPS 1.3.3 displays the 960 channel slots in its 10-zone layout.':''));
+ }));
  const save=sidebar('rt950Save','↧ Save workspace',()=>download(draft,'rt950pro-edited.json'));
  const read=sidebar('rt950Read','↓ Read Bluetooth',()=>run(readRadio));
  const write=sidebar('rt950Write','↑ Write Bluetooth',()=>run(writeRadio));
  const backup=sidebar('rt950Backup','↧ Save read backup',()=>download(original,'rt950pro-radio-backup.json'));
  let layout='990',zone=1,screen='Channels',search='',showEmpty=false,link=null,active=false;
- let base=emptyImage,draft=base,original=null,history=[],restoreFile=false,hasChannelImage=false;
+ let base=emptyImage,draft=base,original=null,history=[],restoreFile=false,hasChannelImage=false,nativeTemplate=null;
+ const capacityMessage=()=>draft.overflow?.length+' channels over capacity. Place or remove them before writing or saving a CPS DAT.';
  // A dropped GATT connection still belongs to the same browser device. Keep its
  // last acknowledged image and any interrupted blocks until the next user action.
  const radios=new Map();
  const deviceKey=device=>device?.id||device;
  const radioState=()=>radios.get(deviceKey(link?.device));
- const hasWorkspace=()=>hasChannelImage||!sameImage(emptyImage,draft)||!!radioState()?.pending?.length||!sameImage(base,draft);
+ const hasWorkspace=()=>hasChannelImage||!!draft.overflow?.length||!sameImage(emptyImage,draft)||!!radioState()?.pending?.length||!sameImage(base,draft);
  let status='Choose the firmware layout shown in Menu › About. Connect to read your radio, or edit channels here.';
  const note=text=>{status=text;if(active)message(text);};
  function download(image,name){if(image)fileTools.save(saveBackup(image,layout),name,'application/json');}
  function commit(next,text,repaint=true){
-  if(!sameImage(draft,next)){history.push(draft);if(history.length>20)history.shift();draft=next;}
+  if(!sameImage(draft,next)||draft.overflow!==next.overflow){history.push(draft);if(history.length>20)history.shift();draft=next;}
   note(text);if(repaint)render();refresh();
  }
  function undoEdit(){if(!history.length)return;draft=history.pop();render();refresh();note('Last edit undone.');}
@@ -96,7 +111,7 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
   const session=link;
   if(!session?.device?.gatt.connected)throw Error('Use Connect at the top before reading.');
   const uncertain=!!radioState()?.pending?.length;
-  const merge=!uncertain&&(restoreFile||!sameImage(base,draft));
+  const merge=!uncertain&&(restoreFile||!!draft.overflow?.length||!sameImage(base,draft));
   if(uncertain&&!confirm('Read the current radio contents and replace the uncertain workspace? Save the workspace first to retain your edits.'))return;
   if(merge&&!confirm('Read this radio and stage your current workspace edits over its channels and settings?'))return;
   const fresh=await readImage(session,opts,progress('Reading'));
@@ -106,12 +121,16 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
    throw Error('Some settings could not be read. Your staged workspace was kept.');
   }
   const next=merge?overlayChanges(fresh,restoreFile?fresh:base,draft,layout):fresh;
+  if(merge&&draft.overflow?.length)next.overflow=draft.overflow;
+  if(merge&&draft.factoryDat)next.factoryDat=true;
+  if(!merge)nativeTemplate=null;
   base=fresh;original=fresh;hasChannelImage=true;draft=next;history=[];restoreFile=false;
   radios.set(deviceKey(session.device),{baseline:fresh,complete:true});
   note(missing.length?'Channels read. Unavailable settings: '+missing.join(', ')+'.':merge?'Read complete. Review the staged changes before writing.':'Channels and radio settings read. The original radio backup is available.');
   render();
  }
  async function writeRadio(){
+  if(draft.overflow?.length)throw Error(capacityMessage());
   if(!hasWorkspace())throw Error('Open a workspace or add channels to write.');
   const session=link?.device?link:await chooseRadio();
   const key=deviceKey(session.device),state=radios.get(key),baseline=state?.baseline,target=draft;
@@ -137,27 +156,38 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
   note('Write complete. The radio acknowledged '+count+'.');render();
  }
  input.onchange=()=>{
-  const file=input.files?.[0];input.value='';if(!file)return;
+  const files=Array.from(input.files??[]),file=files[0];input.value='';if(!file)return;
   run(async()=>{
-   if(file.size>4*1024*1024)throw Error('Select a channel file smaller than 4 MB.');
-   const text=await file.text();
-   if(/\.csv$/i.test(file.name)){
-    const added=appendCsv(draft,layout,zone,text,file.name);zone=added.zone;search='';screen='Channels';
-    commit(added.image,'Added '+added.count+' analog channels.'+(added.skipped?' Skipped '+added.skipped+' unsupported modes.':''));return;
+   let saved;
+   if(files.length===1&&/\.json$/i.test(file.name)){
+    if(file.size>4*1024*1024)throw Error('Select a workspace smaller than 4 MB.');
+    saved=openBackup(await file.text(),layout);
+   }else if(files.length===1&&/\.dat$/i.test(file.name)&&new TextDecoder().decode(await file.slice(0,140).arrayBuffer()).includes('BT-RT950PRO_CPS,')){
+    if(file.size>=2000000)throw Error('Select a Radtel DAT smaller than 2 MB.');
+    saved=openNative(new Uint8Array(await file.arrayBuffer()));
+   }else{
+    const image=draft;
+    await importChannels({files,layout,zone,image,fileTools,apply:(next,plan,first)=>{
+     if(!active||draft!==image)throw Error('The workspace changed. Reopen the channel import.');
+     zone=first;search='';screen='Channels';
+     commit(next,plan.channels.length+' analog channels imported.'+(next.overflow.length?' '+next.overflow.length+' over capacity.':''));
+    }});return;
    }
-   const saved=openBackup(text,layout);
    const state=radioState(),radioBase=state?.complete?state.baseline:null;
    if(link?.device?.gatt.connected&&radioBase&&saved.layout!==layout)throw Error('The backup uses a different firmware layout from this radio workspace.');
-   if(!confirm('Open this backup and replace the channels and settings it contains?'))return;
+   if(!confirm('Open this '+(saved.native?'Radtel CPS DAT':'backup')+' and replace the channels and settings it contains?'))return;
    if(saved.layout!==layout){radios.clear();original=null;}
    else for(const [key,known] of radios)if(!known.complete)radios.delete(key);
    if(!radioBase||saved.layout!==layout){layout=saved.layout;base=saved.image;draft=base;}
    else{
     base=radioBase;draft=overlayChanges(radioBase,radioBase,saved.image,layout);
     for(const {key} of sections)if(saved.image[key]&&!draft[key])draft[key]=saved.image[key];
+    if(saved.image.factoryDat)draft.factoryDat=true;
+    if(saved.image.overflow?.length)draft.overflow=saved.image.overflow;
    }
+   nativeTemplate=saved.native??null;
    history=[];hasChannelImage=true;restoreFile=true;
-   zone=1;screen='Channels';render();note('Backup opened. Review the workspace before writing.');
+   zone=1;search='';screen='Channels';render();note(saved.native?'Radtel CPS DAT opened. Channels and settings are ready.':'Backup opened. Review the workspace before writing.');
   });
  };
  function channelValues(slot){
@@ -166,6 +196,7 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
   return row;
  }
  function channelControl(key,value,inline=false){
+  if(key==='rxTone'||key==='txTone')return toneSelect(el,value);
   const options=key==='power'?powers:channelMenus[key];
   if(options)return choices([...new Set([...options,value])].map(x=>[x,x]),value);
   const control=el('input');control.value=value;
@@ -176,7 +207,6 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
   if(key==='name')control.maxLength=12;
   if(key==='rx'||key==='tx')control.inputMode='decimal';
   if(key==='tx')control.placeholder='Blank for receive only';
-  if(key.endsWith('Tone'))control.title='Off, CTCSS in Hz, or DCS such as D023N';
   return control;
  }
  const channelValue=(key,control)=>key==='scan'?(control.type==='checkbox'?control.checked:control.value==='add'):control.value;
@@ -213,8 +243,8 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
   const bar=el('div',undefined,'toolbar'),controls=el('div',undefined,'toolbar-controls');
   const firmware=choices([['990',layoutNames['990']],['960',layoutNames['960']]],layout);firmware.id='rt950Firmware';
   firmware.onchange=()=>{
-   if((original||restoreFile||!sameImage(base,draft))&&!confirm('Change firmware layout and clear this RT-950 workspace?')){firmware.value=layout;return;}
-   layout=firmware.value;zone=1;base=emptyImage;draft=base;original=null;radios.clear();history=[];restoreFile=hasChannelImage=false;note('Firmware layout changed.');render();refresh();
+   if((original||restoreFile||!!draft.overflow?.length||!sameImage(base,draft))&&!confirm('Change firmware layout and clear this RT-950 workspace?')){firmware.value=layout;return;}
+   layout=firmware.value;zone=1;base=emptyImage;draft=base;original=null;nativeTemplate=null;radios.clear();history=[];restoreFile=hasChannelImage=false;note('Firmware layout changed.');render();refresh();
   };
   const find=el('input');find.type='search';find.placeholder='Search channels';find.setAttribute('aria-label','Search channels');find.value=search;
   const empty=el('input');empty.type='checkbox';empty.checked=showEmpty;
@@ -375,6 +405,21 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
     commit(next,'Cleared channels in '+scope+'.');
    }));
   card.append(bar,wrap,foot);
+  if(draft.overflow?.length){
+   const pending=el('section'),list=el('select');list.multiple=true;list.size=4;list.setAttribute('aria-label','Over-capacity channels');
+   draft.overflow.forEach((value,i)=>{const c=channel(hex(value));list.add(new Option((i+1)+' · '+(c.name||'Unnamed')+' · '+c.rx+' MHz',i));});
+   const place=button('Fill empty slots',()=>{
+    const out={...draft,ch:draft.ch.slice()},queue=draft.overflow;let used=0;
+    for(let i=0;i<LAYOUTS[layout].zones*bankSize&&used<queue.length;i++)if(!channel(record(out,layout,i)).rx)record(out,layout,i).set(hex(queue[used++]));
+    if(!used){note('Delete a stored channel to make room.');return;}
+    out.overflow=queue.slice(used);commit(out,'Placed '+used+' channels.');
+   });
+   const remove=button('Remove selected',()=>{
+    const selected=new Set(Array.from(list.selectedOptions,o=>Number(o.value)));
+    if(selected.size)commit({...draft,overflow:draft.overflow.filter((_,i)=>!selected.has(i))},'Removed '+selected.size+' over-capacity channels.');
+   });
+   pending.append(el('h3','Over-capacity channels'),el('p',capacityMessage()),list,place,remove);card.append(pending);
+  }
  }
  return {
   select(selected){
@@ -393,14 +438,15 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
   connect:()=>run(connect),
   help(){screen='Radio & help';render();},
   sync(selected,busy){
-   for(const b of [open,save,read,write,backup]){b.hidden=!selected;b.disabled=busy;}
+   for(const b of [open,dat,save,read,write,backup]){b.hidden=!selected;b.disabled=busy;}
    if(!selected)return;
    const connected=!!link?.device?.gatt.connected;
    $('connection').textContent=connected?'Connected':'Not connected';$('connectionHint').textContent=navigator.bluetooth?'Bluetooth programming':'File editing available';
    $('linkDot').classList.toggle('online',connected);$('connect').textContent=connected?'Disconnect':'Connect';
    $('connect').disabled=busy||!navigator.bluetooth||!window.isSecureContext;
-   $('sourceTag').textContent=radioState()?.pending?.length?'Write incomplete':restoreFile?'RT-950 Pro backup':original?'RT-950 Pro radio read':'RT-950 Pro workspace';
-   read.disabled=busy||!connected;write.disabled=busy||!navigator.bluetooth||!window.isSecureContext||!hasWorkspace();
+   $('sourceTag').textContent=radioState()?.pending?.length?'Write incomplete':restoreFile?(draft.factoryDat?'Radtel CPS DAT':'RT-950 Pro backup'):original?'RT-950 Pro radio read':'RT-950 Pro workspace';
+   dat.disabled=busy||!!draft.overflow?.length;dat.title=draft.overflow?.length?capacityMessage():'Download a native RT-950 Pro factory CPS file.';
+   read.disabled=busy||!connected;write.disabled=busy||!!draft.overflow?.length||!navigator.bluetooth||!window.isSecureContext||!hasWorkspace();
    write.title=hasWorkspace()?'Send the current workspace over Bluetooth.':'Open a workspace or add channels to write.';
    backup.disabled=busy||!original;
   }

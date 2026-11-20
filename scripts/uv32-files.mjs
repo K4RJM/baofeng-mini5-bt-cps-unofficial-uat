@@ -34,24 +34,28 @@ const uv32DuplicateKey=ch=>JSON.stringify([
 ]);
 
 export function planUv32Import(current,source,{replacing,placement='1',skipDuplicates=true}){
+ return planBankedImport(current,source,{replacing,placement,skipDuplicates},{zones:10,per:100,label:'Bank',key:uv32DuplicateKey});
+}
+
+export function planBankedImport(current,source,{replacing,placement,skipDuplicates},{zones,per,label,key:duplicateKey}){
  const list=current.channelList[0];
  const firstBank=replacing?1:Number(placement);
- if(!Number.isInteger(firstBank)||firstBank<1||firstBank>10||list.length!==1000)throw Error('Choose a UV-32 bank from 1 to 10.');
+ if(!Number.isInteger(firstBank)||firstBank<1||firstBank>zones||list.length!==zones*per)throw Error('Choose a '+label.toLowerCase()+' from 1 to '+zones+'.');
  const known=new Set(),channels=[];
  let duplicates=0;
- if(!replacing&&skipDuplicates)for(const ch of [...list,...(current.pending??[])])if(ch.rxFreq)known.add(uv32DuplicateKey(ch));
+ if(!replacing&&skipDuplicates)for(const ch of [...list,...(current.pending??[])])if(ch.rxFreq)known.add(duplicateKey(ch));
  for(const ch of source){
   if(!ch?.rxFreq)continue;
   if(!replacing&&skipDuplicates){
-   const key=uv32DuplicateKey(ch);
+   const key=duplicateKey(ch);
    if(known.has(key)){duplicates++;continue;}
    known.add(key);
   }
   channels.push(ch);
  }
- const free=Array.from({length:10},(_,i)=>{
-  const bank=(firstBank-1+i)%10,slots=[];
-  for(let j=0;j<100;j++){const index=bank*100+j;if(replacing||!list[index].rxFreq)slots.push(index+1);}
+ const free=Array.from({length:zones},(_,i)=>{
+  const bank=(firstBank-1+i)%zones,slots=[];
+  for(let j=0;j<per;j++){const index=bank*per+j;if(replacing||!list[index].rxFreq)slots.push(index+1);}
   return slots;
  });
  const slots=[],placed=[],extra=[],byBank=new Map(),groups=new Map(),zoneSummary=[];
@@ -62,10 +66,10 @@ export function planUv32Import(current,source,{replacing,placement='1',skipDupli
   groups.get(ch.sourceZone).push(ch);
  }
  const allocate=(group,bankSlots,count)=>{
-  const picked=bankSlots.splice(0,count),bank=Math.ceil(picked[0]/100);
+  const picked=bankSlots.splice(0,count),bank=Math.ceil(picked[0]/per);
   byBank.set(bank,(byBank.get(bank)??0)+picked.length);
   placed.push(...group.splice(0,picked.length));slots.push(...picked);
-  return 'Bank '+bank+' ('+picked.length+')';
+  return label+' '+bank+' ('+picked.length+')';
  };
  const split=[];
  // Place whole zones first. Best fit leaves larger banks available for later
@@ -86,7 +90,7 @@ export function planUv32Import(current,source,{replacing,placement='1',skipDupli
   if(group.length){targets.push(group.length+' over capacity');extra.push(...group);}
   if(name)zoneSummary.push(name+' → '+targets.join(' / '));
  }
- const summary=[...byBank].map(([bank,count])=>'Bank '+bank+' · '+count);
+ const summary=[...byBank].map(([bank,count])=>label+' '+bank+' · '+count);
  if(extra.length)summary.push(extra.length+' over capacity · kept in the workspace');
  const error=!channels.length?(duplicates?'All matching channels are already present.':'Select at least one analog channel.'):'';
  return {channels:placed.concat(extra),slots,duplicates,overflow:extra.length,error,zoneSummary,summary:summary.join(' / ')};

@@ -120,7 +120,8 @@ export function renderRt950Help(target,image){
  const programming=el('section',null,'card');
  programming.append(el('h3','Bluetooth programming'),
   el('p','Choose the layout under Channels that matches Menu › About on the radio. Firmware 0.24 and later uses 10 zones of 99 channels. Earlier firmware uses 15 zones of 64 channels.'),
-  el('p','Use Read Bluetooth to load the radio or Import file to open a JSON workspace. Save read backup keeps the original read. CHIRP CSV files add analog channels to empty slots, starting in the selected zone. A filename such as Zone03_LOCAL.csv targets zone 3.'),
+  el('p','Import file opens a Radtel CPS DAT or HAM-Rx JSON workspace. For channel lists, choose CSV, TSV, Kenwood HMK, a supported AnyTone RDT, or a supported Baofeng DAT or IMG. Review the analog channels and their destination zones before adding them.'),
+  el('p','Save CPS .dat downloads a file for Radtel CPS 1.3.3. A channel-only workspace uses factory defaults for the other settings. Save workspace keeps the HAM-Rx JSON, including over-capacity channels.'),
   el('p','Choose Write Bluetooth to send the workspace. After a dropped connection, Write reconnects to the selected radio. Edits to a previously read radio send the changed blocks. Opening a backup for a different radio writes the sections present in that backup.'),
   link('Bluetooth protocol reference ↗','https://github.com/facenot/bj9000-programmer'));
  reference.append(docs,programming);workspace.append(tutorial,reference);target.replaceChildren(workspace);

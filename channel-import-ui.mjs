@@ -27,7 +27,7 @@ export function openChannelAppend({mode='preset',initialFile=null,getData,readFi
  $('appendPlacement').value='next';$('appendSkip').checked=true;$('appendPower').value='1';$('appendRepeaters').checked=false;$('appendDat').value='';
  $('csvReview').hidden=true;$('csvPower').value='1';$('csvPartial').checked=false;dialog.classList.remove('csv-import-dialog');
  if(bankImport&&!replacing){
-  $('appendPlacement').replaceChildren(...Array.from({length:10},(_,i)=>option(i+1,'Start in Bank '+(i+1))));
+  $('appendPlacement').replaceChildren(...Array.from({length:bankImport.count??10},(_,i)=>option(i+1,'Start in '+(bankImport.label??'Bank')+' '+(i+1))));
   $('appendPlacement').value=String(bankImport.start);
  }
  const preferences=()=>({placement:$('appendPlacement').value,skipDuplicates:$('appendSkip').checked,capacity});

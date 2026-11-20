@@ -151,7 +151,7 @@ export function overlayChanges(target,before,after,layout){
 }
 export function saveBackup(image,layout){
  layoutFor(layout);
- return JSON.stringify({...JSON.parse(backupJSON(image).text),firmwareLayout:layout});
+ return JSON.stringify({...JSON.parse(backupJSON(image).text),firmwareLayout:layout,...(image.factoryDat?{factoryDat:true}:{}),...(image.overflow?.length?{overCapacity:image.overflow}:{})});
 }
 export function openBackup(text,fallback){
  const obj=JSON.parse(text);
@@ -164,6 +164,11 @@ export function openBackup(text,fallback){
   return hex(s);
  };
  const image={model:obj.model,ch:decode('0000',CH_LEN),zn:decode('C000',ZN_LEN)};
+ if(obj.factoryDat===true)image.factoryDat=true;
+ if(obj.overCapacity!==undefined){
+  if(!Array.isArray(obj.overCapacity)||obj.overCapacity.some(s=>typeof s!=='string'||!/^[a-f0-9]{64}$/i.test(s)||!channel(hex(s)).rx))throw Error('Invalid over-capacity channels in this workspace.');
+  image.overflow=obj.overCapacity;
+ }
  for(const r of sections)if(Object.hasOwn(obj.segments,segmentKey(r)))image[r.key]=decode(segmentKey(r),r.length);
  return {layout,image};
 }

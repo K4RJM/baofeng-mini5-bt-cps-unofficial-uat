@@ -95,9 +95,10 @@ const heads=['Channel Name','Receive Frequency','Transmit Frequency','Channel Ty
 const csvRow=cells=>cells.map(s=>'"'+String(s).replaceAll('"','""')+'"').join(',');
 export function importRdt(input,settings){
  const parsed=parseRdt(input),rows=[];let skippedDigital=0;const baseNotes=[];
- const zones=settings?.model==='UV-32'?readRdtZones(input instanceof Uint8Array?input:new Uint8Array(input),parsed):[];
+ const supportsZones=['UV-32','RT-950 Pro'].includes(settings?.model);
+ const zones=supportsZones?readRdtZones(input instanceof Uint8Array?input:new Uint8Array(input),parsed):[];
  const membership=new Map();let hasChannelNotes=false;
- if(settings?.model==='UV-32')baseNotes.push(zones.length?'Source zone memberships are available. A channel in multiple zones uses its first source zone.':'No recognized source zone table. Channels will use available slots.');
+ if(supportsZones)baseNotes.push(zones.length?'Source zone memberships are available. A channel in multiple zones uses its first source zone.':'No recognized source zone table. Channels will use available slots.');
  zones.forEach(({name,members},zone)=>members.forEach((id,order)=>{
   if(!membership.has(id))membership.set(id,{sourceZone:name,sourceZoneOrder:zone,sourceMemberOrder:order});
  }));

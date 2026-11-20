@@ -86,7 +86,7 @@ export function getValue(bytes,f){
     }
   }
 }
-function writeValue(bytes,f,value){
+export function writeValue(bytes,f,value){
   const view=bytes.subarray(f.offset,f.offset+f.length);
   const invalid=()=>{throw Error('Invalid value for '+f.label+'.');};
   if(f.type==='choice'){
