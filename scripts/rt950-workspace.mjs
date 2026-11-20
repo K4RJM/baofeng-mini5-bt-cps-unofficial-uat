@@ -17,8 +17,20 @@ export function workspaceBlocks(target,layout,hasChannelImage,state){
  const unchanged=baseline&&sameImage(baseline,target);
  // With no radio snapshot, a backup owns its supplied sections. A new channel
  // list owns only the blocks populated in the editor.
- const reference=hasChannelImage?baseline:(unchanged||!baseline?emptyImage:baseline);
- const blocks=planWrites(reference,target,layout,true,unchanged&&hasChannelImage&&!pending.length);
+ const reference=(!hasChannelImage&&unchanged?null:baseline)??emptyImage;
+ const sendTable=hasChannelImage&&(!baseline||(unchanged&&!pending.length));
+ const blocks=planWrites(reference,target,layout,true,sendTable);
+ // A backup can supply sections the previous radio image does not contain.
+ // Send those captured bytes, including APRS in its separate address space.
+ for(const region of sections){
+  if(!target[region.key]||reference[region.key])continue;
+  for(let offset=0;offset<region.length;offset+=BLOCK){
+   blocks.push(blockBefore(target,{region:region.key,addr:region.addr+offset,read:region.read,write:region.write}));
+  }
+ }
+ const regionOrder=b=>sections.findIndex(region=>region.key===b.region);
+ const transferOrder=(a,b)=>regionOrder(a)-regionOrder(b)||a.addr-b.addr;
+ blocks.sort(transferOrder);
  if(!hasChannelImage){
   const {zones,per}=LAYOUTS[layout];
   for(const b of blocks){
@@ -31,7 +43,7 @@ export function workspaceBlocks(target,layout,hasChannelImage,state){
  const address=b=>(b.region||'memory')+'/'+b.addr;
  const retry=new Map(pending.filter(b=>!b.region||target[b.region]).map(b=>[address(b),blockBefore(target,b)]));
  for(const b of blocks)retry.set(address(b),b);
- return [...retry.values()].sort((a,b)=>Number(a.region==='aprs')-Number(b.region==='aprs')||a.addr-b.addr);
+ return [...retry.values()].sort(transferOrder);
 }
 export function createRt950Workspace({run,refresh,message,fileTools}){
  const $=id=>document.getElementById(id);
