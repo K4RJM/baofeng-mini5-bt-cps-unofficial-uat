@@ -114,4 +114,4 @@ Live site: [Ham-Rx Baofeng Mini-5](https://k4rjm.github.io/baofeng-mini5-bt-cps-
 
 Reviewed core SHA-256 hashes and the retained build 18 provenance are tracked in docs/protected-core.json. Changes require explicit safety review and approval before use on a radio.
 
-Derived from [Mini 5 Studio by replicationbench](https://github.com/replicationbench/Mini5); [CHIRP](https://github.com/kk7ds/chirp) informed the approved BLE layout and native CPS captures informed DAT mapping. Modified source and notices are supplied under GPL v3; see [LICENSE](LICENSE). Not affiliated with Baofeng or RepeaterBook.
+Derived from [Mini 5 Studio by replicationbench](https://github.com/replicationbench/Mini5); [CHIRP](https://github.com/kk7ds/chirp) informed the approved BLE layout and native CPS captures informed DAT mapping. Modified source and notices are supplied under GPL v3; see [LICENSE](LICENSE). Not affiliated with Baofeng, Radtel, or RepeaterBook.
