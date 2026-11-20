@@ -12,6 +12,31 @@ const aprsGroups=[
  ['Position and units','SiteType LatitudeDegrees LatitudeMinutes LatitudeSeconds LatitudeDir LongitudeDegrees LongitudeMinutes LongitudeSeconds LongitudeDir altitude LatitudeLongitudeUnit SpeedUnit DistanceUnit AltitudeUnit TimeZone'],
  ['Routing and reporting','RoutingSelect path1 CustomRoutingOneSSID path2 CustomRoutingTwoSSID AprsForwardChannel AprsForwardRouting AprsWaitForward TncDataType AprsCHMute AprsDecodePromptTone AprsRxAutoPopUp AprsTxDataReporting BeaconPopUpTime']
 ];
+
+// Use the same option arrays as the editable selectors. Short and long presses
+// often share a menu, while PF1 and PF2 have different choices.
+export function renderKeyChoices(el,fields){
+ const groups=new Map();
+ for(const field of fields){
+  if(!groups.has(field.options))groups.set(field.options,[]);
+  groups.get(field.options).push(field);
+ }
+ const wrap=el('div',undefined,'rt950-key-choices');
+ const meanings={Moni:'Monitor',BeaconTx:'Send an APRS beacon',PTTC:'Push-to-talk on line C'};
+ for(const [options,fields] of groups){
+  const digits=fields.length===10&&fields.every(f=>/^Key\dL$/.test(f.key));
+  const label=digits?'Keys 0–9 long press':fields.map(f=>f.label).join(' / ');
+  const section=el('section'),heading=el('h4',label+' options'),list=el('ul');
+  list.setAttribute('aria-label',heading.textContent);
+  for(const name of options){
+   const item=el('li',name);
+   if(meanings[name])item.append(' ('+meanings[name]+')');
+   list.append(item);
+  }
+  section.append(heading,list);wrap.append(section);
+ }
+ return wrap;
+}
 export function renderSection(card,screen,{el,field,button,image,update,undo,canUndo,note,layout}){
  const panel=el('div',undefined,'rt950-panels');card.append(panel);
  const controls=new Map();
@@ -54,7 +79,12 @@ export function renderSection(card,screen,{el,field,button,image,update,undo,can
   for(const f of fields){
    const control=input(f,context),label=field(f.label,control);control.setAttribute('aria-label',context+' '+f.label);grid.append(label);
   }
-  section.append(heading,grid);panel.append(section);
+  section.append(heading,grid);
+  if(title==='Programmable keys'){
+   const choices=el('details',undefined,'rt950-key-reference');
+   choices.append(el('summary','View assignment options'),renderKeyChoices(el,fields));section.append(choices);
+  }
+  panel.append(section);
  }
  function grouped(fields,groups){
   for(const [title,keys] of groups)group(title,keys.split(' ').map(k=>fields.find(f=>f.key===k)));

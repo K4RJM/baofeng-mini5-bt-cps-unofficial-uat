@@ -1,4 +1,5 @@
 import {getValue, settings} from './rt950-sections.mjs';
+import {renderKeyChoices} from './rt950-forms.mjs';
 
 const manual='https://cdn.shopify.com/s/files/1/0564/8855/8800/files/radtel-950PRO_2.pdf?v=1756451146';
 const product='https://www.radtels.com/products/radtel-rt-950-pro-27mhz-tx-rx-10w-walkie-talkie-am-fm-usb-lsb-cw-receive-gps-aprs-wireless-bluetooth-phone-programming-noaa-two-way-radio';
@@ -16,10 +17,10 @@ export function renderRt950Help(target,image){
  function link(text,url){
   const a=el('a',text);a.href=url;a.target='_blank';a.rel='noopener noreferrer';return a;
  }
- function assignment(key){
+ function assignment(action,key){
   const field=settings.find(f=>f.key===key),value=getValue(image.settings,field);
-  if(value==='')return image.settings?'Unset in this workspace.':'Read the radio or open a workspace with Optional Features to see this assignment.';
-  return field.options[value]??'Unknown assignment ('+value+').';
+  const current=value===''?(image.settings?'Unset':'No settings loaded'):(field.options[value]??'Radio value '+value);
+  return [action,'Current assignment — '+current,field];
  }
  const workspace=el('div',null,'help-workspace rt950-help');
  const tutorial=el('section',null,'help-tutorial-host radio-tutorial-card');
@@ -45,6 +46,8 @@ export function renderRt950Help(target,image){
   function show(){
    panel.replaceChildren(el('h3',title,'tutorial-key-title'));
    for(const [action,description] of steps)panel.append(el('h4',action,'tutorial-action-title'),el('p',description));
+   const programmable=steps.flatMap(([, ,field])=>field?[field]:[]);
+   if(programmable.length)panel.append(renderKeyChoices(el,programmable));
    panel.scrollTop=0;for(const control of controls)control.classList.toggle('tutorial-active',control===shape);
   }
   shape.onmouseenter=show;shape.onfocus=show;shape.onclick=show;
@@ -59,8 +62,8 @@ export function renderRt950Help(target,image){
  const sideKeys=[
   ['PTT A',525,[['Hold','Transmit on line A. Release to listen.']]],
   ['PTT B',650,[['Hold','Transmit on line B. Release to listen.']]],
-  ['PF1 / PTT C',794,[['Short press',assignment('KeySide1')],['Long press',assignment('KeySide1L')],['Programming','Choose PTTC in Optional Features to use this side key for line C.']]],
-  ['PF2',888,[['Short press',assignment('KeySide2')],['Long press',assignment('KeySide2L')]]]
+  ['PF1 / PTT C',794,[assignment('Short press','KeySide1'),assignment('Long press','KeySide1L')]],
+  ['PF2',888,[assignment('Short press','KeySide2'),assignment('Long press','KeySide2L')]]
  ];
  for(const [label,y,steps] of sideKeys){
   const g=svg('g',{class:'rt950-side-key'});
@@ -79,7 +82,7 @@ export function renderRt950Help(target,image){
   let steps;
   if(key==='#')steps=[['Hold','Unlock the keypad when the lock icon is displayed.'],['Broadcast receiver','In frequency mode, press # to scan for a broadcast station.']];
   else if(key==='*')steps=[['Text entry','Use the space marking on this key when entering a channel name.']];
-  else steps=[['Press','Enter '+key+' when keying in a frequency or number.'],['Long press',assignment('Key'+key+'L')]];
+  else steps=[['Press','Enter '+key+' when keying in a frequency or number.'],assignment('Long press','Key'+key+'L')];
   face(keys,[207,310,413][i%3],[900,970,1041,1111][Math.floor(i/3)],87,42,'Key '+key,steps);
  }
  zoom.onclick=()=>{
