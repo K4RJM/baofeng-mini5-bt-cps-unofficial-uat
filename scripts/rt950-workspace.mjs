@@ -2,7 +2,7 @@ import {BLOCK, EMPTY_REC, LAYOUTS, LOW_LIMIT, REC, ZN_ADDR, blockBefore, section
 import {appendCsv, blankImage, channel, fullChannel, channelMenus, editRecord, exportZoneCsv, openBackup, overlayChanges, powers, record, renameZone, saveBackup, zoneName} from './rt950-channels.mjs';
 import {renderSection} from './rt950-forms.mjs';
 import {validateSettings} from './rt950-sections.mjs';
-import {renderRt950Help} from './rt950-help.mjs';
+import {renderRt950Help,rt950Photo} from './rt950-help.mjs';
 
 const columns=[['name','Name'],['rx','RX MHz'],['tx','TX MHz'],['rxTone','RX tone'],['txTone','TX tone'],['signal','Signalling'],['ptt','PTT-ID'],['power','TX power'],['scramble','Scramble'],['learn','Learn FHSS'],['bandwidth','Bandwidth'],['encryption','Encryption'],['lock','Busy lockout'],['scan','Scan add'],['rxMode','RX modulation'],['fhss','FHSS code']];
 const pages={'Channels':'☷','Optional Features':'⚙','VFO A / B / C':'⇄','DTMF':'▦','FM / AM / SSB':'♫','APRS':'⌖','Radio & help':'ⓘ'};
@@ -378,9 +378,17 @@ export function createRt950Workspace({run,refresh,message,fileTools}){
  }
  return {
   select(selected){
-   if(active&&!selected){disconnect();$('brandRadioImage').parentElement.classList.remove('rt950-brand-image');}
+   const image=$('brandRadioImage'),holder=image.parentElement;
+   if(active&&!selected){
+    disconnect();holder.querySelector('svg')?.remove();holder.classList.remove('rt950-brand-image');
+   }
    active=selected;if(!active)return;
-   const image=$('brandRadioImage');image.src='assets/rt950pro.jpg';image.alt='Radtel RT-950 Pro';image.parentElement.classList.remove('uv32-brand-image');image.parentElement.classList.add('rt950-brand-image');screen='Channels';render();message(status);
+   if(!holder.querySelector('svg')){
+    const photo=rt950Photo(image.ownerDocument,'rt950-picker-housing');
+    photo.setAttribute('aria-hidden','true');holder.append(photo);
+   }
+   holder.classList.remove('uv32-brand-image');holder.classList.add('rt950-brand-image');
+   screen='Channels';render();message(status);
   },
   connect:()=>run(connect),
   help(){screen='Radio & help';render();},
