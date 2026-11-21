@@ -17,14 +17,39 @@ function importedBytes(c){
  writeValue(bytes,{type:'name',offset:20,length:12,label:'Channel name'},c.name??'');
  return bytes;
 }
-export function importChannels({files,layout,zone,image,fileTools,apply,modelName='RT-950 Pro'}){
+export function importChannels({files,layout,zone,image,fileTools,apply,replacing=false,modelName='RT-950 Pro'}){
  const {zones,per}=LAYOUTS[layout],named=files.length===1?zoneFromFilename(files[0].name):null;
- if(named&&(named.zone<1||named.zone>zones))throw Error('The CSV zone is outside this firmware layout.');
- const start=named?.zone??zone;
+ const start=zone;
  const current={channelList:[Array.from({length:zones*per},(_,i)=>commonChannel(record(image,layout,i)))],pending:(image.overflow??[]).map(h=>commonChannel(hex(h)))};
- const makePlan=(data,source,prefs)=>planBankedImport(data,source,prefs,{zones,per,label:'Zone',key:duplicateKey});
+ function makePlan(data,source,prefs){
+  const capacity=zones*per;
+  const numbered=replacing&&source.some(c=>c.sourceLocation!==undefined&&c.sourceLocation!=='');
+  if(replacing&&!numbered&&source.some(c=>c.sourceZone))return planBankedImport(data,source,{...prefs,replacing:true},{zones,per,label:'Zone',key:duplicateKey});
+  const notice=replacing?(numbered?'CHIRP Location gives the destination channel number. Unlisted slots are cleared.':'Selected rows replace the channel list in file order starting at channel 1.'):
+   'Channels are added in file order after the last programmed channel in this workspace.';
+  const existing=data.channelList[0],pending=data.pending??[];
+  const known=new Set(),used=new Set(),placed=[],slots=[],extra=[];
+  const skip=!replacing&&prefs.skipDuplicates;
+  if(skip)for(const c of [...existing,...pending])if(c.rxFreq)known.add(duplicateKey(c));
+  let next=replacing?1:existing.findLastIndex(c=>c.rxFreq)+2;
+  if(!replacing&&pending.length)next=capacity+1;
+  let duplicates=0,error='';
+  for(const c of source){
+   if(skip){const key=duplicateKey(c);if(known.has(key)){duplicates++;continue;}known.add(key);}
+   const slot=numbered?Number(c.sourceLocation):next++;
+   if(!Number.isSafeInteger(slot)||slot<1){error='Use positive whole CHIRP Location numbers starting at 1.';break;}
+   if(used.has(slot)){error='More than one selected row uses CHIRP Location '+slot+'.';break;}
+   used.add(slot);
+   if(slot>capacity)extra.push(c);else{placed.push(c);slots.push(slot);}
+  }
+  if(!used.size&&!error)error=duplicates?'All matching channels are already present.':'Select at least one analog channel.';
+  const summary=[];
+  for(let z=1;z<=zones;z++){const n=slots.filter(slot=>Math.ceil(slot/per)===z).length;if(n)summary.push('Zone '+z+' · '+n);}
+  if(extra.length)summary.push(extra.length+' over capacity');
+  return {channels:placed.concat(extra),slots,duplicates,overflow:extra.length,notice,error,summary:summary.join(' / ')};
+ }
  return fileTools.openChannelAppend({
-  mode:'append',initialFile:files,capacity:zones*per,getData:()=>current,bankImport:{start,count:zones,label:'Zone',plan:makePlan},
+  mode:replacing?'replace':'append',initialFile:files,capacity:zones*per,getData:()=>current,bankImport:{start,count:zones,label:'Zone',plan:makePlan,skipDuplicates:false,appendAtEnd:true,allowChannelImages:true},
   async readFile(file,settings){
    const target={...settings,model:modelName,charset:[[32,126,1]],validateFrequency:v=>Number(v)>=18&&Number(v)<1000?'':'Frequency must be from 18 to below 1000 MHz.'};
    let result;
@@ -47,6 +72,10 @@ export function importChannels({files,layout,zone,image,fileTools,apply,modelNam
     });
     result={kind:'csv',format,channels,rows:channels.map((c,i)=>({line:i+1,channel:c,sourceName:c.name,notes:[]})),emptyRows:0,notes:['Only channel memories are imported.']};
    }else result=await fileTools.readChannelFile(file,target);
+   if(replacing&&result.format==='CHIRP'){
+    result.notes=result.notes.map(n=>n.replace('Source channel numbers, comments','Comments'));
+    for(const row of result.rows)if(row.channel&&row.location!==undefined)row.channel.sourceLocation=row.location;
+   }
    for(const row of result.rows)if(row.channel){
     try{importedBytes(row.channel);}catch(e){row.channel=null;row.error=e.message;}
    }
@@ -55,10 +84,11 @@ export function importChannels({files,layout,zone,image,fileTools,apply,modelNam
   },
   onApply(_data,plan){
    const out={...image,ch:image.ch.slice()},bytes=plan.channels.map(importedBytes);
+   if(replacing){out.replaceChannelList=true;for(let i=0;i<zones*per;i++)record(out,layout,i).set(EMPTY_REC);}
    plan.slots.forEach((slot,i)=>record(out,layout,slot-1).set(bytes[i]));
-   out.overflow=[...(image.overflow??[]),...bytes.slice(plan.slots.length).map(toHex)];
-   const first=plan.slots.length?Math.floor((plan.slots[0]-1)/per)+1:start;
-   if(named?.name&&LAYOUTS[layout].zoneNames&&!zoneName(out,layout,first)){
+   out.overflow=[...(replacing?[]:image.overflow??[]),...bytes.slice(plan.slots.length).map(toHex)];
+   const first=plan.slots.length?Math.floor((Math.min(...plan.slots)-1)/per)+1:start;
+   if(!replacing&&named?.name&&named.zone===first&&LAYOUTS[layout].zoneNames&&!zoneName(out,layout,first)){
     out.zn=image.zn.slice();renameZone(out,layout,first,named.name);
    }
    apply(out,plan,first);

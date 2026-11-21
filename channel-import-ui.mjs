@@ -14,17 +14,18 @@ export function replaceImportedChannels(current,channels,capacity=999){
 export function openChannelAppend({mode='preset',initialFile=null,getData,readFile,onApply,capacity=999,bankImport=null}){
  const dialog=$('appendDialog');generation++;let imported=null,loading=false,fileError='',closed=false,csv=null,csvFile=null,csvPage=0,chosen=new Set();
  const replacing=mode==='replace',isDat=mode!=='preset';
+ const listFilesOnly=replacing&&!bankImport?.allowChannelImages;
  $('appendTitle').textContent=replacing?'Import channels':isDat?'Append channels':'Add channel preset';
- $('appendIntro').textContent=replacing?'Replace the channel list; keep current radio settings.':'Choose a channel set and an empty destination.';
+ $('appendIntro').textContent=replacing?'Replace the channel list; keep current radio settings.':bankImport?.appendAtEnd?'Add channels after the last programmed channel in this workspace.':'Choose a channel set and an empty destination.';
  $('appendPresetField').hidden=isDat;$('appendDatField').hidden=!isDat;$('appendTransmitRow').hidden=isDat;$('appendRepeaterField').hidden=isDat;
- $('appendPlacementField').hidden=replacing;$('appendSkipRow').hidden=replacing;$('replaceConfirmRow').hidden=true;$('replaceConfirm').checked=false;
+ $('appendPlacementField').hidden=replacing||!!bankImport?.appendAtEnd;$('appendSkipRow').hidden=replacing;$('replaceConfirmRow').hidden=true;$('replaceConfirm').checked=false;
  $('appendApply').textContent=replacing?'Replace channels':'Add to channels';
- $('appendFileLabel').textContent=replacing?'Channel list (.csv, .tsv, .hmk or .rdt)':'Channel file (.dat, .img, .csv, .tsv, .hmk or .rdt)';
+ $('appendFileLabel').textContent=listFilesOnly?'Channel list (.csv, .tsv, .hmk or .rdt)':'Channel file (.dat, .img, .csv, .tsv, .hmk or .rdt)';
  $('appendDat').multiple=!!bankImport;
  if(bankImport)$('appendFileLabel').textContent+=' · select the matching zone CSV with the channel CSV when available';
- $('appendDat').accept=replacing?'.csv,.tsv,.hmk,.rdt':'.dat,.img,.csv,.tsv,.hmk,.rdt';
+ $('appendDat').accept=listFilesOnly?'.csv,.tsv,.hmk,.rdt':'.dat,.img,.csv,.tsv,.hmk,.rdt';
  $('appendPreset').replaceChildren(...PRESETS.map(p=>option(p.key,p.label)));$('appendPreset').value='shared';
- $('appendPlacement').value='next';$('appendSkip').checked=true;$('appendPower').value='1';$('appendRepeaters').checked=false;$('appendDat').value='';
+ $('appendPlacement').value='next';$('appendSkip').checked=bankImport?.skipDuplicates??true;$('appendPower').value='1';$('appendRepeaters').checked=false;$('appendDat').value='';
  $('csvReview').hidden=true;$('csvPower').value='1';$('csvPartial').checked=false;dialog.classList.remove('csv-import-dialog');
  if(bankImport&&!replacing){
   $('appendPlacement').replaceChildren(...Array.from({length:bankImport.count??10},(_,i)=>option(i+1,'Start in '+(bankImport.label??'Bank')+' '+(i+1))));
@@ -66,6 +67,7 @@ export function openChannelAppend({mode='preset',initialFile=null,getData,readFi
   $('appendNoticeText').textContent=replacing?'Selected rows become channels 1 onward. Remaining channel slots are cleared. Radio settings stay unchanged. Undo restores the previous channel list.':isDat?(csv?'Review the converted fields and notes below. Current radio settings stay unchanged. Before transmitting, check frequency permissions and power limits.':'Only populated channels are copied. Current optional settings, VFOs, DTMF and the extra file record stay unchanged. Imported transmit frequencies and power settings are preserved.'):preset.notice+(preset.key==='shared'&&$('appendRepeaters').checked?' Set repeater access tones.':'');
   $('appendPowerNote').hidden=isDat;$('appendPowerNote').textContent='Before transmitting, check local regulations, licensing and equipment approval. High / Low settings do not guarantee these power limits.';
   $('appendRules').hidden=isDat;$('appendRules').href=preset.rules;
+  if(plan.notice)$('appendNoticeText').textContent=plan.notice;
   $('appendRange').textContent=loading?'Reading channel file…':isDat&&!imported?'Choose a channel file to preview placement':plan.summary|| (plan.error?'No channels will be changed':`${plan.channels.length} channel${plan.channels.length===1?'':'s'} → ${plan.start===plan.end?plan.start:plan.start+'–'+plan.end}`);
   $('appendCounts').textContent=replacing?existing+' existing channels will be replaced · radio settings preserved':loading||isDat&&!imported?'Existing channels stay in place.':`${plan.duplicates} matching channels skipped · existing channels preserved`;
   $('appendErrors').textContent=fileError||(!loading&&(!isDat||imported)?plan.error:'');$('appendErrors').hidden=!$('appendErrors').textContent;
@@ -77,7 +79,7 @@ export function openChannelAppend({mode='preset',initialFile=null,getData,readFi
   const file=Array.isArray(selection)?selection.length>1?{name:selection.map(f=>f.name).join(' + '),zoneFiles:selection}:selection[0]:selection;
   if(!file)return;const request=++generation;imported=null;fileError='';loading=true;csv=null;csvFile=null;chosen.clear();csvPage=0;$('csvPartial').checked=false;$('replaceConfirm').checked=false;renderCsv();update();
   $('appendFileLabel').textContent=(replacing?'Channel list: ':'Channel file: ')+file.name;
-  try{if(!(replacing?/\.(csv|tsv|hmk|rdt)$/i:/\.(dat|img|csv|tsv|hmk|rdt)$/i).test(file.name))throw Error(replacing?'Choose CSV, TSV, HMK or supported AnyTone RDT here. Use Import file for a complete DAT/IMG configuration.':'Choose a native CPS .dat, a compatible .img or a supported CSV / TSV / HMK / RDT file.');const next=await readFile(file,{defaultPower:Number($('csvPower').value)});if(closed||request!==generation)return;
+  try{if(!(listFilesOnly?/\.(csv|tsv|hmk|rdt)$/i:/\.(dat|img|csv|tsv|hmk|rdt)$/i).test(file.name))throw Error(listFilesOnly?'Choose CSV, TSV, HMK or supported AnyTone RDT here. Use Import file for a complete DAT/IMG configuration.':'Choose a native CPS .dat, a compatible .img or a supported CSV / TSV / HMK / RDT file.');const next=await readFile(file,{defaultPower:Number($('csvPower').value)});if(closed||request!==generation)return;
    if(next.kind==='csv'||next.kind==='rdt'){csv=next;csvFile=file;imported=next.channels;chosen=new Set(next.rows.flatMap((r,i)=>r.channel?[i]:[]));renderCsv();}else imported=datChannels(next);}
   catch(e){if(closed||request!==generation)return;fileError='File not loaded. '+e.message;}
   finally{if(!closed&&request===generation){loading=false;update();}}

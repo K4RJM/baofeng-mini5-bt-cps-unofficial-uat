@@ -11,7 +11,7 @@ import {renderRt950Help,rt950Photo} from './rt950-help.mjs';
 const columns=[['name','Name'],['rx','RX MHz'],['tx','TX MHz'],['rxTone','RX tone'],['txTone','TX tone'],['signal','Signalling'],['ptt','PTT-ID'],['power','TX power'],['scramble','Scramble'],['learn','Learn FHSS'],['bandwidth','Bandwidth'],['encryption','Encryption'],['lock','Busy lockout'],['scan','Scan add'],['rxMode','RX modulation'],['fhss','FHSS code']];
 const pages={'Channels':'☷','Optional Features':'⚙','VFO A / B / C':'⇄','DTMF':'▦','FM / AM / SSB':'♫','APRS':'⌖','Radio & help':'ⓘ'};
 const layoutNames={'990':'0.24+ · 10 zones × 99','960':'Earlier · 15 zones × 64'};
-const sameImage=(a,b)=>eq(a.ch,b.ch)&&eq(a.zn,b.zn)&&sections.every(({key})=>
+const sameImage=(a,b)=>!!a.replaceChannelList===!!b.replaceChannelList&&eq(a.ch,b.ch)&&eq(a.zn,b.zn)&&sections.every(({key})=>
  a[key]===b[key]||(a[key]&&b[key]&&eq(a[key],b[key])));
 const emptyImage=blankImage();
 
@@ -19,11 +19,11 @@ export function workspaceBlocks(target,layout,hasChannelImage,state){
  const baseline=state?.baseline;
  const pending=state?.pending??[];
  const unchanged=baseline&&sameImage(baseline,target);
- // With no radio snapshot, a backup owns its supplied sections. A new channel
- // list owns only the blocks populated in the editor.
+ // A replacement owns every editable channel, including the empty slots.
+ // Manually added channels without a snapshot own only their edited blocks.
  const reference=(!hasChannelImage&&unchanged?null:baseline)??emptyImage;
- const sendTable=hasChannelImage&&(!baseline||(unchanged&&!pending.length));
- const blocks=planWrites(reference,target,layout,true,sendTable);
+ const sendTable=(target.replaceChannelList&&!state?.complete)||((hasChannelImage||target.replaceChannelList)&&(!baseline||(unchanged&&!pending.length)));
+ const blocks=planWrites(reference,target,layout,true,sendTable,hasChannelImage&&sendTable);
  // A backup can supply sections the previous radio image does not contain.
  // Send those captured bytes, including APRS in its separate address space.
  for(const region of sections){
@@ -39,17 +39,17 @@ export function workspaceBlocks(target,layout,hasChannelImage,state){
   const {zones,per}=LAYOUTS[layout];
   for(const b of blocks){
    const end=b.addr>=ZN_ADDR?ZN_ADDR+zones*16:zones*per*REC;
-   if(b.addr+BLOCK>end)throw Error('This last block includes bytes beyond the editable slots. Open a saved radio backup to preserve those bytes when writing it.');
+   if(!(target.replaceChannelList&&b.addr<ZN_ADDR)&&b.addr+BLOCK>end)throw Error('This last block includes bytes beyond the editable slots. Open a saved radio backup to preserve those bytes when writing it.');
   }
  }
  // A factory DAT describes 990 memories and 10 names. Preserve the radio's
  // padding in the two partly occupied blocks, even when reconnecting.
  function preserveTail(b){
-  if(!target.factoryDat||b.region)return b;
+  if(b.region||!(target.factoryDat||target.replaceChannelList&&b.addr<ZN_ADDR))return b;
   const end=b.addr>=ZN_ADDR?ZN_ADDR+LAYOUTS[layout].zones*16:LAYOUTS[layout].zones*LAYOUTS[layout].per*REC;
   return b.addr+BLOCK>end?{...b,preserveFrom:end-b.addr}:b;
  }
- if(!pending.length)return target.factoryDat?blocks.map(preserveTail):blocks;
+ if(!pending.length)return blocks.map(preserveTail);
  // An edit undone after an interruption may already have reached the radio.
  const address=b=>(b.region||'memory')+'/'+b.addr;
  const retry=new Map(pending.filter(b=>!b.region||target[b.region]).map(b=>[address(b),blockBefore(target,b)]));
@@ -64,7 +64,10 @@ export function createRt950Workspace({run,refresh,message,fileTools,profile=rt95
  function choices(options,value){const input=el('select');for(const [key,title] of options)input.add(new Option(title,key));input.value=value;return input;}
  function sidebar(id,title,action){const b=button(title,action);b.id=profile.id==='rt950pro'?id:id.replace(/^rt950/,profile.id);b.hidden=true;$('uatUv32Import').before(b);return b;}
  const input=el('input');input.type='file';input.multiple=true;input.accept='.dat,.json,.csv,.tsv,.hmk,.rdt,.img';input.hidden=true;$('uatUv32Import').before(input);
- const open=sidebar('rt950Open','↥ Import file',()=>input.click());
+ let appendSelected=false;
+ function chooseFile(append){appendSelected=append;input.accept=append?'.csv,.tsv,.hmk,.rdt,.img,.dat':'.dat,.json,.csv,.tsv,.hmk,.rdt,.img';input.click();}
+ const open=sidebar('rt950Open','↥ Import file',()=>chooseFile(false));
+ const append=sidebar('rt950Append','＋ Append channels',()=>chooseFile(true));
  const dat=sidebar('rt950SaveDat',profile.id==='rt950pro'?'↧ Save CPS .dat':'↧ Save Radtel .dat',()=>run(async()=>{
   if(draft.overflow?.length)throw Error(capacityMessage());
   fileTools.save(saveNative(draft,layout,nativeTemplate),'rt950pro-edited.dat','application/octet-stream');
@@ -88,7 +91,7 @@ export function createRt950Workspace({run,refresh,message,fileTools,profile=rt95
  const hasWorkspace=()=>hasChannelImage||!!draft.overflow?.length||!sameImage(emptyImage,draft)||!!radioState()?.pending?.length||!!radios.get(lastCablePort)?.pending?.length||!sameImage(base,draft);
  let status='Choose the firmware layout shown in Menu › About. Connect to read your radio, or edit channels here.';
  const note=text=>{status=text;if(active)message(text);};
- function download(image,name){if(image)fileTools.save(saveBackup(image,layout,profile),name,'application/json');}
+ function download(image,name){if(image)fileTools.save(saveBackup(image,layout,profile,!hasChannelImage&&image===draft&&!!image.replaceChannelList),name,'application/json');}
  function commit(next,text,repaint=true){
   if(!sameImage(draft,next)||draft.overflow!==next.overflow){history.push(draft);if(history.length>20)history.shift();draft=next;}
   note(text);if(repaint)render();refresh();
@@ -133,7 +136,8 @@ export function createRt950Workspace({run,refresh,message,fileTools,profile=rt95
   if(merge&&missing.some(k=>draft[k]&&(restoreFile||!base[k]||!eq(base[k],draft[k])))){
    throw Error('Some settings could not be read. Your staged workspace was kept.');
   }
-  const next=merge?overlayChanges(fresh,restoreFile?fresh:base,draft,layout):fresh;
+  const prior=restoreFile?(draft.replaceChannelList&&!hasChannelImage?{...fresh,zn:emptyImage.zn}:fresh):base;
+  const next=merge?overlayChanges(fresh,prior,draft,layout):fresh;
   if(merge&&draft.overflow?.length)next.overflow=draft.overflow;
   if(merge&&draft.factoryDat)next.factoryDat=true;
   if(!merge)nativeTemplate=null;
@@ -158,7 +162,7 @@ export function createRt950Workspace({run,refresh,message,fileTools,profile=rt95
   const count=blocks.length+' block'+(blocks.length===1?'':'s');
   const scope=!baseline&&hasChannelImage?'Replace the channel table and all sections present in this workspace':
    unchanged&&hasChannelImage&&!state?.pending?.length?'Write back the channel table'+(LAYOUTS[layout].zoneNames?' and zone names':''):'Write the selected workspace blocks';
-  const detail=!hasChannelImage?' Each channel block replaces four adjacent slots, including any empty slots in the block.':'';
+  const detail=target.replaceChannelList?' The workspace channel order replaces the radio channel list.':!hasChannelImage?' Each channel block replaces four adjacent slots, including any empty slots in the block.':'';
   if(!confirm(scope+' ('+count+') on '+(port?'the RT-950 Pro on the selected cable':profile.name+(session.device.name?' ('+session.device.name+')':''))+' using '+layoutNames[layout]+'?'+detail+(high?' This includes channels 961–990. Confirm firmware 0.24 or later.':'')))return;
   let acknowledged=0;
   note(port?'Starting cable write…':session.device.gatt.connected?'Starting write…':'Reconnecting to write…');
@@ -184,18 +188,19 @@ export function createRt950Workspace({run,refresh,message,fileTools,profile=rt95
   note('Write complete. The radio acknowledged '+count+'.');render();
  }
  input.onchange=()=>{
-  const files=Array.from(input.files??[]),file=files[0];input.value='';if(!file)return;
+  const replacing=!appendSelected,files=Array.from(input.files??[]),file=files[0];input.value='';if(!file)return;
   run(async()=>{
    let saved;
-   if(files.length===1&&/\.json$/i.test(file.name)){
+   if(replacing&&files.length===1&&/\.json$/i.test(file.name)){
     if(file.size>4*1024*1024)throw Error('Select a workspace smaller than 4 MB.');
     saved=openBackup(await file.text(),layout,profile);
    }else if(files.length===1&&/\.dat$/i.test(file.name)&&new TextDecoder().decode(await file.slice(0,140).arrayBuffer()).includes('BT-RT950PRO_CPS,')){
+    if(!replacing)throw Error('Use Import file to open a full Radtel CPS DAT.');
     if(file.size>=2000000)throw Error('Select a Radtel DAT smaller than 2 MB.');
     saved=openNative(new Uint8Array(await file.arrayBuffer()));
    }else{
     const image=draft;
-    await importChannels({files,layout,zone,image,fileTools,modelName:profile.short,apply:(next,plan,first)=>{
+    await importChannels({files,layout,zone,image,fileTools,replacing,modelName:profile.short,apply:(next,plan,first)=>{
      if(!active||draft!==image)throw Error('The workspace changed. Reopen the channel import.');
      zone=first;search='';screen='Channels';
      commit(next,plan.channels.length+' analog channels imported.'+(next.overflow.length?' '+next.overflow.length+' over capacity.':''));
@@ -208,13 +213,15 @@ export function createRt950Workspace({run,refresh,message,fileTools,profile=rt95
    else for(const [key,known] of radios)if(!known.complete)radios.delete(key);
    if(!radioBase||saved.layout!==layout){layout=saved.layout;base=saved.image;draft=base;}
    else{
-    base=radioBase;draft=overlayChanges(radioBase,radioBase,saved.image,layout);
+    base=radioBase;
+    const prior=saved.channelListOnly?{...radioBase,zn:emptyImage.zn}:radioBase;
+    draft=overlayChanges(radioBase,prior,saved.image,layout);
     for(const {key} of sections)if(saved.image[key]&&!draft[key])draft[key]=saved.image[key];
     if(saved.image.factoryDat)draft.factoryDat=true;
     if(saved.image.overflow?.length)draft.overflow=saved.image.overflow;
    }
    nativeTemplate=saved.native??null;
-   history=[];hasChannelImage=true;restoreFile=true;
+   history=[];hasChannelImage=!!radioBase||!saved.channelListOnly;restoreFile=true;
    zone=1;search='';screen='Channels';render();note(saved.native?'Radtel CPS DAT opened. Channels and settings are ready.':'Backup opened. Review the workspace before writing.');
   });
  };
@@ -470,7 +477,7 @@ export function createRt950Workspace({run,refresh,message,fileTools,profile=rt95
   connect:()=>run(connect),
   help(){screen='Radio & help';render();},
   sync(selected,busy){
-   for(const b of [open,dat,save,read,cableRead,write,cableWrite,backup]){b.hidden=!selected;b.disabled=busy;}
+   for(const b of [open,append,dat,save,read,cableRead,write,cableWrite,backup]){b.hidden=!selected;b.disabled=busy;}
    if(!selected)return;
    cableRead.hidden=cableWrite.hidden=!profile.cable;
    const connected=!!link?.device?.gatt.connected;

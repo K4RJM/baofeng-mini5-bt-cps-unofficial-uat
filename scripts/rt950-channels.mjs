@@ -124,11 +124,12 @@ export function renameZone(image,layout,zone,name){
 // the two non-channel records in the block shared with channels 989 and 990.
 export function overlayChanges(target,before,after,layout){
  const result={...target,ch:target.ch.slice(),zn:target.zn.slice()};
+ if(after.replaceChannelList)result.replaceChannelList=true;
  for(const section of sections)if(target[section.key])result[section.key]=target[section.key].slice();
  overlaySettings(result,before,after);
  const {zones,per,zoneNames}=layoutFor(layout);
  for(let i=0;i<zones*per;i++){
-  const a=record(before,layout,i),b=record(after,layout,i),out=record(result,layout,i);
+  const a=record(after.replaceChannelList?target:before,layout,i),b=record(after,layout,i),out=record(result,layout,i);
   if(eq(a,b))continue;
   const empty=channel(b).rx==='';
   if(empty&&!b.subarray(0,4).every(v=>v===255)&&!b.subarray(0,4).every(v=>v===0))throw Error('Invalid receive frequency in channel '+(i+1)+'.');
@@ -150,9 +151,9 @@ export function overlayChanges(target,before,after,layout){
  }
  return result;
 }
-export function saveBackup(image,layout,profile=rt950Models.rt950pro){
+export function saveBackup(image,layout,profile=rt950Models.rt950pro,channelListOnly=false){
  layoutFor(layout);
- return JSON.stringify({...JSON.parse(backupJSON(image).text),radioProfile:profile.id,firmwareLayout:layout,...(image.factoryDat?{factoryDat:true}:{}),...(image.overflow?.length?{overCapacity:image.overflow}:{})});
+ return JSON.stringify({...JSON.parse(backupJSON(image).text),...(channelListOnly?{channelListOnly:true}:{}),radioProfile:profile.id,firmwareLayout:layout,...(image.factoryDat?{factoryDat:true}:{}),...(image.overflow?.length?{overCapacity:image.overflow}:{})});
 }
 export function openBackup(text,fallback,profile=rt950Models.rt950pro){
  const obj=JSON.parse(text);
@@ -172,6 +173,7 @@ export function openBackup(text,fallback,profile=rt950Models.rt950pro){
   image.overflow=obj.overCapacity;
  }
  for(const r of sections)if(Object.hasOwn(obj.segments,segmentKey(r)))image[r.key]=decode(segmentKey(r),r.length);
+ if(obj.channelListOnly===true){image.replaceChannelList=true;return {layout,image,channelListOnly:true};}
  return {layout,image};
 }
 export function appendCsv(image,layout,startZone,text,filename){

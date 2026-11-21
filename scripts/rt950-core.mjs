@@ -230,11 +230,11 @@ export {toneBytes,tone};
     }
     return out;
   }
-  function planWrites(image, target, layout, allowHigh, includeUnchanged = false) {
+  function planWrites(image, target, layout, allowHigh, includeUnchanged = false, includeZoneNames = includeUnchanged) {
     const L = LAYOUTS[layout];
     let blocks = channelBlocks(image.ch, target.ch, CH_ADDR, L.chMax, includeUnchanged);
     if (blocks.some(b => b.addr >= LOW_LIMIT) && !allowHigh) throw new Error("plan touches channels 961-990 without permission");
-    if (L.zoneNames) blocks = blocks.concat(channelBlocks(image.zn, target.zn, ZN_ADDR, L.zones * 16, includeUnchanged));
+    if (L.zoneNames) blocks = blocks.concat(channelBlocks(image.zn, target.zn, ZN_ADDR, L.zones * 16, includeZoneNames));
     for (const b of blocks) if (!(b.addr < 0x7C00 || (b.addr >= ZN_ADDR && b.addr < ZN_ADDR + ZN_LEN))) throw new Error("internal: illegal address " + b.addr);
     for(const region of sections){
       if(!image[region.key]||!target[region.key])continue;

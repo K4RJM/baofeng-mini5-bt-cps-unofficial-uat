@@ -117,8 +117,9 @@ function nameFor(value,charset,notes){
   if(bytes+range[2]>12){notes.push('Name shortened to 12 encoded bytes.');break;}out+=char;bytes+=range[2];
  }return out;
 }
+const rt950Family=model=>model==='RT-950 Pro'||model==='BJ-9000';
 function power(value,defaultPower,notes,model){const p=upper(value);if(['HIGH','H'].includes(p))return 0;if(['LOW','L'].includes(p))return 1;
- if((model==='UV-32'||model==='RT-950 Pro')&&['MID','MED','MEDIUM','M'].includes(p))return 2;
+ if((model==='UV-32'||rt950Family(model))&&['MID','MED','MEDIUM','M'].includes(p))return 2;
  notes.push((p?'Power “'+value+'” has no exact '+model+' equivalent':'Power not specified')+'; using '+(defaultPower?'Low':'High')+'.');return defaultPower;
 }
 function bandwidth(value,notes){const v=upper(value).replace(/[\s]/g,'');if(['FM','25','25K','25.0KHZ','25KHZ','25000','WIDE'].includes(v))return 0;if(['NFM','FMN','FMNARROW','12.5','12.5K','12.5KHZ','12500','NARROW'].includes(v))return 1;
@@ -147,13 +148,13 @@ function convert(profile,cells,options,charset,defaultPower,model,validateFreque
   rx=g('Output Freq');tx=g('Input Freq');name=g('Call');mode=g('Modes');analog(mode,true,notes);bw='FM';
   txTone=tone(g('Uplink Tone'),choices);rxTone=tone(g('Downlink Tone'),choices);
  }else if(id==='chirp'||id==='icom'){
-  rx=g('Frequency');name=g('Name');mode=g('Mode');if(!(model==='RT-950 Pro'&&upper(mode)==='AM'))analog(mode,false,notes);bw=upper(mode)==='AM'?'FM':mode;p=g('Power');scan=g('Skip');
+  rx=g('Frequency');name=g('Name');mode=g('Mode');if(!(rt950Family(model)&&upper(mode)==='AM'))analog(mode,false,notes);bw=upper(mode)==='AM'?'FM':mode;p=g('Power');scan=g('Skip');
   const chirp=id==='chirp',toneMode=g(chirp?'Tone':'TONE');
   // CHIRP TSQL uses cToneFreq on both sides; DTCS uses DtcsCode on both.
   [txTone,rxTone]=tonesByMode(toneMode,{tx:g(chirp?(upper(toneMode)==='TSQL'?'cToneFreq':'rToneFreq'):'Repeater Tone'),rx:g(chirp?'cToneFreq':'TSQL Frequency'),dc:g(chirp?'DtcsCode':'DTCS Code'),rdc:chirp&&upper(toneMode)==='DTCS'?g('DtcsCode'):g('RxDtcsCode'),pol:g(chirp?'DtcsPolarity':'DTCS Polarity')||'NN',cross:g('CrossMode')},choices);
   tx=duplexTx(frequency(rx),g(chirp?'Duplex':'Dup'),g('Offset'),notes);
  }else if(id==='rt'){
-  rx=g('Receive Frequency');tx=g('Transmit Frequency');name=g('Name');mode=g('Operating Mode')||'FM';if(!(model==='RT-950 Pro'&&upper(mode)==='AM'))analog(mode,false,notes);bw=upper(mode)==='AM'?'FM':mode;p=g('Power');scan=g('Skip');
+  rx=g('Receive Frequency');tx=g('Transmit Frequency');name=g('Name');mode=g('Operating Mode')||'FM';if(!(rt950Family(model)&&upper(mode)==='AM'))analog(mode,false,notes);bw=upper(mode)==='AM'?'FM':mode;p=g('Power');scan=g('Skip');
   const commentModes=g('Comment').match(/Modes:\s*(.+)$/i);if(commentModes)analog(commentModes[1],true,notes);
   if(!g('Operating Mode'))notes.push('No operating-mode column; importing as FM.');
   [txTone,rxTone]=tonesByMode(g('Tone Mode'),{tx:g('CTCSS'),rx:g('Rx CTCSS'),dc:g('DCS'),rdc:g('Rx DCS'),pol:'NN'},choices);
@@ -202,15 +203,15 @@ function convert(profile,cells,options,charset,defaultPower,model,validateFreque
  ch.rxFreq=checkedFrequency(frequency(rx,id==='btech'));
  ch.txFreq=rxOnly?'':(['chirp','icom','hmk','kenwood','generic'].includes(id)?tx:directTx(tx,id==='btech',notes));if(rxOnly)notes.push('Transmit disabled by source.');
  if(id==='adms'&&ch.txFreq!==duplexTx(frequency(rx),g(4),g(3),[]))fail('ADMS transmit frequency conflicts with its offset.');
- if(model==='RT-950 Pro'&&upper(mode)==='AM')ch.rxMode='AM';
+ if(rt950Family(model)&&upper(mode)==='AM')ch.rxMode='AM';
  ch.name=nameFor(name,charset,notes);ch.strRxCtsDcs=rxTone;ch.strTxCtsDcs=txTone;ch.txPower=power(p,defaultPower,notes,model);ch.bandwide=bandwidth(bw,notes);
  if(['','OFF','0','NO'].includes(upper(scan)))ch.scanAdd=1;else if(['S','SKIP','ON','1','YES','P','PSKIP'].includes(upper(scan)))ch.scanAdd=0;else fail('Unsupported scan setting: '+scan+'.');
- if((model==='UV-32'||model==='RT-950 Pro')&&profile.heads){
+ if((model==='UV-32'||rt950Family(model))&&profile.heads){
   const grouping=g('Zone Name')||g('Zone')||g('Bank Name')||g('Bank')||g('Group Name')||(id==='kenwood'?g('Group'):'');
   const number=g('Group No')||(id==='kenwood'?g('Gn'):'');
   if(grouping||number)ch.sourceZone=grouping||'Group '+number;
  }
- return {channel:ch,notes,sourceName:name};
+ return {channel:ch,notes,sourceName:name,...(id==='chirp'?{location:g('Location')}:{})};
 }
 
 export function importChannelCsv(text,{options,charset,defaultPower=1,model='MINI-5',validateFrequency=channelFrequencyError}={}){
